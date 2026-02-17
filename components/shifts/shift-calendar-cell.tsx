@@ -52,8 +52,8 @@ export function ShiftCalendarCell({
             info.bgColor,
             info.color,
             isWeekend && "bg-red-50",
-            isToday && "ring-1 ring-primary",
-            isSelected && "ring-2 ring-primary bg-primary/10"
+            isToday && "ring-1 ring-primary z-10",
+            isSelected && "ring-2 ring-primary bg-primary/10 z-20"
           )}
         >
           {code ?? ""}

@@ -51,7 +51,7 @@ export function ShiftCalendar({
               <div
                 key={day.toISOString()}
                 className={cn(
-                  "flex w-10 min-w-10 flex-col items-center border-r py-1 text-xs",
+                  "flex w-12 min-w-12 flex-col items-center border-r py-1 text-xs",
                   weekend && "bg-red-50 text-red-600",
                   today && "bg-primary/5 font-bold"
                 )}
@@ -97,7 +97,7 @@ export function ShiftCalendar({
                     const shift = emp.shifts[dateStr]
                     const cellKey = `${emp.employeeId}:${dateStr}`
                     return (
-                      <div key={dateStr} className="h-8 w-10 min-w-10">
+                      <div key={dateStr} className="h-8 w-12 min-w-12">
                         <ShiftCalendarCell
                           shift={shift}
                           isWeekend={checkWeekend(day)}
