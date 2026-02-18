@@ -126,19 +126,15 @@ export async function updateEmployeeRole(
       updateData.endDate = data.endDate ? new Date(data.endDate) : null
     }
 
-    const role = await prisma.employeeFunctionRole.findUnique({
+    const updatedRole = await prisma.employeeFunctionRole.update({
       where: { id },
+      data: updateData,
       select: { employeeId: true },
     })
 
-    await prisma.employeeFunctionRole.update({
-      where: { id },
-      data: updateData,
-    })
-
     revalidatePath("/roles")
-    if (role?.employeeId) {
-      revalidatePath(`/employees/${role.employeeId}`)
+    if (updatedRole.employeeId) {
+      revalidatePath(`/employees/${updatedRole.employeeId}`)
     }
     return { success: true }
   } catch (e: unknown) {

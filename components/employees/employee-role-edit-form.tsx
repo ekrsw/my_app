@@ -15,6 +15,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { updateEmployeeRole } from "@/lib/actions/role-actions"
 import { toast } from "sonner"
 import { Pencil } from "lucide-react"
+import { formatDateForInput } from "@/lib/date-utils"
 import type { EmployeeFunctionRole, FunctionRole } from "@/app/generated/prisma/client"
 
 type EmployeeRoleEditFormProps = {
@@ -31,7 +32,7 @@ export function EmployeeRoleEditForm({ employeeRole }: EmployeeRoleEditFormProps
     setLoading(true)
     
     const result = await updateEmployeeRole(employeeRole.id, {
-      isPrimary: form.get("isPrimary") === "true",
+      isPrimary: !!form.get("isPrimary"),
       startDate: (form.get("startDate") as string) || null,
       endDate: (form.get("endDate") as string) || null,
     })
@@ -43,12 +44,6 @@ export function EmployeeRoleEditForm({ employeeRole }: EmployeeRoleEditFormProps
       toast.success("役割を更新しました")
       setOpen(false)
     }
-  }
-
-  const formatDateForInput = (date: Date | string | null | undefined) => {
-    if (!date) return ""
-    const d = typeof date === "string" ? new Date(date) : date
-    return d.toISOString().split("T")[0]
   }
 
   return (
