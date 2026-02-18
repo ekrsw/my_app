@@ -3,12 +3,7 @@
 import { ColumnDef } from "@tanstack/react-table"
 import { Badge } from "@/components/ui/badge"
 import { RoleForm, RoleDeleteButton } from "./role-form"
-
-const ROLE_TYPE_LABELS: Record<string, string> = {
-  FUNCTION: "業務役割",
-  AUTHORITY: "監督権限",
-  POSITION: "役職",
-}
+import { ROLE_TYPE_LABELS } from "@/lib/constants"
 
 const ROLE_TYPE_VARIANTS: Record<string, "default" | "secondary" | "outline"> = {
   FUNCTION: "default",

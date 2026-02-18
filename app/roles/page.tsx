@@ -39,10 +39,10 @@ export default async function RolesPage({ searchParams }: { searchParams: Search
               <a href="/roles?tab=all">すべて</a>
             </TabsTrigger>
             <TabsTrigger value="function">
-              <a href="/roles?tab=function">業務役割</a>
+              <a href="/roles?tab=function">業務</a>
             </TabsTrigger>
             <TabsTrigger value="authority">
-              <a href="/roles?tab=authority">監督権限</a>
+              <a href="/roles?tab=authority">監督</a>
             </TabsTrigger>
             <TabsTrigger value="position">
               <a href="/roles?tab=position">役職</a>

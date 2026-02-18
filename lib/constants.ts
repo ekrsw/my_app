@@ -21,8 +21,8 @@ export function getShiftCodeInfo(code: string | null) {
 
 // 役割タイプのラベル
 export const ROLE_TYPE_LABELS: Record<string, string> = {
-  FUNCTION: "業務役割",
-  AUTHORITY: "監督権限",
+  FUNCTION: "業務",
+  AUTHORITY: "監督",
   POSITION: "役職",
 }
 
