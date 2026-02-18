@@ -101,6 +101,56 @@ export async function assignRole(data: {
   }
 }
 
+export async function updateEmployeeRole(
+  id: number,
+  data: {
+    isPrimary?: boolean
+    startDate?: string | null
+    endDate?: string | null
+  }
+) {
+  try {
+    const updateData: {
+      isPrimary?: boolean
+      startDate?: Date | null
+      endDate?: Date | null
+    } = {}
+
+    if (data.isPrimary !== undefined) {
+      updateData.isPrimary = data.isPrimary
+    }
+    if (data.startDate !== undefined) {
+      updateData.startDate = data.startDate ? new Date(data.startDate) : null
+    }
+    if (data.endDate !== undefined) {
+      updateData.endDate = data.endDate ? new Date(data.endDate) : null
+    }
+
+    const role = await prisma.employeeFunctionRole.findUnique({
+      where: { id },
+      select: { employeeId: true },
+    })
+
+    await prisma.employeeFunctionRole.update({
+      where: { id },
+      data: updateData,
+    })
+
+    revalidatePath("/roles")
+    if (role?.employeeId) {
+      revalidatePath(`/employees/${role.employeeId}`)
+    }
+    return { success: true }
+  } catch (e: unknown) {
+    if (e && typeof e === "object" && "code" in e && e.code === "P2002") {
+      return {
+        error: "この設定では制約違反が発生します。同一カテゴリの役割は1つしか持てません。",
+      }
+    }
+    return { error: "役割の更新に失敗しました" }
+  }
+}
+
 export async function unassignRole(id: number) {
   try {
     await prisma.employeeFunctionRole.update({
