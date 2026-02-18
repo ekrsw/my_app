@@ -69,7 +69,7 @@ export function GroupForm({ group }: GroupFormProps) {
           <DialogTitle>{isEdit ? "グループ編集" : "グループ作成"}</DialogTitle>
         </DialogHeader>
         <form action={handleSubmit} className="space-y-4">
-          <div>
+          <div className="space-y-2">
             <Label htmlFor="name">グループ名</Label>
             <Input
               id="name"

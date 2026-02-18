@@ -95,7 +95,7 @@ export function ShiftForm({ open, onOpenChange, shift, employeeId, date }: Shift
           <DialogTitle>{isEdit ? "シフト編集" : "シフト作成"}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
+          <div className="space-y-2">
             <Label htmlFor="shiftCode">シフトコード</Label>
             <Input
               id="shiftCode"
@@ -106,7 +106,7 @@ export function ShiftForm({ open, onOpenChange, shift, employeeId, date }: Shift
             />
           </div>
           <div className="grid grid-cols-2 gap-4">
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="startTime">開始時刻</Label>
               <Input
                 id="startTime"
@@ -115,7 +115,7 @@ export function ShiftForm({ open, onOpenChange, shift, employeeId, date }: Shift
                 defaultValue={timeToInput(shift?.startTime ?? null)}
               />
             </div>
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="endTime">終了時刻</Label>
               <Input
                 id="endTime"

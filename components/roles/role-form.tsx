@@ -88,7 +88,7 @@ export function RoleForm({ role }: RoleFormProps) {
           <DialogTitle>{isEdit ? "役割編集" : "役割作成"}</DialogTitle>
         </DialogHeader>
         <form action={handleSubmit} className="space-y-4">
-          <div>
+          <div className="space-y-2">
             <Label htmlFor="roleCode">役割コード *</Label>
             <Input
               id="roleCode"
@@ -99,7 +99,7 @@ export function RoleForm({ role }: RoleFormProps) {
               placeholder="例: UKETSUKE"
             />
           </div>
-          <div>
+          <div className="space-y-2">
             <Label htmlFor="roleName">役割名 *</Label>
             <Input
               id="roleName"
@@ -110,7 +110,7 @@ export function RoleForm({ role }: RoleFormProps) {
               placeholder="例: 受付"
             />
           </div>
-          <div>
+          <div className="space-y-2">
             <Label>分類 *</Label>
             <Select value={roleType} onValueChange={setRoleType}>
               <SelectTrigger>

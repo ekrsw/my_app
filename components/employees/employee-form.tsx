@@ -94,7 +94,7 @@ export function EmployeeForm({ groups, employee }: EmployeeFormProps) {
           <DialogTitle>{isEdit ? "従業員編集" : "従業員作成"}</DialogTitle>
         </DialogHeader>
         <form action={handleSubmit} className="space-y-4">
-          <div>
+          <div className="space-y-2">
             <Label htmlFor="name">氏名 *</Label>
             <Input
               id="name"
@@ -104,7 +104,7 @@ export function EmployeeForm({ groups, employee }: EmployeeFormProps) {
               maxLength={100}
             />
           </div>
-          <div>
+          <div className="space-y-2">
             <Label htmlFor="nameKana">カナ</Label>
             <Input
               id="nameKana"
@@ -113,7 +113,7 @@ export function EmployeeForm({ groups, employee }: EmployeeFormProps) {
               maxLength={100}
             />
           </div>
-          <div>
+          <div className="space-y-2">
             <Label>グループ</Label>
             <Select value={groupId} onValueChange={setGroupId}>
               <SelectTrigger>
@@ -129,7 +129,7 @@ export function EmployeeForm({ groups, employee }: EmployeeFormProps) {
             </Select>
           </div>
           <div className="grid grid-cols-2 gap-4">
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="assignmentDate">配属日</Label>
               <Input
                 id="assignmentDate"
@@ -138,7 +138,7 @@ export function EmployeeForm({ groups, employee }: EmployeeFormProps) {
                 defaultValue={dateToInput(employee?.assignmentDate ?? null)}
               />
             </div>
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="terminationDate">退職日</Label>
               <Input
                 id="terminationDate"
