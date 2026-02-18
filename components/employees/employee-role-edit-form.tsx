@@ -32,7 +32,7 @@ export function EmployeeRoleEditForm({ employeeRole }: EmployeeRoleEditFormProps
     setLoading(true)
     
     const result = await updateEmployeeRole(employeeRole.id, {
-      isPrimary: !!form.get("isPrimary"),
+      isPrimary: form.get("isPrimary") === "true",
       startDate: (form.get("startDate") as string) || null,
       endDate: (form.get("endDate") as string) || null,
     })
