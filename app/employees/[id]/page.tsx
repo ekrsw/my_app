@@ -6,6 +6,7 @@ import { EmployeeRolesTab } from "@/components/employees/employee-roles-tab"
 import { EmployeeHistoryTab } from "@/components/employees/employee-history-tab"
 import { getEmployeeById } from "@/lib/db/employees"
 import { getGroups } from "@/lib/db/groups"
+import { getFunctionRoles } from "@/lib/db/roles"
 import { EmployeeForm, EmployeeDeleteButton } from "@/components/employees/employee-form"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { notFound } from "next/navigation"
@@ -18,9 +19,10 @@ export default async function EmployeeDetailPage({
   params: Promise<{ id: string }>
 }) {
   const { id } = await params
-  const [employee, groups] = await Promise.all([
+  const [employee, groups, allRoles] = await Promise.all([
     getEmployeeById(Number(id)),
     getGroups(),
+    getFunctionRoles(),
   ])
 
   if (!employee) {
@@ -56,7 +58,7 @@ export default async function EmployeeDetailPage({
             </Suspense>
           </TabsContent>
           <TabsContent value="roles" className="mt-4">
-            <EmployeeRolesTab employee={employee} />
+            <EmployeeRolesTab employee={employee} allRoles={allRoles} />
           </TabsContent>
           <TabsContent value="history" className="mt-4">
             <EmployeeHistoryTab employee={employee} />

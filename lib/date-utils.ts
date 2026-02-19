@@ -59,3 +59,10 @@ export function getDayOfWeekJa(date: Date): string {
 export function toDateString(date: Date): string {
   return format(date, "yyyy-MM-dd")
 }
+
+export function formatDateForInput(date: Date | string | null | undefined): string {
+  if (!date) return ""
+  const d = typeof date === "string" ? new Date(date) : date
+  if (isNaN(d.getTime())) return ""
+  return d.toISOString().split("T")[0]
+}
