@@ -71,6 +71,10 @@ export async function getEmployeeById(id: number): Promise<EmployeeWithDetails |
       nameHistory: {
         orderBy: { validFrom: "desc" },
       },
+      groupHistory: {
+        include: { group: true },
+        orderBy: { changedAt: "desc" },
+      },
     },
   }) as Promise<EmployeeWithDetails | null>
 }
