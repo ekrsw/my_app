@@ -20,6 +20,50 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+## テスト
+
+### 前提条件
+
+- PostgreSQL がローカルで起動していること
+- `.env.test` にテスト用 DB の接続先が設定されていること
+
+### テスト DB セットアップ
+
+初回またはスキーマ変更後に実行してください。テスト DB の作成、スキーマ同期、トリガー適用を行います。
+
+```bash
+npm run test:setup-db
+```
+
+### テスト実行
+
+```bash
+# 全テスト実行
+npm test
+
+# ウォッチモード（ファイル変更時に自動実行）
+npm run test:watch
+
+# カバレッジ付き実行
+npm run test:coverage
+```
+
+### カテゴリ別実行
+
+```bash
+# DB トリガーテスト
+npx vitest run tests/triggers/
+
+# DB クエリ層テスト
+npx vitest run tests/db/
+
+# バリデーションテスト（DB不要）
+npx vitest run tests/validators/
+
+# Server Actions テスト
+npx vitest run tests/actions/
+```
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:
