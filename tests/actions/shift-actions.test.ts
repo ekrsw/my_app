@@ -84,6 +84,31 @@ describe("Shift Actions", () => {
       expect(updated!.shiftCode).toBe("B")
       expect(updated!.isHoliday).toBe(true)
     })
+
+    it("should create history record via trigger on update", async () => {
+      await createShift({
+        employeeId,
+        shiftDate: "2026-01-15",
+        shiftCode: "A",
+      })
+
+      const shift = await prisma.shift.findFirst()
+
+      await updateShift(shift!.id, {
+        shiftCode: "B",
+        isHoliday: true,
+      })
+
+      const history = await prisma.shiftChangeHistory.findMany({
+        where: { shiftId: shift!.id },
+        orderBy: { version: "asc" },
+      })
+
+      expect(history).toHaveLength(1)
+      expect(history[0].shiftCode).toBe("A")
+      expect(history[0].changeType).toBe("UPDATE")
+      expect(history[0].version).toBe(1)
+    })
   })
 
   describe("deleteShift", () => {
@@ -129,6 +154,35 @@ describe("Shift Actions", () => {
       const updated = await prisma.shift.findMany()
       expect(updated.every((s) => s.shiftCode === "B")).toBe(true)
       expect(updated.every((s) => s.isRemote === true)).toBe(true)
+    })
+
+    it("should create history records via trigger for each updated shift", async () => {
+      await createShift({
+        employeeId,
+        shiftDate: "2026-01-15",
+        shiftCode: "A",
+      })
+      await createShift({
+        employeeId,
+        shiftDate: "2026-01-16",
+        shiftCode: "A",
+      })
+
+      const shifts = await prisma.shift.findMany()
+      const ids = shifts.map((s) => s.id)
+
+      await bulkUpdateShifts({
+        shiftIds: ids,
+        shiftCode: "B",
+      })
+
+      const history = await prisma.shiftChangeHistory.findMany({
+        orderBy: { shiftId: "asc" },
+      })
+
+      expect(history).toHaveLength(2)
+      expect(history.every((h) => h.shiftCode === "A")).toBe(true)
+      expect(history.every((h) => h.changeType === "UPDATE")).toBe(true)
     })
   })
 

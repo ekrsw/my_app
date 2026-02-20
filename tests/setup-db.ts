@@ -52,6 +52,7 @@ async function main() {
     "20260219000000_add_efr_constraints/migration.sql",
     "20260219100000_add_employee_group_history/migration.sql",
     "20260219200000_add_employee_name_history_trigger/migration.sql",
+    "20260220000000_add_shift_change_history_trigger/migration.sql",
   ]
 
   for (const file of migrationFiles) {
