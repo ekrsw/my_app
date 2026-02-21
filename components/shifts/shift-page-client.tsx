@@ -141,6 +141,7 @@ export function ShiftPageClient({
       )}
 
       <ShiftForm
+        key={`${editShift?.id ?? "new"}-${editEmployeeId}-${editDate}`}
         open={editOpen}
         onOpenChange={setEditOpen}
         shift={editShift}
