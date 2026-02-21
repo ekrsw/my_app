@@ -10,6 +10,8 @@ import {
   FolderOpen,
   Shield,
   Award,
+  Settings,
+  ChevronRight,
 } from "lucide-react"
 import {
   Sidebar,
@@ -21,13 +23,24 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubItem,
+  SidebarMenuSubButton,
 } from "@/components/ui/sidebar"
+import {
+  Collapsible,
+  CollapsibleTrigger,
+  CollapsibleContent,
+} from "@/components/ui/collapsible"
 
 const navItems = [
   { label: "ダッシュボード", href: "/", icon: LayoutDashboard },
   { label: "シフト管理", href: "/shifts", icon: Calendar },
   { label: "シフト履歴", href: "/shifts/history", icon: History },
   { label: "従業員", href: "/employees", icon: Users },
+]
+
+const settingsSubItems = [
   { label: "グループ", href: "/groups", icon: FolderOpen },
   { label: "役割", href: "/roles", icon: Shield },
   { label: "役職", href: "/positions", icon: Award },
@@ -35,6 +48,9 @@ const navItems = [
 
 export function AppSidebar() {
   const pathname = usePathname()
+  const isSettingsActive = settingsSubItems.some((item) =>
+    pathname.startsWith(item.href)
+  )
 
   return (
     <Sidebar>
@@ -65,6 +81,37 @@ export function AppSidebar() {
                   </SidebarMenuItem>
                 )
               })}
+              <Collapsible
+                defaultOpen={isSettingsActive}
+                className="group/collapsible"
+              >
+                <SidebarMenuItem>
+                  <CollapsibleTrigger asChild>
+                    <SidebarMenuButton>
+                      <Settings className="h-4 w-4" />
+                      <span>設定</span>
+                      <ChevronRight className="ml-auto h-4 w-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                    </SidebarMenuButton>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <SidebarMenuSub>
+                      {settingsSubItems.map((item) => {
+                        const isActive = pathname.startsWith(item.href)
+                        return (
+                          <SidebarMenuSubItem key={item.href}>
+                            <SidebarMenuSubButton asChild isActive={isActive}>
+                              <Link href={item.href}>
+                                <item.icon className="h-4 w-4" />
+                                <span>{item.label}</span>
+                              </Link>
+                            </SidebarMenuSubButton>
+                          </SidebarMenuSubItem>
+                        )
+                      })}
+                    </SidebarMenuSub>
+                  </CollapsibleContent>
+                </SidebarMenuItem>
+              </Collapsible>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
