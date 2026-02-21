@@ -18,9 +18,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { createEmployee, updateEmployee, deleteEmployee } from "@/lib/actions/employee-actions"
+import { createEmployee, deleteEmployee } from "@/lib/actions/employee-actions"
 import { toast } from "sonner"
-import { Plus, Pencil, Trash2 } from "lucide-react"
+import { Plus, Trash2 } from "lucide-react"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -37,39 +37,23 @@ type Group = { id: number; name: string }
 
 type EmployeeFormProps = {
   groups: Group[]
-  employee?: {
-    id: number
-    name: string
-    nameKana: string | null
-    groupId: number | null
-    assignmentDate: Date | null
-    terminationDate: Date | null
-  }
 }
 
-function dateToInput(d: Date | null): string {
-  if (!d) return ""
-  return d.toISOString().split("T")[0]
-}
-
-export function EmployeeForm({ groups, employee }: EmployeeFormProps) {
+export function EmployeeForm({ groups }: EmployeeFormProps) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
-  const [groupId, setGroupId] = useState(employee?.groupId?.toString() ?? "")
-  const isEdit = !!employee
+  const [groupId, setGroupId] = useState("")
 
   async function handleSubmit(formData: FormData) {
     if (groupId) formData.set("groupId", groupId)
     setLoading(true)
-    const result = isEdit
-      ? await updateEmployee(employee.id, formData)
-      : await createEmployee(formData)
+    const result = await createEmployee(formData)
     setLoading(false)
 
     if (result.error) {
       toast.error(result.error)
     } else {
-      toast.success(isEdit ? "従業員を更新しました" : "従業員を作成しました")
+      toast.success("従業員を作成しました")
       setOpen(false)
     }
   }
@@ -77,21 +61,14 @@ export function EmployeeForm({ groups, employee }: EmployeeFormProps) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        {isEdit ? (
-          <Button variant="outline" size="sm">
-            <Pencil className="mr-1 h-4 w-4" />
-            編集
-          </Button>
-        ) : (
-          <Button>
-            <Plus className="mr-1 h-4 w-4" />
-            新規作成
-          </Button>
-        )}
+        <Button>
+          <Plus className="mr-1 h-4 w-4" />
+          新規作成
+        </Button>
       </DialogTrigger>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>{isEdit ? "従業員編集" : "従業員作成"}</DialogTitle>
+          <DialogTitle>従業員作成</DialogTitle>
         </DialogHeader>
         <form action={handleSubmit} className="space-y-4">
           <div className="space-y-2">
@@ -99,7 +76,6 @@ export function EmployeeForm({ groups, employee }: EmployeeFormProps) {
             <Input
               id="name"
               name="name"
-              defaultValue={employee?.name ?? ""}
               required
               maxLength={100}
             />
@@ -109,7 +85,6 @@ export function EmployeeForm({ groups, employee }: EmployeeFormProps) {
             <Input
               id="nameKana"
               name="nameKana"
-              defaultValue={employee?.nameKana ?? ""}
               maxLength={100}
             />
           </div>
@@ -135,7 +110,6 @@ export function EmployeeForm({ groups, employee }: EmployeeFormProps) {
                 id="assignmentDate"
                 name="assignmentDate"
                 type="date"
-                defaultValue={dateToInput(employee?.assignmentDate ?? null)}
               />
             </div>
             <div className="space-y-2">
@@ -144,7 +118,6 @@ export function EmployeeForm({ groups, employee }: EmployeeFormProps) {
                 id="terminationDate"
                 name="terminationDate"
                 type="date"
-                defaultValue={dateToInput(employee?.terminationDate ?? null)}
               />
             </div>
           </div>

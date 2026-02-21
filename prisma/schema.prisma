@@ -25,12 +25,13 @@ model Employee {
   assignmentDate  DateTime? @map("assignment_date") @db.Date
   terminationDate DateTime? @map("termination_date") @db.Date
 
-  group            Group?                   @relation(fields: [groupId], references: [id])
+  group            Group?                          @relation(fields: [groupId], references: [id])
   shifts           Shift[]
   functionRoles    EmployeeFunctionRole[]
   nameHistory      EmployeeNameHistory[]
   externalAccounts EmployeeExternalAccount[]
   groupHistory     EmployeeGroupHistory[]
+  roleHistory      EmployeeFunctionRoleHistory[]
 
   @@map("employees")
 }
@@ -160,4 +161,23 @@ model EmployeeExternalAccount {
   externalTool ExternalTool? @relation(fields: [externalToolId], references: [id])
 
   @@map("employee_external_accounts")
+}
+
+model EmployeeFunctionRoleHistory {
+  id             Int       @id @default(autoincrement())
+  employeeId     Int       @map("employee_id")
+  functionRoleId Int?      @map("function_role_id")
+  roleType       String?   @map("role_type") @db.VarChar(20)
+  isPrimary      Boolean?  @map("is_primary")
+  startDate      DateTime? @map("start_date") @db.Date
+  endDate        DateTime? @map("end_date") @db.Date
+  changeType     String    @map("change_type") @db.VarChar(10)
+  version        Int
+  changedAt      DateTime  @default(now()) @map("changed_at")
+
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Restrict)
+
+  @@unique([employeeId, version])
+  @@index([employeeId, changedAt])
+  @@map("employee_function_role_history")
 }

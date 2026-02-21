@@ -75,6 +75,9 @@ export async function getEmployeeById(id: number): Promise<EmployeeWithDetails |
         include: { group: true },
         orderBy: { changedAt: "desc" },
       },
+      roleHistory: {
+        orderBy: { changedAt: "desc" },
+      },
     },
   }) as Promise<EmployeeWithDetails | null>
 }
