@@ -12,7 +12,6 @@ import {
   toDateString,
 } from "@/lib/date-utils"
 import { ChevronDown, ChevronRight } from "lucide-react"
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
 
 type ShiftCalendarProps = {
@@ -37,7 +36,7 @@ export function ShiftCalendar({
   const selectedCells = externalSelectedCells ?? internalSelectedCells
 
   return (
-    <ScrollArea className="w-full rounded-md border">
+    <div className="w-full overflow-auto rounded-md border">
       <div className="min-w-max">
         {/* Header row */}
         <div className="flex sticky top-0 z-20 bg-background border-b">
@@ -120,7 +119,6 @@ export function ShiftCalendar({
           </div>
         )}
       </div>
-      <ScrollBar orientation="horizontal" />
-    </ScrollArea>
+    </div>
   )
 }
