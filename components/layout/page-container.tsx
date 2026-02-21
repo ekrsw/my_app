@@ -4,5 +4,5 @@ type PageContainerProps = {
 }
 
 export function PageContainer({ children, className }: PageContainerProps) {
-  return <main className={`flex-1 overflow-auto p-6 ${className ?? ""}`}>{children}</main>
+  return <main className={`min-w-0 flex-1 overflow-auto p-6 ${className ?? ""}`}>{children}</main>
 }

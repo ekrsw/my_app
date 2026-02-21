@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -43,6 +43,23 @@ export function ShiftForm({ open, onOpenChange, shift, employeeId, date }: Shift
   const [isHoliday, setIsHoliday] = useState(shift?.isHoliday ?? false)
   const [isPaidLeave, setIsPaidLeave] = useState(shift?.isPaidLeave ?? false)
   const [isRemote, setIsRemote] = useState(shift?.isRemote ?? false)
+  const startTimeRef = useRef<HTMLInputElement>(null)
+  const endTimeRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (open) {
+      setCode(shift?.shiftCode ?? "")
+      setIsHoliday(shift?.isHoliday ?? false)
+      setIsPaidLeave(shift?.isPaidLeave ?? false)
+      setIsRemote(shift?.isRemote ?? false)
+      if (startTimeRef.current) {
+        startTimeRef.current.value = timeToInput(shift?.startTime ?? null)
+      }
+      if (endTimeRef.current) {
+        endTimeRef.current.value = timeToInput(shift?.endTime ?? null)
+      }
+    }
+  }, [open, shift])
 
   const isEdit = !!shift
 
@@ -109,6 +126,7 @@ export function ShiftForm({ open, onOpenChange, shift, employeeId, date }: Shift
             <div className="space-y-2">
               <Label htmlFor="startTime">開始時刻</Label>
               <Input
+                ref={startTimeRef}
                 id="startTime"
                 name="startTime"
                 type="time"
@@ -118,6 +136,7 @@ export function ShiftForm({ open, onOpenChange, shift, employeeId, date }: Shift
             <div className="space-y-2">
               <Label htmlFor="endTime">終了時刻</Label>
               <Input
+                ref={endTimeRef}
                 id="endTime"
                 name="endTime"
                 type="time"
