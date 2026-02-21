@@ -40,7 +40,7 @@ export const functionRoleSchema = z.object({
     .max(20, "20文字以内で入力してください")
     .regex(/^[A-Z_]+$/, "大文字英字とアンダースコアのみ使用できます"),
   roleName: z.string().min(1, "役割名は必須です").max(50, "50文字以内で入力してください"),
-  roleType: z.enum(["FUNCTION", "AUTHORITY", "POSITION"], {
+  roleType: z.enum(["FUNCTION", "AUTHORITY"], {
     message: "役割タイプを選択してください",
   }),
   isActive: z.boolean().default(true),
@@ -54,9 +54,21 @@ export const roleAssignmentSchema = z.object({
   endDate: z.string().nullable().optional(),
 })
 
+export const positionSchema = z.object({
+  positionCode: z
+    .string()
+    .min(1, "役職コードは必須です")
+    .max(20, "20文字以内で入力してください")
+    .regex(/^[A-Z_]+$/, "大文字英字とアンダースコアのみ使用できます"),
+  positionName: z.string().min(1, "役職名は必須です").max(50, "50文字以内で入力してください"),
+  isActive: z.boolean().default(true),
+  sortOrder: z.coerce.number().int().min(0, "0以上の数値を入力してください").default(0),
+})
+
 export type GroupFormData = z.infer<typeof groupSchema>
 export type EmployeeFormData = z.infer<typeof employeeSchema>
 export type ShiftFormData = z.infer<typeof shiftSchema>
 export type ShiftBulkFormData = z.infer<typeof shiftBulkSchema>
 export type FunctionRoleFormData = z.infer<typeof functionRoleSchema>
 export type RoleAssignmentFormData = z.infer<typeof roleAssignmentSchema>
+export type PositionFormData = z.infer<typeof positionSchema>

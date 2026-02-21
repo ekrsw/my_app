@@ -23,7 +23,6 @@ export function getShiftCodeInfo(code: string | null) {
 export const ROLE_TYPE_LABELS: Record<string, string> = {
   FUNCTION: "業務",
   AUTHORITY: "監督",
-  POSITION: "役職",
 }
 
 // ページサイズ
@@ -38,4 +37,5 @@ export const NAV_ITEMS = [
   { label: "従業員", href: "/employees", icon: "Users" },
   { label: "グループ", href: "/groups", icon: "FolderOpen" },
   { label: "役割", href: "/roles", icon: "Shield" },
+  { label: "役職", href: "/positions", icon: "Award" },
 ] as const

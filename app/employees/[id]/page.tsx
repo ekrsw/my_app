@@ -6,9 +6,11 @@ import { EmployeeDeleteButton } from "@/components/employees/employee-form"
 import { EmployeeNameHistorySection } from "@/components/employees/employee-name-history-section"
 import { EmployeeGroupHistorySection } from "@/components/employees/employee-group-history-section"
 import { EmployeeRoleHistorySection } from "@/components/employees/employee-role-history-section"
+import { EmployeePositionHistorySection } from "@/components/employees/employee-position-history-section"
 import { getEmployeeById } from "@/lib/db/employees"
 import { getGroups } from "@/lib/db/groups"
 import { getFunctionRoles } from "@/lib/db/roles"
+import { getActivePositions } from "@/lib/db/positions"
 import { notFound } from "next/navigation"
 
 export default async function EmployeeDetailPage({
@@ -17,10 +19,11 @@ export default async function EmployeeDetailPage({
   params: Promise<{ id: string }>
 }) {
   const { id } = await params
-  const [employee, groups, allRoles] = await Promise.all([
+  const [employee, groups, allRoles, allPositions] = await Promise.all([
     getEmployeeById(Number(id)),
     getGroups(),
     getFunctionRoles(),
+    getActivePositions(),
   ])
 
   if (!employee) {
@@ -43,6 +46,7 @@ export default async function EmployeeDetailPage({
             employee={employee}
             groups={groups}
             allRoles={allRoles}
+            allPositions={allPositions}
           />
           <EmployeeDeleteButton id={employee.id} />
         </div>
@@ -52,6 +56,7 @@ export default async function EmployeeDetailPage({
           <EmployeeNameHistorySection nameHistory={employee.nameHistory} />
           <EmployeeGroupHistorySection groupHistory={employee.groupHistory} />
           <EmployeeRoleHistorySection roleHistory={employee.roleHistory} />
+          <EmployeePositionHistorySection positionHistory={employee.positionHistory} />
         </div>
       </PageContainer>
     </>

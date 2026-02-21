@@ -28,10 +28,12 @@ model Employee {
   group            Group?                          @relation(fields: [groupId], references: [id])
   shifts           Shift[]
   functionRoles    EmployeeFunctionRole[]
+  positions        EmployeePosition[]
   nameHistory      EmployeeNameHistory[]
   externalAccounts EmployeeExternalAccount[]
   groupHistory     EmployeeGroupHistory[]
   roleHistory      EmployeeFunctionRoleHistory[]
+  positionHistory  EmployeePositionHistory[]
 
   @@map("employees")
 }
@@ -180,4 +182,46 @@ model EmployeeFunctionRoleHistory {
   @@unique([employeeId, version])
   @@index([employeeId, changedAt])
   @@map("employee_function_role_history")
+}
+
+model Position {
+  id           Int     @id @default(autoincrement())
+  positionCode String  @unique @map("position_code") @db.VarChar(20)
+  positionName String  @map("position_name") @db.VarChar(50)
+  isActive     Boolean? @default(true) @map("is_active")
+  sortOrder    Int     @default(0) @map("sort_order")
+
+  employeePositions EmployeePosition[]
+
+  @@map("positions")
+}
+
+model EmployeePosition {
+  id         Int       @id @default(autoincrement())
+  employeeId Int       @map("employee_id")
+  positionId Int       @map("position_id")
+  startDate  DateTime  @map("start_date") @db.Date
+  endDate    DateTime? @map("end_date") @db.Date
+
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Restrict)
+  position Position @relation(fields: [positionId], references: [id], onDelete: Restrict)
+
+  @@map("employee_positions")
+}
+
+model EmployeePositionHistory {
+  id         Int       @id @default(autoincrement())
+  employeeId Int       @map("employee_id")
+  positionId Int?      @map("position_id")
+  startDate  DateTime? @map("start_date") @db.Date
+  endDate    DateTime? @map("end_date") @db.Date
+  changeType String    @map("change_type") @db.VarChar(10)
+  version    Int
+  changedAt  DateTime  @default(now()) @map("changed_at")
+
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Restrict)
+
+  @@unique([employeeId, version])
+  @@index([employeeId, changedAt])
+  @@map("employee_position_history")
 }

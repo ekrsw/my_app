@@ -7,6 +7,7 @@ import type { EmployeeWithDetails } from "@/types/employees"
 export function EmployeeDetailCard({ employee }: { employee: EmployeeWithDetails }) {
   const isActive = !employee.terminationDate || employee.terminationDate >= new Date()
   const currentRoles = employee.functionRoles.filter((r) => !r.endDate)
+  const currentPositions = employee.positions.filter((p) => !p.endDate)
 
   return (
     <Card>
@@ -41,6 +42,22 @@ export function EmployeeDetailCard({ employee }: { employee: EmployeeWithDetails
           <div>
             <dt className="text-muted-foreground">退職日</dt>
             <dd className="font-medium">{formatDate(employee.terminationDate)}</dd>
+          </div>
+          <div className="col-span-2">
+            <dt className="text-muted-foreground mb-1">現在の役職</dt>
+            <dd className="font-medium">
+              {currentPositions.length === 0 ? (
+                <span className="text-muted-foreground">-</span>
+              ) : (
+                <div className="flex flex-wrap gap-1.5">
+                  {currentPositions.map((p) => (
+                    <Badge key={p.id} variant="outline">
+                      {p.position.positionName}
+                    </Badge>
+                  ))}
+                </div>
+              )}
+            </dd>
           </div>
           <div className="col-span-2">
             <dt className="text-muted-foreground mb-1">現在の役割</dt>

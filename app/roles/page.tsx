@@ -14,7 +14,6 @@ export default async function RolesPage({ searchParams }: { searchParams: Search
     all: undefined,
     function: "FUNCTION",
     authority: "AUTHORITY",
-    position: "POSITION",
   }
 
   const roles = await getFunctionRoles(roleTypeMap[activeTab])
@@ -43,9 +42,6 @@ export default async function RolesPage({ searchParams }: { searchParams: Search
             </TabsTrigger>
             <TabsTrigger value="authority">
               <a href="/roles?tab=authority">監督</a>
-            </TabsTrigger>
-            <TabsTrigger value="position">
-              <a href="/roles?tab=position">役職</a>
             </TabsTrigger>
           </TabsList>
           <TabsContent value={activeTab} className="mt-4">

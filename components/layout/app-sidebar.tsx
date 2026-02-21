@@ -9,6 +9,7 @@ import {
   Users,
   FolderOpen,
   Shield,
+  Award,
 } from "lucide-react"
 import {
   Sidebar,
@@ -29,6 +30,7 @@ const navItems = [
   { label: "従業員", href: "/employees", icon: Users },
   { label: "グループ", href: "/groups", icon: FolderOpen },
   { label: "役割", href: "/roles", icon: Shield },
+  { label: "役職", href: "/positions", icon: Award },
 ]
 
 export function AppSidebar() {

@@ -8,7 +8,6 @@ import { ROLE_TYPE_LABELS } from "@/lib/constants"
 const ROLE_TYPE_VARIANTS: Record<string, "default" | "secondary" | "outline"> = {
   FUNCTION: "default",
   AUTHORITY: "secondary",
-  POSITION: "outline",
 }
 
 type FunctionRoleWithCount = {

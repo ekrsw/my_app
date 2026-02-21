@@ -68,6 +68,10 @@ export async function getEmployeeById(id: number): Promise<EmployeeWithDetails |
         include: { functionRole: true },
         orderBy: [{ endDate: "asc" }, { startDate: "desc" }],
       },
+      positions: {
+        include: { position: true },
+        orderBy: [{ endDate: "asc" }, { startDate: "desc" }],
+      },
       nameHistory: {
         orderBy: { validFrom: "desc" },
       },
@@ -76,6 +80,9 @@ export async function getEmployeeById(id: number): Promise<EmployeeWithDetails |
         orderBy: { changedAt: "desc" },
       },
       roleHistory: {
+        orderBy: { changedAt: "desc" },
+      },
+      positionHistory: {
         orderBy: { changedAt: "desc" },
       },
     },

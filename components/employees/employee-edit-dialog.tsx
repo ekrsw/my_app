@@ -24,13 +24,14 @@ import { Separator } from "@/components/ui/separator"
 import {
   updateEmployeeWithRoles,
   type RoleChangeItem,
+  type PositionChangeItem,
 } from "@/lib/actions/employee-actions"
 import { ROLE_TYPE_LABELS } from "@/lib/constants"
 import { formatDateForInput } from "@/lib/date-utils"
 import { toast } from "sonner"
 import { Pencil, Plus, Trash2 } from "lucide-react"
 import type { EmployeeWithDetails } from "@/types/employees"
-import type { FunctionRole } from "@/app/generated/prisma/client"
+import type { FunctionRole, Position } from "@/app/generated/prisma/client"
 
 type Group = { id: number; name: string }
 
@@ -45,16 +46,27 @@ type RoleState = {
   status: "existing" | "added" | "modified" | "removed"
 }
 
+type PositionState = {
+  id?: number
+  positionId: number
+  positionName: string
+  startDate: string
+  endDate: string
+  status: "existing" | "added" | "modified" | "removed"
+}
+
 type EmployeeEditDialogProps = {
   employee: EmployeeWithDetails
   groups: Group[]
   allRoles: FunctionRole[]
+  allPositions: Position[]
 }
 
 export function EmployeeEditDialog({
   employee,
   groups,
   allRoles,
+  allPositions,
 }: EmployeeEditDialogProps) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -84,8 +96,23 @@ export function EmployeeEditDialog({
     }))
   )
 
+  // Position management state (endDate null = active positions only)
+  const [positions, setPositions] = useState<PositionState[]>(() =>
+    employee.positions
+      .filter((p) => !p.endDate)
+      .map((p) => ({
+        id: p.id,
+        positionId: p.positionId,
+        positionName: p.position.positionName,
+        startDate: formatDateForInput(p.startDate),
+        endDate: formatDateForInput(p.endDate),
+        status: "existing" as const,
+      }))
+  )
+
   // New role add state
   const [newRoleId, setNewRoleId] = useState("")
+  const [newPositionId, setNewPositionId] = useState("")
 
   const resetState = useCallback(() => {
     setName(employee.name)
@@ -105,7 +132,20 @@ export function EmployeeEditDialog({
         status: "existing" as const,
       }))
     )
+    setPositions(
+      employee.positions
+        .filter((p) => !p.endDate)
+        .map((p) => ({
+          id: p.id,
+          positionId: p.positionId,
+          positionName: p.position.positionName,
+          startDate: formatDateForInput(p.startDate),
+          endDate: formatDateForInput(p.endDate),
+          status: "existing" as const,
+        }))
+    )
     setNewRoleId("")
+    setNewPositionId("")
   }, [employee])
 
   function handleOpenChange(nextOpen: boolean) {
@@ -176,6 +216,60 @@ export function EmployeeEditDialog({
     )
   }
 
+  function handleAddPosition() {
+    if (!newPositionId) return
+    const posId = Number(newPositionId)
+    const pos = allPositions.find((p) => p.id === posId)
+    if (!pos) return
+
+    setPositions((prev) => [
+      ...prev,
+      {
+        positionId: pos.id,
+        positionName: pos.positionName,
+        startDate: new Date().toISOString().split("T")[0],
+        endDate: "",
+        status: "added",
+      },
+    ])
+    setNewPositionId("")
+  }
+
+  function handleRemovePosition(index: number) {
+    setPositions((prev) =>
+      prev.map((p, i) => {
+        if (i !== index) return p
+        return { ...p, status: "removed" as const }
+      })
+    )
+  }
+
+  function handleRestorePosition(index: number) {
+    setPositions((prev) =>
+      prev.map((p, i) => {
+        if (i !== index) return p
+        return { ...p, status: "existing" as const }
+      })
+    )
+  }
+
+  function handlePositionChange(
+    index: number,
+    field: "startDate" | "endDate",
+    value: string
+  ) {
+    setPositions((prev) =>
+      prev.map((p, i) => {
+        if (i !== index) return p
+        const updated = { ...p, [field]: value }
+        if (p.status === "existing") {
+          updated.status = "modified"
+        }
+        return updated
+      })
+    )
+  }
+
   async function handleSubmit() {
     if (!name.trim()) {
       toast.error("氏名は必須です")
@@ -197,6 +291,18 @@ export function EmployeeEditDialog({
         endDate: r.endDate || null,
       }))
 
+    // Build position changes list
+    const positionChanges: PositionChangeItem[] = positions
+      .filter((p) => p.status !== "existing")
+      .filter((p) => !(p.status === "removed" && !p.id))
+      .map((p) => ({
+        status: p.status === "existing" ? "modified" : p.status,
+        id: p.id,
+        positionId: p.positionId,
+        startDate: p.startDate || null,
+        endDate: p.endDate || null,
+      }))
+
     const result = await updateEmployeeWithRoles(
       employee.id,
       {
@@ -206,7 +312,8 @@ export function EmployeeEditDialog({
         assignmentDate: assignmentDate || null,
         terminationDate: terminationDate || null,
       },
-      roleChanges
+      roleChanges,
+      positionChanges
     )
 
     setLoading(false)
@@ -232,6 +339,21 @@ export function EmployeeEditDialog({
   )
   const availableRoles = allRoles.filter(
     (r) => r.isActive && !activeRoleIds.has(r.id)
+  )
+
+  // Filter visible positions
+  const visiblePositions = positions.filter(
+    (p) => !(p.status === "removed" && !p.id)
+  )
+
+  // Positions available to add
+  const activePositionIds = new Set(
+    positions
+      .filter((p) => p.status !== "removed")
+      .map((p) => p.positionId)
+  )
+  const availablePositions = allPositions.filter(
+    (p) => p.isActive && !activePositionIds.has(p.id)
   )
 
   return (
@@ -432,6 +554,121 @@ export function EmployeeEditDialog({
                 size="sm"
                 onClick={handleAddRole}
                 disabled={!newRoleId}
+                className="h-9"
+              >
+                <Plus className="mr-1 h-4 w-4" />
+                追加
+              </Button>
+            </div>
+          </div>
+
+          <Separator />
+
+          {/* Section 3: Position Management */}
+          <div className="space-y-4">
+            <h3 className="text-sm font-semibold text-muted-foreground">役職管理</h3>
+
+            {/* Current positions */}
+            {visiblePositions.length > 0 && (
+              <div className="space-y-3">
+                {visiblePositions.map((pos, index) => {
+                  const originalIndex = positions.indexOf(pos)
+                  const isRemoved = pos.status === "removed"
+
+                  return (
+                    <div
+                      key={`${pos.id ?? "new"}-${pos.positionId}-${index}`}
+                      className={`rounded-md border p-3 space-y-2 ${
+                        isRemoved ? "opacity-50 bg-muted" : ""
+                      } ${pos.status === "added" ? "border-green-300 bg-green-50 dark:bg-green-950/20 dark:border-green-800" : ""}`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-sm">
+                            {pos.positionName}
+                          </span>
+                          {pos.status === "added" && (
+                            <Badge variant="default" className="text-xs">新規</Badge>
+                          )}
+                          {pos.status === "removed" && (
+                            <Badge variant="destructive" className="text-xs">解除</Badge>
+                          )}
+                        </div>
+                        {isRemoved ? (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleRestorePosition(originalIndex)}
+                          >
+                            元に戻す
+                          </Button>
+                        ) : (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleRemovePosition(originalIndex)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                      {!isRemoved && (
+                        <div className="grid grid-cols-2 gap-2">
+                          <div className="space-y-1">
+                            <Label className="text-xs">開始日</Label>
+                            <Input
+                              type="date"
+                              value={pos.startDate}
+                              onChange={(e) =>
+                                handlePositionChange(originalIndex, "startDate", e.target.value)
+                              }
+                              className="h-8 text-sm"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs">終了日</Label>
+                            <Input
+                              type="date"
+                              value={pos.endDate}
+                              onChange={(e) =>
+                                handlePositionChange(originalIndex, "endDate", e.target.value)
+                              }
+                              className="h-8 text-sm"
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+
+            {/* Add new position */}
+            <div className="flex items-end gap-2">
+              <div className="flex-1 space-y-1">
+                <Label className="text-xs">役職を追加</Label>
+                <Select value={newPositionId} onValueChange={setNewPositionId}>
+                  <SelectTrigger className="h-9">
+                    <SelectValue placeholder="役職を選択" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availablePositions.map((p) => (
+                      <SelectItem key={p.id} value={p.id.toString()}>
+                        {p.positionName}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleAddPosition}
+                disabled={!newPositionId}
                 className="h-9"
               >
                 <Plus className="mr-1 h-4 w-4" />

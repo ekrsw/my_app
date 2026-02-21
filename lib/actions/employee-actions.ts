@@ -13,6 +13,14 @@ export type RoleChangeItem = {
   endDate?: string | null
 }
 
+export type PositionChangeItem = {
+  status: "added" | "modified" | "removed"
+  id?: number // existing employee_position id (for modified/removed)
+  positionId?: number
+  startDate?: string | null
+  endDate?: string | null
+}
+
 export async function createEmployee(formData: FormData) {
   const parsed = employeeSchema.safeParse({
     name: formData.get("name"),
@@ -101,7 +109,8 @@ export async function updateEmployeeWithRoles(
     assignmentDate: string | null
     terminationDate: string | null
   },
-  roleChanges: RoleChangeItem[]
+  roleChanges: RoleChangeItem[],
+  positionChanges: PositionChangeItem[] = []
 ) {
   const parsed = employeeSchema.safeParse(employeeData)
 
@@ -155,12 +164,42 @@ export async function updateEmployeeWithRoles(
           })
         }
       }
+
+      // 3. 役職変更を処理（各操作はDBトリガーで履歴化）
+      for (const change of positionChanges) {
+        if (change.status === "added" && change.positionId) {
+          await tx.employeePosition.create({
+            data: {
+              employeeId: id,
+              positionId: change.positionId,
+              startDate: change.startDate ? new Date(change.startDate) : new Date(),
+              endDate: null,
+            },
+          })
+        } else if (change.status === "modified" && change.id) {
+          await tx.employeePosition.update({
+            where: { id: change.id },
+            data: {
+              startDate: change.startDate ? new Date(change.startDate) : undefined,
+              endDate: change.endDate ? new Date(change.endDate) : null,
+            },
+          })
+        } else if (change.status === "removed" && change.id) {
+          await tx.employeePosition.update({
+            where: { id: change.id },
+            data: { endDate: new Date() },
+          })
+        }
+      }
     })
 
     revalidatePath("/employees")
     revalidatePath(`/employees/${id}`)
     return { success: true }
-  } catch {
+  } catch (e: unknown) {
+    if (e && typeof e === "object" && "message" in e && typeof e.message === "string" && e.message.includes("employee_positions_no_overlap")) {
+      return { error: "指定期間は既存の役職期間と重複しています" }
+    }
     return { error: "従業員情報の更新に失敗しました" }
   }
 }
