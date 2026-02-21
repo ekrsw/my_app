@@ -26,16 +26,30 @@ export {
   isSameMonth,
 }
 
+/**
+ * PostgreSQL (timezone=Asia/Tokyo) の timestamp without time zone は
+ * JST の値をそのまま格納するが、Prisma はこれを UTC として読み込む。
+ * date-fns の format はローカルタイムで表示するため、二重に JST オフセットが
+ * 適用されてしまう。この関数で UTC の各成分をローカル Date に移し替えることで、
+ * format がそのまま DB の値（=実際の JST 値）を出力するようにする。
+ */
+function asUTC(d: Date): Date {
+  return new Date(
+    d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(),
+    d.getUTCHours(), d.getUTCMinutes(), d.getUTCSeconds(), d.getUTCMilliseconds()
+  )
+}
+
 export function formatDate(date: Date | string | null, pattern = "yyyy/MM/dd"): string {
   if (!date) return "-"
   const d = typeof date === "string" ? parseISO(date) : date
-  return format(d, pattern, { locale: ja })
+  return format(asUTC(d), pattern, { locale: ja })
 }
 
 export function formatTime(time: Date | string | null): string {
   if (!time) return "-"
   const d = typeof time === "string" ? parseISO(time) : time
-  return format(d, "HH:mm")
+  return format(asUTC(d), "HH:mm")
 }
 
 export function formatMonth(date: Date): string {

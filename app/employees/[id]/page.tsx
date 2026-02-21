@@ -4,6 +4,7 @@ import { EmployeeDetailCard } from "@/components/employees/employee-detail-card"
 import { EmployeeShiftsTab } from "@/components/employees/employee-shifts-tab"
 import { EmployeeRolesTab } from "@/components/employees/employee-roles-tab"
 import { EmployeeHistoryTab } from "@/components/employees/employee-history-tab"
+import { EmployeeGroupHistoryTab } from "@/components/employees/employee-group-history-tab"
 import { getEmployeeById } from "@/lib/db/employees"
 import { getGroups } from "@/lib/db/groups"
 import { getFunctionRoles } from "@/lib/db/roles"
@@ -51,6 +52,7 @@ export default async function EmployeeDetailPage({
             <TabsTrigger value="shifts">シフト</TabsTrigger>
             <TabsTrigger value="roles">役割</TabsTrigger>
             <TabsTrigger value="history">氏名履歴</TabsTrigger>
+            <TabsTrigger value="group-history">所属履歴</TabsTrigger>
           </TabsList>
           <TabsContent value="shifts" className="mt-4">
             <Suspense fallback={<Skeleton className="h-48 w-full" />}>
@@ -62,6 +64,9 @@ export default async function EmployeeDetailPage({
           </TabsContent>
           <TabsContent value="history" className="mt-4">
             <EmployeeHistoryTab employee={employee} />
+          </TabsContent>
+          <TabsContent value="group-history" className="mt-4">
+            <EmployeeGroupHistoryTab employee={employee} />
           </TabsContent>
         </Tabs>
       </PageContainer>

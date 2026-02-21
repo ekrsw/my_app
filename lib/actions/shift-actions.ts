@@ -27,10 +27,10 @@ export async function createShift(data: {
         shiftDate: new Date(parsed.data.shiftDate),
         shiftCode: parsed.data.shiftCode ?? null,
         startTime: parsed.data.startTime
-          ? new Date(`1970-01-01T${parsed.data.startTime}`)
+          ? new Date(`1970-01-01T${parsed.data.startTime}Z`)
           : null,
         endTime: parsed.data.endTime
-          ? new Date(`1970-01-01T${parsed.data.endTime}`)
+          ? new Date(`1970-01-01T${parsed.data.endTime}Z`)
           : null,
         isHoliday: parsed.data.isHoliday,
         isPaidLeave: parsed.data.isPaidLeave,
@@ -64,10 +64,10 @@ export async function updateShift(
       data: {
         shiftCode: data.shiftCode,
         startTime: data.startTime
-          ? new Date(`1970-01-01T${data.startTime}`)
+          ? new Date(`1970-01-01T${data.startTime}Z`)
           : null,
         endTime: data.endTime
-          ? new Date(`1970-01-01T${data.endTime}`)
+          ? new Date(`1970-01-01T${data.endTime}Z`)
           : null,
         isHoliday: data.isHoliday,
         isPaidLeave: data.isPaidLeave,
@@ -111,11 +111,11 @@ export async function bulkUpdateShifts(data: {
   if (parsed.data.shiftCode !== undefined) updateData.shiftCode = parsed.data.shiftCode
   if (parsed.data.startTime !== undefined)
     updateData.startTime = parsed.data.startTime
-      ? new Date(`1970-01-01T${parsed.data.startTime}`)
+      ? new Date(`1970-01-01T${parsed.data.startTime}Z`)
       : null
   if (parsed.data.endTime !== undefined)
     updateData.endTime = parsed.data.endTime
-      ? new Date(`1970-01-01T${parsed.data.endTime}`)
+      ? new Date(`1970-01-01T${parsed.data.endTime}Z`)
       : null
   if (parsed.data.isHoliday !== undefined) updateData.isHoliday = parsed.data.isHoliday
   if (parsed.data.isPaidLeave !== undefined) updateData.isPaidLeave = parsed.data.isPaidLeave

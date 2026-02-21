@@ -4,9 +4,14 @@ import type {
   EmployeeFunctionRole,
   FunctionRole,
   EmployeeNameHistory,
+  EmployeeGroupHistory,
 } from "@/app/generated/prisma/client"
 
 export type EmployeeWithGroup = Employee & {
+  group: Group | null
+}
+
+export type EmployeeGroupHistoryEntry = EmployeeGroupHistory & {
   group: Group | null
 }
 
@@ -16,6 +21,7 @@ export type EmployeeWithDetails = Employee & {
     functionRole: FunctionRole | null
   })[]
   nameHistory: EmployeeNameHistory[]
+  groupHistory: EmployeeGroupHistoryEntry[]
 }
 
 export type EmployeeFilterParams = {
