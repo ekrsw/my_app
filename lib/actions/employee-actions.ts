@@ -21,12 +21,19 @@ export type PositionChangeItem = {
   endDate?: string | null
 }
 
+export type GroupChangeItem = {
+  status: "added" | "modified" | "removed"
+  id?: number // existing employee_group id (for modified/removed)
+  groupId?: number
+  startDate?: string | null
+  endDate?: string | null
+}
+
 export async function createEmployee(formData: FormData) {
   const parsed = employeeSchema.safeParse({
     name: formData.get("name"),
     nameKana: formData.get("nameKana") || null,
-    groupId: formData.get("groupId") ? Number(formData.get("groupId")) : null,
-    assignmentDate: formData.get("assignmentDate") || null,
+    hireDate: formData.get("hireDate") || null,
     terminationDate: formData.get("terminationDate") || null,
   })
 
@@ -34,20 +41,36 @@ export async function createEmployee(formData: FormData) {
     return { error: parsed.error.issues[0].message }
   }
 
-  const data = {
-    name: parsed.data.name,
-    nameKana: parsed.data.nameKana ?? null,
-    groupId: parsed.data.groupId ?? null,
-    assignmentDate: parsed.data.assignmentDate
-      ? new Date(parsed.data.assignmentDate)
-      : null,
-    terminationDate: parsed.data.terminationDate
-      ? new Date(parsed.data.terminationDate)
-      : null,
-  }
+  const groupId = formData.get("groupId") ? Number(formData.get("groupId")) : null
 
   try {
-    await prisma.employee.create({ data })
+    await prisma.$transaction(async (tx) => {
+      const employee = await tx.employee.create({
+        data: {
+          name: parsed.data.name,
+          nameKana: parsed.data.nameKana ?? null,
+          hireDate: parsed.data.hireDate
+            ? new Date(parsed.data.hireDate)
+            : null,
+          terminationDate: parsed.data.terminationDate
+            ? new Date(parsed.data.terminationDate)
+            : null,
+        },
+      })
+
+      if (groupId) {
+        await tx.employeeGroup.create({
+          data: {
+            employeeId: employee.id,
+            groupId,
+            startDate: parsed.data.hireDate
+              ? new Date(parsed.data.hireDate)
+              : new Date(),
+          },
+        })
+      }
+    })
+
     revalidatePath("/employees")
     return { success: true }
   } catch {
@@ -59,8 +82,7 @@ export async function updateEmployee(id: number, formData: FormData) {
   const parsed = employeeSchema.safeParse({
     name: formData.get("name"),
     nameKana: formData.get("nameKana") || null,
-    groupId: formData.get("groupId") ? Number(formData.get("groupId")) : null,
-    assignmentDate: formData.get("assignmentDate") || null,
+    hireDate: formData.get("hireDate") || null,
     terminationDate: formData.get("terminationDate") || null,
   })
 
@@ -71,9 +93,8 @@ export async function updateEmployee(id: number, formData: FormData) {
   const data = {
     name: parsed.data.name,
     nameKana: parsed.data.nameKana ?? null,
-    groupId: parsed.data.groupId ?? null,
-    assignmentDate: parsed.data.assignmentDate
-      ? new Date(parsed.data.assignmentDate)
+    hireDate: parsed.data.hireDate
+      ? new Date(parsed.data.hireDate)
       : null,
     terminationDate: parsed.data.terminationDate
       ? new Date(parsed.data.terminationDate)
@@ -105,12 +126,12 @@ export async function updateEmployeeWithRoles(
   employeeData: {
     name: string
     nameKana: string | null
-    groupId: number | null
-    assignmentDate: string | null
+    hireDate: string | null
     terminationDate: string | null
   },
   roleChanges: RoleChangeItem[],
-  positionChanges: PositionChangeItem[] = []
+  positionChanges: PositionChangeItem[] = [],
+  groupChanges: GroupChangeItem[] = []
 ) {
   const parsed = employeeSchema.safeParse(employeeData)
 
@@ -120,15 +141,14 @@ export async function updateEmployeeWithRoles(
 
   try {
     await prisma.$transaction(async (tx) => {
-      // 1. 従業員基本情報更新（名前/グループ変更はDBトリガーで履歴化）
+      // 1. 従業員基本情報更新（名前変更はDBトリガーで履歴化）
       await tx.employee.update({
         where: { id },
         data: {
           name: parsed.data.name,
           nameKana: parsed.data.nameKana ?? null,
-          groupId: parsed.data.groupId ?? null,
-          assignmentDate: parsed.data.assignmentDate
-            ? new Date(parsed.data.assignmentDate)
+          hireDate: parsed.data.hireDate
+            ? new Date(parsed.data.hireDate)
             : null,
           terminationDate: parsed.data.terminationDate
             ? new Date(parsed.data.terminationDate)
@@ -186,6 +206,33 @@ export async function updateEmployeeWithRoles(
           })
         } else if (change.status === "removed" && change.id) {
           await tx.employeePosition.update({
+            where: { id: change.id },
+            data: { endDate: new Date() },
+          })
+        }
+      }
+
+      // 4. グループ変更を処理（各操作はDBトリガーで履歴化）
+      for (const change of groupChanges) {
+        if (change.status === "added" && change.groupId) {
+          await tx.employeeGroup.create({
+            data: {
+              employeeId: id,
+              groupId: change.groupId,
+              startDate: change.startDate ? new Date(change.startDate) : new Date(),
+              endDate: null,
+            },
+          })
+        } else if (change.status === "modified" && change.id) {
+          await tx.employeeGroup.update({
+            where: { id: change.id },
+            data: {
+              startDate: change.startDate ? new Date(change.startDate) : undefined,
+              endDate: change.endDate ? new Date(change.endDate) : null,
+            },
+          })
+        } else if (change.status === "removed" && change.id) {
+          await tx.employeeGroup.update({
             where: { id: change.id },
             data: { endDate: new Date() },
           })

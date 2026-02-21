@@ -13,7 +13,7 @@ export async function getShiftsForCalendar(
   const employeeWhere: any = {}
 
   if (filter.groupId) {
-    employeeWhere.groupId = filter.groupId
+    employeeWhere.groups = { some: { groupId: filter.groupId, endDate: null } }
   }
 
   if (filter.employeeSearch) {
@@ -36,7 +36,10 @@ export async function getShiftsForCalendar(
       ],
     },
     include: {
-      group: true,
+      groups: {
+        include: { group: true },
+        where: { endDate: null },
+      },
       shifts: {
         where: {
           shiftDate: {
@@ -46,14 +49,14 @@ export async function getShiftsForCalendar(
         },
       },
     },
-    orderBy: [{ groupId: "asc" }, { name: "asc" }],
+    orderBy: [{ name: "asc" }],
   })
 
   return employees.map((emp) => ({
     employeeId: emp.id,
     employeeName: emp.name,
-    groupId: emp.groupId,
-    groupName: emp.group?.name ?? null,
+    groupId: emp.groups[0]?.groupId ?? null,
+    groupName: emp.groups[0]?.group.name ?? null,
     shifts: Object.fromEntries(
       emp.shifts.map((s) => [toDateString(s.shiftDate), s])
     ),
@@ -76,7 +79,7 @@ export async function getShiftsTable(
   }
 
   if (filter.groupId) {
-    where.employee = { groupId: filter.groupId }
+    where.employee = { groups: { some: { groupId: filter.groupId, endDate: null } } }
   }
 
   if (filter.employeeSearch) {
@@ -93,7 +96,14 @@ export async function getShiftsTable(
     prisma.shift.findMany({
       where,
       include: {
-        employee: { include: { group: true } },
+        employee: {
+          include: {
+            groups: {
+              include: { group: true },
+              where: { endDate: null },
+            },
+          },
+        },
       },
       orderBy: [{ shiftDate: "asc" }, { employee: { name: "asc" } }],
       skip: (pagination.page - 1) * pagination.pageSize,
@@ -115,7 +125,14 @@ export async function getShiftById(id: number) {
   return prisma.shift.findUnique({
     where: { id },
     include: {
-      employee: { include: { group: true } },
+      employee: {
+        include: {
+          groups: {
+            include: { group: true },
+            where: { endDate: null },
+          },
+        },
+      },
     },
   })
 }

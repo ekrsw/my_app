@@ -25,6 +25,7 @@ import {
   updateEmployeeWithRoles,
   type RoleChangeItem,
   type PositionChangeItem,
+  type GroupChangeItem,
 } from "@/lib/actions/employee-actions"
 import { ROLE_TYPE_LABELS } from "@/lib/constants"
 import { formatDateForInput } from "@/lib/date-utils"
@@ -55,6 +56,15 @@ type PositionState = {
   status: "existing" | "added" | "modified" | "removed"
 }
 
+type GroupState = {
+  id?: number
+  groupId: number
+  groupName: string
+  startDate: string
+  endDate: string
+  status: "existing" | "added" | "modified" | "removed"
+}
+
 type EmployeeEditDialogProps = {
   employee: EmployeeWithDetails
   groups: Group[]
@@ -74,9 +84,8 @@ export function EmployeeEditDialog({
   // Employee basic info state
   const [name, setName] = useState(employee.name)
   const [nameKana, setNameKana] = useState(employee.nameKana ?? "")
-  const [groupId, setGroupId] = useState(employee.groupId?.toString() ?? "")
-  const [assignmentDate, setAssignmentDate] = useState(
-    formatDateForInput(employee.assignmentDate)
+  const [hireDate, setHireDate] = useState(
+    formatDateForInput(employee.hireDate)
   )
   const [terminationDate, setTerminationDate] = useState(
     formatDateForInput(employee.terminationDate)
@@ -110,15 +119,29 @@ export function EmployeeEditDialog({
       }))
   )
 
-  // New role add state
+  // Group management state (endDate null = active groups only)
+  const [employeeGroups, setEmployeeGroups] = useState<GroupState[]>(() =>
+    employee.groups
+      .filter((g) => !g.endDate)
+      .map((g) => ({
+        id: g.id,
+        groupId: g.groupId,
+        groupName: g.group.name,
+        startDate: formatDateForInput(g.startDate),
+        endDate: formatDateForInput(g.endDate),
+        status: "existing" as const,
+      }))
+  )
+
+  // New item add state
   const [newRoleId, setNewRoleId] = useState("")
   const [newPositionId, setNewPositionId] = useState("")
+  const [newGroupId, setNewGroupId] = useState("")
 
   const resetState = useCallback(() => {
     setName(employee.name)
     setNameKana(employee.nameKana ?? "")
-    setGroupId(employee.groupId?.toString() ?? "")
-    setAssignmentDate(formatDateForInput(employee.assignmentDate))
+    setHireDate(formatDateForInput(employee.hireDate))
     setTerminationDate(formatDateForInput(employee.terminationDate))
     setRoles(
       employee.functionRoles.map((r) => ({
@@ -144,8 +167,21 @@ export function EmployeeEditDialog({
           status: "existing" as const,
         }))
     )
+    setEmployeeGroups(
+      employee.groups
+        .filter((g) => !g.endDate)
+        .map((g) => ({
+          id: g.id,
+          groupId: g.groupId,
+          groupName: g.group.name,
+          startDate: formatDateForInput(g.startDate),
+          endDate: formatDateForInput(g.endDate),
+          status: "existing" as const,
+        }))
+    )
     setNewRoleId("")
     setNewPositionId("")
+    setNewGroupId("")
   }, [employee])
 
   function handleOpenChange(nextOpen: boolean) {
@@ -155,6 +191,7 @@ export function EmployeeEditDialog({
     setOpen(nextOpen)
   }
 
+  // --- Role handlers ---
   function handleAddRole() {
     if (!newRoleId) return
     const roleId = Number(newRoleId)
@@ -180,11 +217,6 @@ export function EmployeeEditDialog({
     setRoles((prev) =>
       prev.map((r, i) => {
         if (i !== index) return r
-        if (r.status === "added") {
-          // For newly added roles, just remove from list
-          return { ...r, status: "removed" as const }
-        }
-        // For existing roles, mark as removed
         return { ...r, status: "removed" as const }
       })
     )
@@ -216,6 +248,7 @@ export function EmployeeEditDialog({
     )
   }
 
+  // --- Position handlers ---
   function handleAddPosition() {
     if (!newPositionId) return
     const posId = Number(newPositionId)
@@ -270,6 +303,61 @@ export function EmployeeEditDialog({
     )
   }
 
+  // --- Group handlers ---
+  function handleAddGroup() {
+    if (!newGroupId) return
+    const gId = Number(newGroupId)
+    const grp = groups.find((g) => g.id === gId)
+    if (!grp) return
+
+    setEmployeeGroups((prev) => [
+      ...prev,
+      {
+        groupId: grp.id,
+        groupName: grp.name,
+        startDate: new Date().toISOString().split("T")[0],
+        endDate: "",
+        status: "added",
+      },
+    ])
+    setNewGroupId("")
+  }
+
+  function handleRemoveGroup(index: number) {
+    setEmployeeGroups((prev) =>
+      prev.map((g, i) => {
+        if (i !== index) return g
+        return { ...g, status: "removed" as const }
+      })
+    )
+  }
+
+  function handleRestoreGroup(index: number) {
+    setEmployeeGroups((prev) =>
+      prev.map((g, i) => {
+        if (i !== index) return g
+        return { ...g, status: "existing" as const }
+      })
+    )
+  }
+
+  function handleGroupChange(
+    index: number,
+    field: "startDate" | "endDate",
+    value: string
+  ) {
+    setEmployeeGroups((prev) =>
+      prev.map((g, i) => {
+        if (i !== index) return g
+        const updated = { ...g, [field]: value }
+        if (g.status === "existing") {
+          updated.status = "modified"
+        }
+        return updated
+      })
+    )
+  }
+
   async function handleSubmit() {
     if (!name.trim()) {
       toast.error("氏名は必須です")
@@ -303,17 +391,29 @@ export function EmployeeEditDialog({
         endDate: p.endDate || null,
       }))
 
+    // Build group changes list
+    const groupChanges: GroupChangeItem[] = employeeGroups
+      .filter((g) => g.status !== "existing")
+      .filter((g) => !(g.status === "removed" && !g.id))
+      .map((g) => ({
+        status: g.status === "existing" ? "modified" : g.status,
+        id: g.id,
+        groupId: g.groupId,
+        startDate: g.startDate || null,
+        endDate: g.endDate || null,
+      }))
+
     const result = await updateEmployeeWithRoles(
       employee.id,
       {
         name: name.trim(),
         nameKana: nameKana.trim() || null,
-        groupId: groupId ? Number(groupId) : null,
-        assignmentDate: assignmentDate || null,
+        hireDate: hireDate || null,
         terminationDate: terminationDate || null,
       },
       roleChanges,
-      positionChanges
+      positionChanges,
+      groupChanges
     )
 
     setLoading(false)
@@ -356,6 +456,21 @@ export function EmployeeEditDialog({
     (p) => p.isActive && !activePositionIds.has(p.id)
   )
 
+  // Filter visible groups
+  const visibleGroups = employeeGroups.filter(
+    (g) => !(g.status === "removed" && !g.id)
+  )
+
+  // Groups available to add
+  const activeGroupIds = new Set(
+    employeeGroups
+      .filter((g) => g.status !== "removed")
+      .map((g) => g.groupId)
+  )
+  const availableGroups = groups.filter(
+    (g) => !activeGroupIds.has(g.id)
+  )
+
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
@@ -392,29 +507,14 @@ export function EmployeeEditDialog({
                 maxLength={100}
               />
             </div>
-            <div className="space-y-2">
-              <Label>グループ</Label>
-              <Select value={groupId} onValueChange={setGroupId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="グループを選択" />
-                </SelectTrigger>
-                <SelectContent>
-                  {groups.map((g) => (
-                    <SelectItem key={g.id} value={g.id.toString()}>
-                      {g.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="edit-assignmentDate">配属日</Label>
+                <Label htmlFor="edit-hireDate">入社日</Label>
                 <Input
-                  id="edit-assignmentDate"
+                  id="edit-hireDate"
                   type="date"
-                  value={assignmentDate}
-                  onChange={(e) => setAssignmentDate(e.target.value)}
+                  value={hireDate}
+                  onChange={(e) => setHireDate(e.target.value)}
                 />
               </div>
               <div className="space-y-2">
@@ -431,7 +531,122 @@ export function EmployeeEditDialog({
 
           <Separator />
 
-          {/* Section 2: Role Management */}
+          {/* Section 2: Group Management */}
+          <div className="space-y-4">
+            <h3 className="text-sm font-semibold text-muted-foreground">グループ管理</h3>
+
+            {/* Current groups */}
+            {visibleGroups.length > 0 && (
+              <div className="space-y-3">
+                {visibleGroups.map((grp, index) => {
+                  const originalIndex = employeeGroups.indexOf(grp)
+                  const isRemoved = grp.status === "removed"
+
+                  return (
+                    <div
+                      key={`${grp.id ?? "new"}-${grp.groupId}-${index}`}
+                      className={`rounded-md border p-3 space-y-2 ${
+                        isRemoved ? "opacity-50 bg-muted" : ""
+                      } ${grp.status === "added" ? "border-green-300 bg-green-50 dark:bg-green-950/20 dark:border-green-800" : ""}`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-sm">
+                            {grp.groupName}
+                          </span>
+                          {grp.status === "added" && (
+                            <Badge variant="default" className="text-xs">新規</Badge>
+                          )}
+                          {grp.status === "removed" && (
+                            <Badge variant="destructive" className="text-xs">解除</Badge>
+                          )}
+                        </div>
+                        {isRemoved ? (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleRestoreGroup(originalIndex)}
+                          >
+                            元に戻す
+                          </Button>
+                        ) : (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleRemoveGroup(originalIndex)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                      {!isRemoved && (
+                        <div className="grid grid-cols-2 gap-2">
+                          <div className="space-y-1">
+                            <Label className="text-xs">開始日</Label>
+                            <Input
+                              type="date"
+                              value={grp.startDate}
+                              onChange={(e) =>
+                                handleGroupChange(originalIndex, "startDate", e.target.value)
+                              }
+                              className="h-8 text-sm"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs">終了日</Label>
+                            <Input
+                              type="date"
+                              value={grp.endDate}
+                              onChange={(e) =>
+                                handleGroupChange(originalIndex, "endDate", e.target.value)
+                              }
+                              className="h-8 text-sm"
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+
+            {/* Add new group */}
+            <div className="flex items-end gap-2">
+              <div className="flex-1 space-y-1">
+                <Label className="text-xs">グループを追加</Label>
+                <Select value={newGroupId} onValueChange={setNewGroupId}>
+                  <SelectTrigger className="h-9">
+                    <SelectValue placeholder="グループを選択" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableGroups.map((g) => (
+                      <SelectItem key={g.id} value={g.id.toString()}>
+                        {g.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleAddGroup}
+                disabled={!newGroupId}
+                className="h-9"
+              >
+                <Plus className="mr-1 h-4 w-4" />
+                追加
+              </Button>
+            </div>
+          </div>
+
+          <Separator />
+
+          {/* Section 3: Role Management */}
           <div className="space-y-4">
             <h3 className="text-sm font-semibold text-muted-foreground">役割管理</h3>
 
@@ -564,7 +779,7 @@ export function EmployeeEditDialog({
 
           <Separator />
 
-          {/* Section 3: Position Management */}
+          {/* Section 4: Position Management */}
           <div className="space-y-4">
             <h3 className="text-sm font-semibold text-muted-foreground">役職管理</h3>
 

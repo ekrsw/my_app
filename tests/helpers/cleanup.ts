@@ -9,14 +9,19 @@ export async function cleanupDatabase() {
     TRUNCATE TABLE
       employee_external_accounts,
       employee_function_roles,
+      employee_groups,
+      employee_positions,
       employee_name_history,
       employee_group_history,
+      employee_function_role_history,
+      employee_position_history,
       shift_change_history,
       shifts,
       employees,
       groups,
       function_roles,
-      external_tools
+      external_tools,
+      positions
     CASCADE
   `)
 }

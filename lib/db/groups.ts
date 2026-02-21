@@ -4,7 +4,11 @@ export async function getGroups() {
   return prisma.group.findMany({
     include: {
       _count: {
-        select: { employees: true },
+        select: {
+          employeeGroups: {
+            where: { endDate: null },
+          },
+        },
       },
     },
     orderBy: { id: "asc" },
@@ -16,7 +20,11 @@ export async function getGroupById(id: number) {
     where: { id },
     include: {
       _count: {
-        select: { employees: true },
+        select: {
+          employeeGroups: {
+            where: { endDate: null },
+          },
+        },
       },
     },
   })

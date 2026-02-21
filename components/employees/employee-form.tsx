@@ -105,10 +105,10 @@ export function EmployeeForm({ groups }: EmployeeFormProps) {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="assignmentDate">配属日</Label>
+              <Label htmlFor="hireDate">入社日</Label>
               <Input
-                id="assignmentDate"
-                name="assignmentDate"
+                id="hireDate"
+                name="hireDate"
                 type="date"
               />
             </div>

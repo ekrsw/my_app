@@ -36,8 +36,7 @@ describe("Zod Validation Schemas", () => {
       const result = employeeSchema.safeParse({
         name: "田中太郎",
         nameKana: "タナカタロウ",
-        groupId: 1,
-        assignmentDate: "2026-01-01",
+        hireDate: "2026-01-01",
         terminationDate: null,
       })
       expect(result.success).toBe(true)
@@ -64,11 +63,6 @@ describe("Zod Validation Schemas", () => {
         nameKana: "ア".repeat(101),
       })
       expect(result.success).toBe(false)
-    })
-
-    it("should accept nullable groupId", () => {
-      const result = employeeSchema.safeParse({ name: "田中太郎", groupId: null })
-      expect(result.success).toBe(true)
     })
 
     it("should accept optional fields omitted", () => {
@@ -207,7 +201,7 @@ describe("Zod Validation Schemas", () => {
     })
 
     it("should accept all valid roleType values", () => {
-      for (const roleType of ["FUNCTION", "AUTHORITY", "POSITION"]) {
+      for (const roleType of ["FUNCTION", "AUTHORITY"]) {
         const result = functionRoleSchema.safeParse({
           roleCode: "MANAGER",
           roleName: "マネージャー",

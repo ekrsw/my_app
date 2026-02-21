@@ -7,7 +7,7 @@ import { GroupForm, GroupDeleteButton } from "./group-form"
 type GroupWithCount = {
   id: number
   name: string
-  _count: { employees: number }
+  _count: { employeeGroups: number }
 }
 
 export const groupColumns: ColumnDef<GroupWithCount>[] = [
@@ -20,7 +20,7 @@ export const groupColumns: ColumnDef<GroupWithCount>[] = [
     header: "グループ名",
   },
   {
-    accessorFn: (row) => row._count.employees,
+    accessorFn: (row) => row._count.employeeGroups,
     id: "employeeCount",
     header: "従業員数",
     cell: ({ getValue }) => (

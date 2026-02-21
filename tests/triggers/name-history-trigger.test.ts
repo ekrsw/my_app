@@ -96,15 +96,14 @@ describe("Employee Name History Trigger", () => {
   })
 
   it("should NOT create history when name/nameKana are unchanged", async () => {
-    const group = await prisma.group.create({ data: { name: "開発部" } })
     const employee = await prisma.employee.create({
       data: { name: "田中太郎", nameKana: "タナカタロウ" },
     })
 
-    // Update only groupId (not name-related)
+    // Update only hireDate (not name-related)
     await prisma.employee.update({
       where: { id: employee.id },
-      data: { groupId: group.id },
+      data: { hireDate: new Date("2026-01-01") },
     })
 
     const history = await prisma.employeeNameHistory.findMany({

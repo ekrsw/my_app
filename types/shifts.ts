@@ -1,7 +1,7 @@
-import type { Shift, Employee, Group, ShiftChangeHistory } from "@/app/generated/prisma/client"
+import type { Shift, Employee, Group, EmployeeGroup, ShiftChangeHistory } from "@/app/generated/prisma/client"
 
 export type ShiftWithEmployee = Shift & {
-  employee: (Employee & { group: Group | null }) | null
+  employee: (Employee & { groups: (EmployeeGroup & { group: Group })[] }) | null
 }
 
 export type ShiftCalendarData = {
@@ -21,6 +21,6 @@ export type ShiftFilterParams = {
 
 export type ShiftHistoryEntry = ShiftChangeHistory & {
   shift: Shift & {
-    employee: (Employee & { group: Group | null }) | null
+    employee: (Employee & { groups: (EmployeeGroup & { group: Group })[] }) | null
   }
 }

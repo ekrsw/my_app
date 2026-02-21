@@ -24,7 +24,14 @@ export async function getFunctionRoleById(id: number) {
       employeeRoles: {
         where: { endDate: null },
         include: {
-          employee: { include: { group: true } },
+          employee: {
+            include: {
+              groups: {
+                include: { group: true },
+                where: { endDate: null },
+              },
+            },
+          },
         },
         orderBy: { employee: { name: "asc" } },
       },

@@ -2,11 +2,11 @@
 
 import { DataTable } from "@/components/data-table"
 import { employeeColumns } from "./employee-columns"
-import type { EmployeeWithGroup } from "@/types/employees"
+import type { EmployeeWithGroups } from "@/types/employees"
 import { useQueryParams } from "@/hooks/use-query-params"
 
 type EmployeeTableProps = {
-  data: EmployeeWithGroup[]
+  data: EmployeeWithGroups[]
   pageCount: number
   page: number
 }

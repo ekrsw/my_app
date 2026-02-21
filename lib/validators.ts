@@ -7,8 +7,7 @@ export const groupSchema = z.object({
 export const employeeSchema = z.object({
   name: z.string().min(1, "従業員名は必須です").max(100, "100文字以内で入力してください"),
   nameKana: z.string().max(100, "100文字以内で入力してください").nullable().optional(),
-  groupId: z.coerce.number().int().positive("グループを選択してください").nullable().optional(),
-  assignmentDate: z.string().nullable().optional(),
+  hireDate: z.string().nullable().optional(),
   terminationDate: z.string().nullable().optional(),
 })
 

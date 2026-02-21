@@ -31,7 +31,7 @@ const columns: ColumnDef<ShiftWithEmployee>[] = [
     },
   },
   {
-    accessorFn: (row) => row.employee?.group?.name,
+    accessorFn: (row) => row.employee?.groups?.[0]?.group?.name,
     id: "groupName",
     header: "グループ",
     cell: ({ getValue }) => {

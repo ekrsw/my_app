@@ -2,11 +2,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { formatDate } from "@/lib/date-utils"
 import { ShiftBadge } from "@/components/shifts/shift-badge"
-import type { ShiftChangeHistory, Shift, Employee, Group } from "@/app/generated/prisma/client"
+import type { ShiftChangeHistory, Shift, Employee, EmployeeGroup, Group } from "@/app/generated/prisma/client"
 
 type RecentChange = ShiftChangeHistory & {
   shift: Shift & {
-    employee: (Employee & { group: Group | null }) | null
+    employee: (Employee & { groups: (EmployeeGroup & { group: Group })[] }) | null
   }
 }
 

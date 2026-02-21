@@ -50,7 +50,12 @@ export async function getDashboardStats() {
         shift: {
           include: {
             employee: {
-              include: { group: true },
+              include: {
+                groups: {
+                  include: { group: true },
+                  where: { endDate: null },
+                },
+              },
             },
           },
         },
@@ -77,11 +82,15 @@ export async function getTodayOverview() {
     where: { shiftDate: today },
     include: {
       employee: {
-        include: { group: true },
+        include: {
+          groups: {
+            include: { group: true },
+            where: { endDate: null },
+          },
+        },
       },
     },
     orderBy: [
-      { employee: { groupId: "asc" } },
       { employee: { name: "asc" } },
     ],
   })

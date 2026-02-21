@@ -8,6 +8,7 @@ export function EmployeeDetailCard({ employee }: { employee: EmployeeWithDetails
   const isActive = !employee.terminationDate || employee.terminationDate >= new Date()
   const currentRoles = employee.functionRoles.filter((r) => !r.endDate)
   const currentPositions = employee.positions.filter((p) => !p.endDate)
+  const currentGroups = employee.groups.filter((g) => !g.endDate)
 
   return (
     <Card>
@@ -28,16 +29,22 @@ export function EmployeeDetailCard({ employee }: { employee: EmployeeWithDetails
           <div>
             <dt className="text-muted-foreground">グループ</dt>
             <dd className="font-medium">
-              {employee.group ? (
-                <Badge variant="outline">{employee.group.name}</Badge>
-              ) : (
+              {currentGroups.length === 0 ? (
                 "-"
+              ) : (
+                <div className="flex flex-wrap gap-1.5">
+                  {currentGroups.map((g) => (
+                    <Badge key={g.id} variant="outline">
+                      {g.group.name}
+                    </Badge>
+                  ))}
+                </div>
               )}
             </dd>
           </div>
           <div>
-            <dt className="text-muted-foreground">配属日</dt>
-            <dd className="font-medium">{formatDate(employee.assignmentDate)}</dd>
+            <dt className="text-muted-foreground">入社日</dt>
+            <dd className="font-medium">{formatDate(employee.hireDate)}</dd>
           </div>
           <div>
             <dt className="text-muted-foreground">退職日</dt>

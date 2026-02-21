@@ -9,10 +9,10 @@ datasource db {
 }
 
 model Group {
-  id           Int                    @id @default(autoincrement())
-  name         String                 @unique @db.VarChar(50)
-  employees    Employee[]
-  groupHistory EmployeeGroupHistory[]
+  id             Int                    @id @default(autoincrement())
+  name           String                 @unique @db.VarChar(50)
+  employeeGroups EmployeeGroup[]
+  groupHistory   EmployeeGroupHistory[]
 
   @@map("groups")
 }
@@ -21,11 +21,10 @@ model Employee {
   id              Int       @id @default(autoincrement())
   name            String    @db.VarChar(100)
   nameKana        String?   @map("name_kana") @db.VarChar(100)
-  groupId         Int?      @map("group_id")
-  assignmentDate  DateTime? @map("assignment_date") @db.Date
+  hireDate        DateTime? @map("hire_date") @db.Date
   terminationDate DateTime? @map("termination_date") @db.Date
 
-  group            Group?                          @relation(fields: [groupId], references: [id])
+  groups           EmployeeGroup[]
   shifts           Shift[]
   functionRoles    EmployeeFunctionRole[]
   positions        EmployeePosition[]
@@ -124,13 +123,14 @@ model ShiftChangeHistory {
 }
 
 model EmployeeGroupHistory {
-  id             Int       @id @default(autoincrement())
-  employeeId     Int       @map("employee_id")
-  groupId        Int?      @map("group_id")
-  assignmentDate DateTime? @map("assignment_date") @db.Date
-  changeType     String    @map("change_type") @db.VarChar(10)
-  version        Int
-  changedAt      DateTime  @default(now()) @map("changed_at")
+  id         Int       @id @default(autoincrement())
+  employeeId Int       @map("employee_id")
+  groupId    Int?      @map("group_id")
+  startDate  DateTime? @map("start_date") @db.Date
+  endDate    DateTime? @map("end_date") @db.Date
+  changeType String    @map("change_type") @db.VarChar(10)
+  version    Int
+  changedAt  DateTime  @default(now()) @map("changed_at")
 
   employee Employee @relation(fields: [employeeId], references: [id], onDelete: Restrict)
   group    Group?   @relation(fields: [groupId], references: [id], onDelete: Restrict)
@@ -207,6 +207,19 @@ model EmployeePosition {
   position Position @relation(fields: [positionId], references: [id], onDelete: Restrict)
 
   @@map("employee_positions")
+}
+
+model EmployeeGroup {
+  id         Int       @id @default(autoincrement())
+  employeeId Int       @map("employee_id")
+  groupId    Int       @map("group_id")
+  startDate  DateTime  @map("start_date") @db.Date
+  endDate    DateTime? @map("end_date") @db.Date
+
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Restrict)
+  group    Group    @relation(fields: [groupId], references: [id], onDelete: Restrict)
+
+  @@map("employee_groups")
 }
 
 model EmployeePositionHistory {

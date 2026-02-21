@@ -96,8 +96,15 @@ describe("Group Actions", () => {
 
     it("should return error when group has employees", async () => {
       const group = await prisma.group.create({ data: { name: "開発部" } })
-      await prisma.employee.create({
-        data: { name: "田中太郎", groupId: group.id },
+      const emp = await prisma.employee.create({
+        data: { name: "田中太郎" },
+      })
+      await prisma.employeeGroup.create({
+        data: {
+          employeeId: emp.id,
+          groupId: group.id,
+          startDate: new Date(),
+        },
       })
 
       const result = await deleteGroup(group.id)

@@ -6,7 +6,7 @@ import { groupColumns } from "./group-columns"
 type GroupWithCount = {
   id: number
   name: string
-  _count: { employees: number }
+  _count: { employeeGroups: number }
 }
 
 export function GroupTable({ data }: { data: GroupWithCount[] }) {

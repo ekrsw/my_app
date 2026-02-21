@@ -14,9 +14,22 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { Badge } from "@/components/ui/badge"
 import { ChevronDown } from "lucide-react"
 import { formatDate } from "@/lib/date-utils"
 import type { EmployeeGroupHistoryEntry } from "@/types/employees"
+
+const CHANGE_TYPE_LABELS: Record<string, string> = {
+  INSERT: "追加",
+  UPDATE: "変更",
+  DELETE: "削除",
+}
+
+const CHANGE_TYPE_VARIANTS: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
+  INSERT: "default",
+  UPDATE: "outline",
+  DELETE: "destructive",
+}
 
 type Props = {
   groupHistory: EmployeeGroupHistoryEntry[]
@@ -44,8 +57,10 @@ export function EmployeeGroupHistorySection({ groupHistory }: Props) {
               <TableHeader>
                 <TableRow>
                   <TableHead>変更日時</TableHead>
-                  <TableHead>変更前グループ</TableHead>
-                  <TableHead>配属日</TableHead>
+                  <TableHead>変更種別</TableHead>
+                  <TableHead>グループ</TableHead>
+                  <TableHead>開始日</TableHead>
+                  <TableHead>終了日</TableHead>
                   <TableHead>バージョン</TableHead>
                 </TableRow>
               </TableHeader>
@@ -55,10 +70,16 @@ export function EmployeeGroupHistorySection({ groupHistory }: Props) {
                     <TableCell>
                       {formatDate(h.changedAt, "yyyy/MM/dd HH:mm")}
                     </TableCell>
+                    <TableCell>
+                      <Badge variant={CHANGE_TYPE_VARIANTS[h.changeType] ?? "outline"}>
+                        {CHANGE_TYPE_LABELS[h.changeType] ?? h.changeType}
+                      </Badge>
+                    </TableCell>
                     <TableCell className="font-medium">
                       {h.group?.name ?? "未所属"}
                     </TableCell>
-                    <TableCell>{formatDate(h.assignmentDate)}</TableCell>
+                    <TableCell>{formatDate(h.startDate)}</TableCell>
+                    <TableCell>{formatDate(h.endDate)}</TableCell>
                     <TableCell className="text-muted-foreground">
                       {h.version}
                     </TableCell>

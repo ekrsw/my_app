@@ -10,10 +10,10 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { getShiftCodeInfo } from "@/lib/constants"
 import { formatTime } from "@/lib/date-utils"
-import type { Shift, Employee, Group } from "@/app/generated/prisma/client"
+import type { Shift, Employee, Group, EmployeeGroup } from "@/app/generated/prisma/client"
 
 type TodayShift = Shift & {
-  employee: (Employee & { group: Group | null }) | null
+  employee: (Employee & { groups: (EmployeeGroup & { group: Group })[] }) | null
 }
 
 export function TodayOverview({ shifts }: { shifts: TodayShift[] }) {
@@ -33,7 +33,7 @@ export function TodayOverview({ shifts }: { shifts: TodayShift[] }) {
   // Group by group name
   const grouped = new Map<string, TodayShift[]>()
   for (const shift of shifts) {
-    const key = shift.employee?.group?.name ?? "未所属"
+    const key = shift.employee?.groups?.[0]?.group?.name ?? "未所属"
     if (!grouped.has(key)) grouped.set(key, [])
     grouped.get(key)!.push(shift)
   }

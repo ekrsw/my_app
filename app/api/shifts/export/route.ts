@@ -20,13 +20,20 @@ export async function GET(request: NextRequest) {
   }
 
   if (groupId) {
-    where.employee = { groupId }
+    where.employee = { groups: { some: { groupId, endDate: null } } }
   }
 
   const shifts = await prisma.shift.findMany({
     where,
     include: {
-      employee: { include: { group: true } },
+      employee: {
+        include: {
+          groups: {
+            include: { group: true },
+            where: { endDate: null },
+          },
+        },
+      },
     },
     orderBy: [{ shiftDate: "asc" }, { employee: { name: "asc" } }],
   })
@@ -48,7 +55,7 @@ export async function GET(request: NextRequest) {
     formatDate(s.shiftDate),
     s.employeeId ?? "",
     s.employee?.name ?? "",
-    s.employee?.group?.name ?? "",
+    s.employee?.groups?.[0]?.group?.name ?? "",
     s.shiftCode ?? "",
     formatTime(s.startTime),
     formatTime(s.endTime),

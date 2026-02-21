@@ -1,5 +1,5 @@
 export type { ShiftWithEmployee, ShiftCalendarData, ShiftFilterParams, ShiftHistoryEntry } from "./shifts"
-export type { EmployeeWithGroup, EmployeeWithDetails, EmployeeFilterParams, EmployeeGroupHistoryEntry } from "./employees"
+export type { EmployeeWithGroups, EmployeeWithDetails, EmployeeFilterParams, EmployeeGroupHistoryEntry } from "./employees"
 
 // 共通型
 export type PaginationParams = {

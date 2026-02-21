@@ -44,7 +44,7 @@ describe("Employee Actions", () => {
       expect(result).not.toHaveProperty("success")
     })
 
-    it("should handle groupId assignment", async () => {
+    it("should handle groupId assignment via junction table", async () => {
       const group = await prisma.group.create({ data: { name: "開発部" } })
 
       const result = await createEmployee(
@@ -53,8 +53,11 @@ describe("Employee Actions", () => {
 
       expect(result).toEqual({ success: true })
 
-      const employee = await prisma.employee.findFirst()
-      expect(employee!.groupId).toBe(group.id)
+      const employee = await prisma.employee.findFirst({
+        include: { groups: true },
+      })
+      expect(employee!.groups).toHaveLength(1)
+      expect(employee!.groups[0].groupId).toBe(group.id)
     })
   })
 
@@ -92,26 +95,6 @@ describe("Employee Actions", () => {
       })
       expect(history.length).toBeGreaterThanOrEqual(2)
     })
-
-    it("should trigger group history on group change", async () => {
-      const group1 = await prisma.group.create({ data: { name: "開発部" } })
-      const group2 = await prisma.group.create({ data: { name: "営業部" } })
-
-      const employee = await prisma.employee.create({
-        data: { name: "田中太郎", groupId: group1.id },
-      })
-
-      await updateEmployee(
-        employee.id,
-        makeFormData({ name: "田中太郎", groupId: String(group2.id) })
-      )
-
-      const history = await prisma.employeeGroupHistory.findMany({
-        where: { employeeId: employee.id },
-      })
-      expect(history).toHaveLength(1)
-      expect(history[0].groupId).toBe(group1.id)
-    })
   })
 
   describe("deleteEmployee", () => {
@@ -131,17 +114,19 @@ describe("Employee Actions", () => {
     })
 
     it("should return error when employee has related data (ON DELETE RESTRICT)", async () => {
-      const group1 = await prisma.group.create({ data: { name: "開発部" } })
-      const group2 = await prisma.group.create({ data: { name: "営業部" } })
+      const group = await prisma.group.create({ data: { name: "開発部" } })
 
       const employee = await prisma.employee.create({
-        data: { name: "田中太郎", groupId: group1.id },
+        data: { name: "田中太郎" },
       })
 
-      // Trigger group history (which has ON DELETE RESTRICT on employee_id)
-      await prisma.employee.update({
-        where: { id: employee.id },
-        data: { groupId: group2.id },
+      // Create group assignment (which triggers history via DB trigger)
+      await prisma.employeeGroup.create({
+        data: {
+          employeeId: employee.id,
+          groupId: group.id,
+          startDate: new Date(),
+        },
       })
 
       const result = await deleteEmployee(employee.id)

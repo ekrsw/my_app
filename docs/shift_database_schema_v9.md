@@ -29,7 +29,7 @@ erDiagram
         varchar name
         varchar name_kana
         integer group_id FK
-        date assignment_date
+        date hire_date
         date termination_date
     }
 
@@ -152,7 +152,7 @@ erDiagram
 | name | varchar(100) | NO | - | 従業員名 |
 | name_kana | varchar(100) | YES | - | 従業員名（カナ） |
 | group_id | integer | YES | - | 所属グループID |
-| assignment_date | date | YES | - | CSC配属日 |
+| hire_date | date | YES | - | 入社日 |
 | termination_date | date | YES | - | 退職日（在籍中はNULL） |
 
 **制約**: PK(id), FK(group_id → groups.id)
@@ -161,7 +161,7 @@ erDiagram
 ```sql
 -- 特定日時点の在籍者
 SELECT * FROM employees
-WHERE assignment_date <= :対象日
+WHERE hire_date <= :対象日
   AND (termination_date IS NULL OR termination_date >= :対象日)
 ```
 

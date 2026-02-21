@@ -24,7 +24,14 @@ export async function getShiftHistory(
       include: {
         shift: {
           include: {
-            employee: { include: { group: true } },
+            employee: {
+              include: {
+                groups: {
+                  include: { group: true },
+                  where: { endDate: null },
+                },
+              },
+            },
           },
         },
       },

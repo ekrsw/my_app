@@ -7,12 +7,17 @@ import type {
   EmployeeGroupHistory,
   EmployeeFunctionRoleHistory,
   EmployeePosition,
+  EmployeeGroup,
   Position,
   EmployeePositionHistory,
 } from "@/app/generated/prisma/client"
 
-export type EmployeeWithGroup = Employee & {
-  group: Group | null
+export type EmployeeGroupWithGroup = EmployeeGroup & {
+  group: Group
+}
+
+export type EmployeeWithGroups = Employee & {
+  groups: EmployeeGroupWithGroup[]
 }
 
 export type EmployeeGroupHistoryEntry = EmployeeGroupHistory & {
@@ -28,7 +33,7 @@ export type EmployeePositionWithPosition = EmployeePosition & {
 export type EmployeePositionHistoryEntry = EmployeePositionHistory
 
 export type EmployeeWithDetails = Employee & {
-  group: Group | null
+  groups: EmployeeGroupWithGroup[]
   functionRoles: (EmployeeFunctionRole & {
     functionRole: FunctionRole | null
   })[]

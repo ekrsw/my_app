@@ -3,10 +3,10 @@
 import { ColumnDef } from "@tanstack/react-table"
 import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
-import type { EmployeeWithGroup } from "@/types/employees"
+import type { EmployeeWithGroups } from "@/types/employees"
 import { formatDate } from "@/lib/date-utils"
 
-export const employeeColumns: ColumnDef<EmployeeWithGroup>[] = [
+export const employeeColumns: ColumnDef<EmployeeWithGroups>[] = [
   {
     accessorKey: "id",
     header: "ID",
@@ -33,17 +33,23 @@ export const employeeColumns: ColumnDef<EmployeeWithGroup>[] = [
     ),
   },
   {
-    accessorFn: (row) => row.group?.name,
     id: "groupName",
     header: "グループ",
-    cell: ({ getValue }) => {
-      const name = getValue<string | undefined>()
-      return name ? <Badge variant="outline">{name}</Badge> : "-"
+    cell: ({ row }) => {
+      const groups = row.original.groups
+      if (!groups || groups.length === 0) return "-"
+      return (
+        <div className="flex flex-wrap gap-1">
+          {groups.map((g) => (
+            <Badge key={g.id} variant="outline">{g.group.name}</Badge>
+          ))}
+        </div>
+      )
     },
   },
   {
-    accessorKey: "assignmentDate",
-    header: "配属日",
+    accessorKey: "hireDate",
+    header: "入社日",
     cell: ({ getValue }) => formatDate(getValue<Date | null>()),
   },
   {
