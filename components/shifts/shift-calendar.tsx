@@ -39,8 +39,8 @@ export function ShiftCalendar({
     <div className="w-full overflow-auto rounded-md border">
       <div className="min-w-max">
         {/* Header row */}
-        <div className="flex sticky top-0 z-20 bg-background border-b">
-          <div className="sticky left-0 z-30 flex w-48 min-w-48 items-center border-r bg-background px-3 py-2 text-sm font-medium">
+        <div className="flex h-10 sticky top-0 z-20 bg-background border-b">
+          <div className="sticky left-0 z-30 flex w-48 min-w-48 items-center border-r bg-background px-3 text-sm font-medium">
             従業員
           </div>
           {days.map((day) => {
@@ -67,7 +67,7 @@ export function ShiftCalendar({
           <div key={group.groupId ?? "ungrouped"}>
             {/* Group header */}
             <div
-              className="flex sticky top-[42px] z-10 bg-muted/50 border-b cursor-pointer hover:bg-muted/80"
+              className="flex sticky top-10 z-10 bg-muted/50 border-b cursor-pointer hover:bg-muted/80"
               onClick={() => toggleGroup(group.groupId)}
             >
               <div className="sticky left-0 z-20 flex w-48 min-w-48 items-center gap-1 border-r bg-muted/50 px-3 py-1.5 text-sm font-medium">
