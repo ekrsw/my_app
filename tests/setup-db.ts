@@ -48,53 +48,53 @@ async function main() {
   const testClient = new Client({ connectionString: TEST_DB_URL })
   await testClient.connect()
 
+  const initSqlPath = path.resolve(
+    __dirname,
+    "../prisma/migrations/0_init/migration.sql"
+  )
+  const initSql = readFileSync(initSqlPath, "utf-8")
+
+  // Clean up removed triggers/functions (e.g. employee_name_history)
+  await testClient.query(`DROP TRIGGER IF EXISTS trg_employee_name_change ON employees`)
+  await testClient.query(`DROP FUNCTION IF EXISTS record_employee_name_change()`)
+  console.log("  Cleaned up removed triggers")
+
   const migrationFiles = [
-    "20260219000000_add_efr_constraints/migration.sql",
-    "20260219100000_add_employee_group_history/migration.sql",
-    "20260219200000_add_employee_name_history_trigger/migration.sql",
-    "20260220000000_add_shift_change_history_trigger/migration.sql",
+    "0_init/migration.sql",
+    "20260222100000_employee_group_junction/migration.sql",
   ]
 
   for (const file of migrationFiles) {
     const filePath = path.resolve(__dirname, "../prisma/migrations", file)
     const sql = readFileSync(filePath, "utf-8")
-
-    // Extract only trigger-related SQL (CREATE OR REPLACE FUNCTION, CREATE TRIGGER, DROP TRIGGER)
-    const triggerStatements = extractTriggerStatements(sql)
-
-    if (triggerStatements.length > 0) {
-      for (const stmt of triggerStatements) {
-        try {
-          await testClient.query(stmt)
-        } catch (err: unknown) {
-          // Ignore errors for already-existing objects
-          const pgErr = err as { code?: string }
-          if (pgErr.code !== "42710") {
-            console.error(`Error applying trigger SQL from ${file}:`, err)
-          }
+    const stmts = extractTriggerStatements(sql)
+    for (const stmt of stmts) {
+      try {
+        await testClient.query(stmt)
+      } catch (err: unknown) {
+        const pgErr = err as { code?: string }
+        if (pgErr.code !== "42710") {
+          console.error(`Error applying trigger SQL from ${file}:`, err)
         }
       }
+    }
+    if (stmts.length > 0) {
       console.log(`  Applied triggers from ${file}`)
     }
   }
 
-  // Also apply partial unique indexes from the first migration
-  const efrSql = readFileSync(
-    path.resolve(
-      __dirname,
-      "../prisma/migrations/20260219000000_add_efr_constraints/migration.sql"
-    ),
-    "utf-8"
-  )
-  // Extract CREATE UNIQUE INDEX statements (may be preceded by SQL comments)
+  // Apply partial unique indexes
   const indexRegex =
-    /CREATE\s+UNIQUE\s+INDEX\s+IF\s+NOT\s+EXISTS\s+[\s\S]*?;/gi
+    /CREATE\s+UNIQUE\s+INDEX[\s\S]*?;/gi
   let indexMatch
-  while ((indexMatch = indexRegex.exec(efrSql)) !== null) {
-    try {
-      await testClient.query(indexMatch[0])
-    } catch {
-      // Ignore if already exists
+  while ((indexMatch = indexRegex.exec(initSql)) !== null) {
+    // Only apply partial unique indexes (WHERE clause)
+    if (indexMatch[0].includes("WHERE")) {
+      try {
+        await testClient.query(indexMatch[0])
+      } catch {
+        // Ignore if already exists
+      }
     }
   }
   console.log("  Applied partial unique indexes")

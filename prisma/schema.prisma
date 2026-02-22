@@ -28,7 +28,6 @@ model Employee {
   shifts           Shift[]
   functionRoles    EmployeeFunctionRole[]
   positions        EmployeePosition[]
-  nameHistory      EmployeeNameHistory[]
   externalAccounts EmployeeExternalAccount[]
   groupHistory     EmployeeGroupHistory[]
   roleHistory      EmployeeFunctionRoleHistory[]
@@ -80,22 +79,6 @@ model EmployeeFunctionRole {
   functionRole FunctionRole? @relation(fields: [functionRoleId], references: [id])
 
   @@map("employee_function_roles")
-}
-
-model EmployeeNameHistory {
-  id         Int       @id @default(autoincrement())
-  employeeId Int?      @map("employee_id")
-  name       String    @db.VarChar(100)
-  nameKana   String?   @map("name_kana") @db.VarChar(100)
-  validFrom  DateTime  @map("valid_from") @db.Date
-  validTo    DateTime? @map("valid_to") @db.Date
-  isCurrent  Boolean?  @default(false) @map("is_current")
-  note       String?   @db.VarChar(255)
-  createdAt  DateTime? @default(now()) @map("created_at")
-
-  employee Employee? @relation(fields: [employeeId], references: [id])
-
-  @@map("employee_name_history")
 }
 
 model ShiftChangeHistory {

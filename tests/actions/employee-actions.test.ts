@@ -80,21 +80,6 @@ describe("Employee Actions", () => {
       expect(updated!.name).toBe("佐藤太郎")
     })
 
-    it("should trigger name history on name change", async () => {
-      const employee = await prisma.employee.create({
-        data: { name: "田中太郎", nameKana: "タナカタロウ" },
-      })
-
-      await updateEmployee(
-        employee.id,
-        makeFormData({ name: "佐藤太郎", nameKana: "サトウタロウ" })
-      )
-
-      const history = await prisma.employeeNameHistory.findMany({
-        where: { employeeId: employee.id },
-      })
-      expect(history.length).toBeGreaterThanOrEqual(2)
-    })
   })
 
   describe("deleteEmployee", () => {

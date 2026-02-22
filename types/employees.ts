@@ -3,7 +3,6 @@ import type {
   Group,
   EmployeeFunctionRole,
   FunctionRole,
-  EmployeeNameHistory,
   EmployeeGroupHistory,
   EmployeeFunctionRoleHistory,
   EmployeePosition,
@@ -38,7 +37,6 @@ export type EmployeeWithDetails = Employee & {
     functionRole: FunctionRole | null
   })[]
   positions: EmployeePositionWithPosition[]
-  nameHistory: EmployeeNameHistory[]
   groupHistory: EmployeeGroupHistoryEntry[]
   roleHistory: EmployeeFunctionRoleHistoryEntry[]
   positionHistory: EmployeePositionHistoryEntry[]

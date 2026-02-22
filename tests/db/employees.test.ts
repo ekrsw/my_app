@@ -133,7 +133,6 @@ describe("Employee DB Queries", () => {
       expect(result!.groups).toHaveLength(1)
       expect(result!.groups[0].group.name).toBe("開発部")
       expect(result!.functionRoles).toBeDefined()
-      expect(result!.nameHistory).toBeDefined()
       expect(result!.groupHistory).toBeDefined()
     })
 

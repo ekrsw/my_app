@@ -62,19 +62,6 @@ CREATE TABLE "employee_function_roles" (
     CONSTRAINT "employee_function_roles_pkey" PRIMARY KEY ("id")
 );
 
-CREATE TABLE "employee_name_history" (
-    "id" SERIAL NOT NULL,
-    "employee_id" INTEGER,
-    "name" VARCHAR(100) NOT NULL,
-    "name_kana" VARCHAR(100),
-    "valid_from" DATE NOT NULL,
-    "valid_to" DATE,
-    "is_current" BOOLEAN DEFAULT false,
-    "note" VARCHAR(255),
-    "created_at" TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT "employee_name_history_pkey" PRIMARY KEY ("id")
-);
-
 CREATE TABLE "shift_change_history" (
     "id" SERIAL NOT NULL,
     "shift_id" INTEGER NOT NULL,
@@ -214,9 +201,6 @@ ALTER TABLE "employee_function_roles" ADD CONSTRAINT "employee_function_roles_em
 ALTER TABLE "employee_function_roles" ADD CONSTRAINT "employee_function_roles_function_role_id_fkey"
   FOREIGN KEY ("function_role_id") REFERENCES "function_roles"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
-ALTER TABLE "employee_name_history" ADD CONSTRAINT "employee_name_history_employee_id_fkey"
-  FOREIGN KEY ("employee_id") REFERENCES "employees"("id") ON DELETE SET NULL ON UPDATE CASCADE;
-
 ALTER TABLE "shift_change_history" ADD CONSTRAINT "shift_change_history_shift_id_fkey"
   FOREIGN KEY ("shift_id") REFERENCES "shifts"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
@@ -276,33 +260,7 @@ ON employee_function_roles
 FOR EACH ROW
 EXECUTE FUNCTION set_efr_role_type();
 
--- 2. Employee name change history
-CREATE OR REPLACE FUNCTION record_employee_name_change()
-RETURNS TRIGGER AS $$
-BEGIN
-  IF OLD.name IS DISTINCT FROM NEW.name OR OLD.name_kana IS DISTINCT FROM NEW.name_kana THEN
-    UPDATE employee_name_history
-    SET valid_to = CURRENT_DATE, is_current = false
-    WHERE employee_id = OLD.id AND is_current = true;
-
-    IF NOT FOUND THEN
-      INSERT INTO employee_name_history (employee_id, name, name_kana, valid_from, valid_to, is_current)
-      VALUES (OLD.id, OLD.name, OLD.name_kana, CURRENT_DATE, CURRENT_DATE, false);
-    END IF;
-
-    INSERT INTO employee_name_history (employee_id, name, name_kana, valid_from, is_current)
-    VALUES (OLD.id, NEW.name, NEW.name_kana, CURRENT_DATE, true);
-  END IF;
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER trg_employee_name_change
-BEFORE UPDATE ON employees
-FOR EACH ROW
-EXECUTE FUNCTION record_employee_name_change();
-
--- 3. Shift change history
+-- 2. Shift change history
 CREATE OR REPLACE FUNCTION record_shift_change()
 RETURNS TRIGGER AS $$
 DECLARE

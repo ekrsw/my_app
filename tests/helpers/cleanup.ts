@@ -11,7 +11,6 @@ export async function cleanupDatabase() {
       employee_function_roles,
       employee_groups,
       employee_positions,
-      employee_name_history,
       employee_group_history,
       employee_function_role_history,
       employee_position_history,

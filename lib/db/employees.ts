@@ -82,9 +82,6 @@ export async function getEmployeeById(id: number): Promise<EmployeeWithDetails |
         include: { position: true },
         orderBy: [{ endDate: "asc" }, { startDate: "desc" }],
       },
-      nameHistory: {
-        orderBy: { validFrom: "desc" },
-      },
       groupHistory: {
         include: { group: true },
         orderBy: { changedAt: "desc" },

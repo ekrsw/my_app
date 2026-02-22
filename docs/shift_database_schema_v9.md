@@ -21,7 +21,6 @@ erDiagram
     external_tools ||--o{ employee_external_accounts : defines
     employees ||--o{ employee_external_accounts : has
 
-    employees ||--o{ employee_name_history : has
     shifts ||--o{ shift_change_history : has
     employees ||--o{ employee_group_history : has
     groups ||--o{ employee_group_history : refs
@@ -111,18 +110,6 @@ erDiagram
         boolean is_active
     }
 
-    employee_name_history {
-        integer id PK
-        integer employee_id FK
-        varchar name
-        varchar name_kana
-        date valid_from
-        date valid_to
-        boolean is_current
-        varchar note
-        timestamp created_at
-    }
-
     shift_change_history {
         integer id PK
         integer shift_id FK
@@ -192,7 +179,6 @@ erDiagram
 | employee_positions | 従業員役職（中間テーブル） | 中間 |
 | external_tools | 外部ツールマスタ | マスタ |
 | employee_external_accounts | 従業員外部アカウント | 中間 |
-| employee_name_history | 従業員氏名履歴 | 履歴 |
 | shift_change_history | シフト変更履歴 | 履歴 |
 | employee_group_history | 従業員グループ変更履歴 | 履歴 |
 | employee_function_role_history | 従業員機能役割変更履歴 | 履歴 |
@@ -235,37 +221,6 @@ erDiagram
 SELECT * FROM employees
 WHERE hire_date <= :対象日
   AND (termination_date IS NULL OR termination_date >= :対象日)
-```
-
-**トリガー: 氏名変更履歴の自動記録**:
-
-`employees` テーブルの `name` または `name_kana` が変更された場合、変更前の氏名履歴レコードを終了し、新しい現行レコードを `employee_name_history` に自動挿入する。
-
-```sql
-CREATE OR REPLACE FUNCTION record_employee_name_change()
-RETURNS TRIGGER AS $$
-BEGIN
-  IF OLD.name IS DISTINCT FROM NEW.name OR OLD.name_kana IS DISTINCT FROM NEW.name_kana THEN
-    UPDATE employee_name_history
-    SET valid_to = CURRENT_DATE, is_current = false
-    WHERE employee_id = OLD.id AND is_current = true;
-
-    IF NOT FOUND THEN
-      INSERT INTO employee_name_history (employee_id, name, name_kana, valid_from, valid_to, is_current)
-      VALUES (OLD.id, OLD.name, OLD.name_kana, CURRENT_DATE, CURRENT_DATE, false);
-    END IF;
-
-    INSERT INTO employee_name_history (employee_id, name, name_kana, valid_from, is_current)
-    VALUES (OLD.id, NEW.name, NEW.name_kana, CURRENT_DATE, true);
-  END IF;
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER trg_employee_name_change
-BEFORE UPDATE ON employees
-FOR EACH ROW
-EXECUTE FUNCTION record_employee_name_change();
 ```
 
 ---
@@ -508,31 +463,7 @@ ORDER BY g.id, e.id
 
 ---
 
-### 11. employee_name_history（従業員氏名履歴）
-
-従業員の氏名変更履歴を管理する。改姓等の履歴管理対応。`employees` テーブルの `name` / `name_kana` が変更されるとトリガーにより自動記録される。
-
-| カラム名 | データ型 | NULL | デフォルト | 説明 |
-|---------|---------|------|-----------|------|
-| id | SERIAL | NO | auto_increment | 主キー |
-| employee_id | INTEGER | YES | - | 従業員ID |
-| name | VARCHAR(100) | NO | - | 従業員名 |
-| name_kana | VARCHAR(100) | YES | - | 従業員名（カナ） |
-| valid_from | DATE | NO | - | 有効開始日 |
-| valid_to | DATE | YES | - | 有効終了日（現行はNULL） |
-| is_current | BOOLEAN | YES | false | 現行氏名フラグ |
-| note | VARCHAR(255) | YES | - | 備考 |
-| created_at | TIMESTAMP(3) | YES | CURRENT_TIMESTAMP | 作成日時 |
-
-**制約**:
-- PK(id)
-- FK(employee_id → employees.id) ON DELETE SET NULL
-
-**注**: 現行氏名の一意性（同一従業員で `is_current = true` は1件のみ）はトリガー（`trg_employee_name_change`）のロジックで制御されている。DBレベルの部分ユニークインデックスやEXCLUDE制約は設定されていない。
-
----
-
-### 12. shift_change_history（シフト変更履歴）
+### 11. shift_change_history（シフト変更履歴）
 
 シフトデータの変更履歴を管理する。`shifts` テーブルへの UPDATE 時に、変更前の値をトリガーで自動保存する。変更があったフィールド（shift_code, start_time, end_time, is_holiday, is_paid_leave, is_remote のいずれか）が検知された場合のみ記録される。
 
@@ -645,7 +576,7 @@ WHERE h.shift_id = s.id
 
 ---
 
-### 13. employee_group_history（従業員グループ変更履歴）
+### 12. employee_group_history（従業員グループ変更履歴）
 
 `employee_groups` テーブルへの INSERT / UPDATE / DELETE 時にトリガーで自動記録される。
 
@@ -715,7 +646,7 @@ EXECUTE FUNCTION record_employee_group_change();
 
 ---
 
-### 14. employee_function_role_history（従業員機能役割変更履歴）
+### 13. employee_function_role_history（従業員機能役割変更履歴）
 
 `employee_function_roles` テーブルへの INSERT / UPDATE / DELETE 時にトリガーで自動記録される。
 
@@ -792,7 +723,7 @@ EXECUTE FUNCTION record_employee_role_change();
 
 ---
 
-### 15. employee_position_history（従業員役職変更履歴）
+### 14. employee_position_history（従業員役職変更履歴）
 
 `employee_positions` テーブルへの INSERT / UPDATE / DELETE 時にトリガーで自動記録される。
 
@@ -866,11 +797,10 @@ EXECUTE FUNCTION record_employee_position_change();
 | # | トリガー名 | 対象テーブル | タイミング | 関数名 | 用途 |
 |---|-----------|------------|-----------|--------|------|
 | 1 | trg_efr_set_role_type | employee_function_roles | BEFORE INSERT OR UPDATE OF function_role_id | set_efr_role_type() | role_type自動設定 |
-| 2 | trg_employee_name_change | employees | BEFORE UPDATE | record_employee_name_change() | 氏名変更履歴の自動記録 |
-| 3 | trg_shift_change | shifts | BEFORE UPDATE | record_shift_change() | シフト変更履歴の自動記録 |
-| 4 | trg_employee_group_change | employee_groups | AFTER INSERT OR UPDATE OR DELETE | record_employee_group_change() | グループ変更履歴の自動記録 |
-| 5 | trg_employee_role_change | employee_function_roles | AFTER INSERT OR UPDATE OR DELETE | record_employee_role_change() | 機能役割変更履歴の自動記録 |
-| 6 | trg_employee_position_change | employee_positions | AFTER INSERT OR UPDATE OR DELETE | record_employee_position_change() | 役職変更履歴の自動記録 |
+| 2 | trg_shift_change | shifts | BEFORE UPDATE | record_shift_change() | シフト変更履歴の自動記録 |
+| 3 | trg_employee_group_change | employee_groups | AFTER INSERT OR UPDATE OR DELETE | record_employee_group_change() | グループ変更履歴の自動記録 |
+| 4 | trg_employee_role_change | employee_function_roles | AFTER INSERT OR UPDATE OR DELETE | record_employee_role_change() | 機能役割変更履歴の自動記録 |
+| 5 | trg_employee_position_change | employee_positions | AFTER INSERT OR UPDATE OR DELETE | record_employee_position_change() | 役職変更履歴の自動記録 |
 
 ---
 
@@ -884,8 +814,6 @@ groups (1) ────< (N) employee_groups (N) >────(1) employees
                                                     ├────< (N) employee_function_roles (N) >────(1) function_roles
                                                     │
                                                     ├────< (N) employee_positions (N) >────(1) positions
-                                                    │
-                                                    ├────< (N) employee_name_history
                                                     │
                                                     ├────< (N) employee_external_accounts (N) >────(1) external_tools
                                                     │
@@ -905,7 +833,6 @@ groups (1) ────< (N) employee_groups (N) >────(1) employees
 | function_roles | employee_function_roles | function_role_id | 1:N | SET NULL |
 | employees | employee_positions | employee_id | 1:N | RESTRICT |
 | positions | employee_positions | position_id | 1:N | RESTRICT |
-| employees | employee_name_history | employee_id | 1:N | SET NULL |
 | shifts | shift_change_history | shift_id | 1:N | RESTRICT |
 | employees | employee_group_history | employee_id | 1:N | RESTRICT |
 | groups | employee_group_history | group_id | 1:N | RESTRICT |

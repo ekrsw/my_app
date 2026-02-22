@@ -3,7 +3,6 @@ import { PageContainer } from "@/components/layout/page-container"
 import { EmployeeDetailCard } from "@/components/employees/employee-detail-card"
 import { EmployeeEditDialog } from "@/components/employees/employee-edit-dialog"
 import { EmployeeDeleteButton } from "@/components/employees/employee-form"
-import { EmployeeNameHistorySection } from "@/components/employees/employee-name-history-section"
 import { EmployeeGroupHistorySection } from "@/components/employees/employee-group-history-section"
 import { EmployeeRoleHistorySection } from "@/components/employees/employee-role-history-section"
 import { EmployeePositionHistorySection } from "@/components/employees/employee-position-history-section"
@@ -53,7 +52,6 @@ export default async function EmployeeDetailPage({
         <EmployeeDetailCard employee={employee} />
 
         <div className="mt-6 space-y-3">
-          <EmployeeNameHistorySection nameHistory={employee.nameHistory} />
           <EmployeeGroupHistorySection groupHistory={employee.groupHistory} />
           <EmployeeRoleHistorySection roleHistory={employee.roleHistory} />
           <EmployeePositionHistorySection positionHistory={employee.positionHistory} />
