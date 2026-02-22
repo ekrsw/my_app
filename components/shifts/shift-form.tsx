@@ -118,7 +118,7 @@ export function ShiftForm({ open, onOpenChange, shift, employeeId, date }: Shift
               id="shiftCode"
               value={code}
               onChange={(e) => setCode(e.target.value)}
-              placeholder="例: A, B, H, T"
+              placeholder="例: 9_1730, 13_22, 22_8, 休, 有"
               maxLength={20}
             />
           </div>
