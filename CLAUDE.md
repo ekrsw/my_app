@@ -67,6 +67,7 @@ Form (Client Component) → lib/actions/ (Server Actions) → Zod validation →
 - **History tables** auto-populated by PostgreSQL triggers (PL/pgSQL in migration SQL files): `employee_name_history`, `employee_group_history`, `shift_change_history`, etc.
 - Prisma schema uses `@@map()` to map PascalCase models to snake_case table names
 - Prisma client is imported from `@/lib/prisma` (singleton pattern)
+- **Schema documentation**: `docs/shift_database_schema.md` — When the database schema changes (e.g., adding/removing tables, columns, indexes, triggers, or modifying migrations), this file must be updated to reflect the current state
 
 ### Testing Patterns
 - Tests live in `tests/` organized by category: `actions/`, `db/`, `triggers/`, `validators/`
