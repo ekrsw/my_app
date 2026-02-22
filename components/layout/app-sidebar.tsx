@@ -6,8 +6,8 @@ import {
   LayoutDashboard,
   Calendar,
   History,
-  Users,
-  FolderOpen,
+  User,
+  UsersRound,
   Shield,
   Award,
   Settings,
@@ -37,11 +37,11 @@ const navItems = [
   { label: "ダッシュボード", href: "/", icon: LayoutDashboard },
   { label: "シフト管理", href: "/shifts", icon: Calendar },
   { label: "シフト履歴", href: "/shifts/history", icon: History },
-  { label: "従業員", href: "/employees", icon: Users },
+  { label: "従業員", href: "/employees", icon: User },
 ]
 
 const settingsSubItems = [
-  { label: "グループ", href: "/groups", icon: FolderOpen },
+  { label: "グループ", href: "/groups", icon: UsersRound },
   { label: "役割", href: "/roles", icon: Shield },
   { label: "役職", href: "/positions", icon: Award },
 ]
