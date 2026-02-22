@@ -1,0 +1,37 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git stash:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npx prisma generate:*)",
+      "Bash(npx prisma migrate status)",
+      "Bash(npx prisma db pull:*)",
+      "Bash(PGPASSWORD=password psql:*)",
+      "Bash(npx prisma migrate deploy:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(ls:*)",
+      "Bash(git rm:*)",
+      "mcp__serena__list_dir",
+      "Bash(npx prisma migrate dev:*)",
+      "Bash(npx prisma db execute:*)",
+      "Bash(npx prisma migrate:*)",
+      "Bash(taskkill:*)",
+      "Bash(npx shadcn@latest add:*)",
+      "Bash(npx next build:*)",
+      "mcp__serena__list_memories",
+      "Bash(git -C \"C:/Users/eisuke_koresawa/project/my_app\" diff prisma/schema.prisma)",
+      "Bash(npm run build:*)",
+      "mcp__sequential-thinking__sequentialthinking",
+      "Bash(npx next lint:*)",
+      "Bash(npx vitest run)",
+      "Bash(npx vitest run:*)",
+      "Bash(DATABASE_URL=\"postgresql://postgres:password@localhost:5432/shift_database2_test\" npx prisma migrate deploy:*)",
+      "Bash(DATABASE_URL=\"postgresql://postgres:password@localhost:5432/shift_database2_test\" npx prisma db push:*)",
+      "Bash(env:*)",
+      "Bash(python3:*)",
+      "mcp__postgres__list_tables"
+    ]
+  }
+}
