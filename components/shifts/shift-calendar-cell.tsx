@@ -1,7 +1,7 @@
 "use client"
 
 import type { Shift } from "@/app/generated/prisma/client"
-import { getShiftCodeInfo } from "@/lib/constants"
+import { getShiftCodeInfo, type ShiftCodeInfo } from "@/lib/constants"
 import { formatTime } from "@/lib/date-utils"
 import {
   Tooltip,
@@ -17,6 +17,7 @@ type ShiftCalendarCellProps = {
   isSelected: boolean
   onClick: () => void
   onSelect?: () => void
+  shiftCodeMap?: Record<string, ShiftCodeInfo>
 }
 
 export function ShiftCalendarCell({
@@ -26,9 +27,10 @@ export function ShiftCalendarCell({
   isSelected,
   onClick,
   onSelect,
+  shiftCodeMap,
 }: ShiftCalendarCellProps) {
   const code = shift?.shiftCode ?? null
-  const info = getShiftCodeInfo(code)
+  const info = getShiftCodeInfo(code, shiftCodeMap)
 
   const handleClick = (e: React.MouseEvent) => {
     if (e.shiftKey && onSelect) {
@@ -50,7 +52,7 @@ export function ShiftCalendarCell({
             "border-r border-b border-border/50",
             "hover:ring-2 hover:ring-primary/30 hover:z-10",
             info.bgColor,
-            info.color,
+            shift?.isHoliday ? "text-red-600" : shift?.isPaidLeave ? "text-green-600" : info.color,
             isWeekend && "bg-red-50",
             isToday && "ring-1 ring-primary z-10",
             isSelected && "ring-2 ring-primary bg-primary/10 z-20"
