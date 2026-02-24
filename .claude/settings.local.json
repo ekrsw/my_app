@@ -31,7 +31,9 @@
       "Bash(DATABASE_URL=\"postgresql://postgres:password@localhost:5432/shift_database2_test\" npx prisma db push:*)",
       "Bash(env:*)",
       "Bash(python3:*)",
-      "mcp__postgres__list_tables"
+      "mcp__postgres__list_tables",
+      "Bash(createdb shift_management 2>&1)",
+      "Bash(npm install 2>&1)"
     ]
   }
 }
