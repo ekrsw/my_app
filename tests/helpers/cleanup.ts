@@ -20,7 +20,8 @@ export async function cleanupDatabase() {
       groups,
       function_roles,
       external_tools,
-      positions
+      positions,
+      shift_codes
     CASCADE
   `)
 }

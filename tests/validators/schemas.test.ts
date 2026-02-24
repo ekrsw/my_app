@@ -6,6 +6,7 @@ import {
   shiftBulkSchema,
   functionRoleSchema,
   roleAssignmentSchema,
+  shiftCodeSchema,
 } from "@/lib/validators"
 
 describe("Zod Validation Schemas", () => {
@@ -281,6 +282,102 @@ describe("Zod Validation Schemas", () => {
       const result = roleAssignmentSchema.safeParse({
         employeeId: 1,
         functionRoleId: 1,
+      })
+      expect(result.success).toBe(true)
+    })
+  })
+
+  describe("shiftCodeSchema", () => {
+    it("should accept valid shift code data", () => {
+      const result = shiftCodeSchema.safeParse({
+        code: "A",
+
+        defaultStartTime: "09:00",
+        defaultEndTime: "18:00",
+        defaultIsHoliday: false,
+        defaultIsPaidLeave: false,
+        isActive: true,
+        sortOrder: 0,
+      })
+      expect(result.success).toBe(true)
+    })
+
+    it("should reject empty code", () => {
+      const result = shiftCodeSchema.safeParse({
+        code: "",
+
+      })
+      expect(result.success).toBe(false)
+    })
+
+    it("should reject code over 20 characters", () => {
+      const result = shiftCodeSchema.safeParse({
+        code: "A".repeat(21),
+
+      })
+      expect(result.success).toBe(false)
+    })
+
+    it("should default boolean fields to false", () => {
+      const result = shiftCodeSchema.safeParse({
+        code: "A",
+
+      })
+      expect(result.success).toBe(true)
+      if (result.success) {
+        expect(result.data.defaultIsHoliday).toBe(false)
+        expect(result.data.defaultIsPaidLeave).toBe(false)
+      }
+    })
+
+    it("should default isActive to true", () => {
+      const result = shiftCodeSchema.safeParse({
+        code: "A",
+
+      })
+      expect(result.success).toBe(true)
+      if (result.success) {
+        expect(result.data.isActive).toBe(true)
+      }
+    })
+
+    it("should default sortOrder to 0", () => {
+      const result = shiftCodeSchema.safeParse({
+        code: "A",
+
+      })
+      expect(result.success).toBe(true)
+      if (result.success) {
+        expect(result.data.sortOrder).toBe(0)
+      }
+    })
+
+    it("should coerce sortOrder from string", () => {
+      const result = shiftCodeSchema.safeParse({
+        code: "A",
+
+        sortOrder: "5",
+      })
+      expect(result.success).toBe(true)
+      if (result.success) {
+        expect(result.data.sortOrder).toBe(5)
+      }
+    })
+
+    it("should reject negative sortOrder", () => {
+      const result = shiftCodeSchema.safeParse({
+        code: "A",
+
+        sortOrder: -1,
+      })
+      expect(result.success).toBe(false)
+    })
+
+    it("should accept nullable time fields", () => {
+      const result = shiftCodeSchema.safeParse({
+        code: "H",
+        defaultStartTime: null,
+        defaultEndTime: null,
       })
       expect(result.success).toBe(true)
     })

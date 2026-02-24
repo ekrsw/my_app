@@ -167,6 +167,19 @@ model EmployeeFunctionRoleHistory {
   @@map("employee_function_role_history")
 }
 
+model ShiftCode {
+  id                 Int       @id @default(autoincrement())
+  code               String    @unique @db.VarChar(20)
+  defaultStartTime   DateTime? @map("default_start_time") @db.Time(6)
+  defaultEndTime     DateTime? @map("default_end_time") @db.Time(6)
+  defaultIsHoliday   Boolean   @default(false) @map("default_is_holiday")
+  defaultIsPaidLeave Boolean   @default(false) @map("default_is_paid_leave")
+  isActive           Boolean?  @default(true) @map("is_active")
+  sortOrder          Int       @default(0) @map("sort_order")
+
+  @@map("shift_codes")
+}
+
 model Position {
   id           Int     @id @default(autoincrement())
   positionCode String  @unique @map("position_code") @db.VarChar(20)

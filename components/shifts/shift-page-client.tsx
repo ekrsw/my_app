@@ -9,10 +9,22 @@ import { ShiftViewToggle } from "./shift-view-toggle"
 import { ShiftForm } from "./shift-form"
 import { ShiftBulkEditor } from "./shift-bulk-editor"
 import { Download, Pencil } from "lucide-react"
+import { SHIFT_CODE_MAP, type ShiftCodeInfo } from "@/lib/constants"
 import type { ShiftCalendarData, ShiftWithEmployee } from "@/types/shifts"
 import type { Shift } from "@/app/generated/prisma/client"
 
 type Group = { id: number; name: string }
+
+type ActiveShiftCode = {
+  id: number
+  code: string
+  defaultStartTime: Date | null
+  defaultEndTime: Date | null
+  defaultIsHoliday: boolean
+  defaultIsPaidLeave: boolean
+  isActive: boolean | null
+  sortOrder: number
+}
 
 type ShiftPageClientProps = {
   calendarData: ShiftCalendarData[]
@@ -22,6 +34,7 @@ type ShiftPageClientProps = {
   groups: Group[]
   year: number
   month: number
+  shiftCodes: ActiveShiftCode[]
 }
 
 export function ShiftPageClient({
@@ -32,6 +45,7 @@ export function ShiftPageClient({
   groups,
   year,
   month,
+  shiftCodes,
 }: ShiftPageClientProps) {
   const [view, setView] = useState<"calendar" | "table">("calendar")
   const [editOpen, setEditOpen] = useState(false)
@@ -40,6 +54,21 @@ export function ShiftPageClient({
   const [editDate, setEditDate] = useState<string | undefined>()
   const [bulkOpen, setBulkOpen] = useState(false)
   const [selectedCells, setSelectedCells] = useState<Set<string>>(new Set())
+
+  // DB のシフトコードから shiftCodeMap を構築（カレンダー表示用）
+  const shiftCodeMap = useMemo(() => {
+    const map: Record<string, ShiftCodeInfo> = {}
+    for (const sc of shiftCodes) {
+      // ハードコードの色がある場合はそれを使い、なければデフォルトの色
+      const hardcoded = SHIFT_CODE_MAP[sc.code]
+      map[sc.code] = {
+        label: hardcoded?.label ?? sc.code,
+        color: hardcoded?.color ?? "text-gray-800",
+        bgColor: hardcoded?.bgColor ?? "bg-gray-100",
+      }
+    }
+    return map
+  }, [shiftCodes])
 
   const selectedShiftIds = useMemo(() => {
     const ids: number[] = []
@@ -130,6 +159,7 @@ export function ShiftPageClient({
           onCellClick={handleCellClick}
           selectedCells={selectedCells}
           onCellSelect={handleCellSelect}
+          shiftCodeMap={shiftCodeMap}
         />
       ) : (
         <>
@@ -147,6 +177,7 @@ export function ShiftPageClient({
         shift={editShift}
         employeeId={editEmployeeId}
         date={editDate}
+        shiftCodes={shiftCodes}
       />
 
       <ShiftBulkEditor
@@ -154,6 +185,7 @@ export function ShiftPageClient({
         onOpenChange={setBulkOpen}
         selectedShiftIds={selectedShiftIds}
         onComplete={() => setSelectedCells(new Set())}
+        shiftCodes={shiftCodes}
       />
     </div>
   )

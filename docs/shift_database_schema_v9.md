@@ -30,9 +30,6 @@ erDiagram
     shift_codes {
         integer id PK
         varchar code
-        varchar label
-        varchar color
-        varchar bg_color
         time default_start_time
         time default_end_time
         boolean default_is_holiday
@@ -418,9 +415,6 @@ ORDER BY g.id, e.id
 |---------|---------|------|-----------|------|
 | id | SERIAL | NO | auto_increment | 主キー |
 | code | VARCHAR(20) | NO | - | シフトコード（ユニーク） |
-| label | VARCHAR(50) | NO | - | 表示ラベル |
-| color | VARCHAR(50) | NO | 'text-gray-800' | Tailwind文字色クラス |
-| bg_color | VARCHAR(50) | NO | 'bg-gray-100' | Tailwind背景色クラス |
 | default_start_time | TIME(6) | YES | - | デフォルト開始時刻 |
 | default_end_time | TIME(6) | YES | - | デフォルト終了時刻 |
 | default_is_holiday | BOOLEAN | NO | false | デフォルト休日フラグ |
@@ -428,7 +422,9 @@ ORDER BY g.id, e.id
 | is_active | BOOLEAN | YES | true | 有効フラグ |
 | sort_order | INTEGER | NO | 0 | 表示順 |
 
-**制約**: PK(id), UNIQUE(code), INDEX(is_active, sort_order)
+**制約**: PK(id), UNIQUE(code)
+
+**備考**: 色（文字色・背景色）はDBに保持せず、`lib/constants.ts` の `SHIFT_CODE_MAP` でハードコード管理。`shifts.shift_code` への FK は張らず、カスタム入力も許容する。
 
 ---
 
@@ -929,3 +925,5 @@ groups (1) ────< (N) employee_groups (N) >────(1) employees
 | v10 | 2026-02-22 | 実DB構造と定義書の整合性を全面修正。employees.group_idを削除しemployee_groups中間テーブルに移行。employee_group_history追加（start_date/end_date対応）。positions・employee_positions・各種履歴テーブル（employee_group_history, employee_function_role_history, employee_position_history）の記載を追加。全トリガー・関数の正確なSQL記載。ER図・リレーション・テーブル一覧を15テーブル構成に更新。ON DELETE動作を全FKに明記。データ型精度（TIMESTAMP(3), TIME(6)）を反映 |
 | v11 | 2026-02-23 | shift_codes（シフトコードマスタ）テーブルを追加。シフトコードのDB管理、デフォルト時刻・フラグ設定、管理画面CRUD、シフトフォームのドロップダウン化に対応。既存SHIFT_CODE_MAP（9件）をシードデータとして移行 |
 | v12 | 2026-02-23 | 実DB構造との整合性修正。record_shift_change()関数がUPDATE/DELETE両方を処理するよう更新されていた実態を反映。トリガー名をtrg_shift_change→trg_shift_change_historyに修正。shift_change_historyのchange_typeに'DELETE'を追加。BEFORE DELETE + FK RESTRICT によるシフト物理削除不可の挙動を注記。セクション番号の重複(8が2つ)を修正 |
+| v13 | 2026-02-25 | shift_codesテーブルからcolor/bg_colorカラムを削除（色はlib/constants.tsでハードコード管理に統一）。シフトコード管理画面CRUD、シフトフォームのドロップダウン化（プリセット選択→デフォルト値自動入力）、一括編集のドロップダウン対応を実装 |
+| v14 | 2026-02-25 | shift_codesテーブルからlabelカラムを削除（表示ラベルはlib/constants.tsのSHIFT_CODE_MAPでハードコード管理に統一） |

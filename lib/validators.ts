@@ -71,3 +71,14 @@ export type ShiftBulkFormData = z.infer<typeof shiftBulkSchema>
 export type FunctionRoleFormData = z.infer<typeof functionRoleSchema>
 export type RoleAssignmentFormData = z.infer<typeof roleAssignmentSchema>
 export type PositionFormData = z.infer<typeof positionSchema>
+
+export const shiftCodeSchema = z.object({
+  code: z.string().min(1, "シフトコードは必須です").max(20, "20文字以内で入力してください"),
+  defaultStartTime: z.string().nullable().optional(),
+  defaultEndTime: z.string().nullable().optional(),
+  defaultIsHoliday: z.boolean().default(false),
+  defaultIsPaidLeave: z.boolean().default(false),
+  isActive: z.boolean().default(true),
+  sortOrder: z.coerce.number().int().min(0, "0以上の数値を入力してください").default(0),
+})
+export type ShiftCodeFormData = z.infer<typeof shiftCodeSchema>

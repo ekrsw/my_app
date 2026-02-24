@@ -62,6 +62,9 @@ async function main() {
   const migrationFiles = [
     "0_init/migration.sql",
     "20260222100000_employee_group_junction/migration.sql",
+    "20260225100000_add_shift_codes/migration.sql",
+    "20260225110000_add_shift_code_defaults_trigger/migration.sql",
+    "20260225120000_remove_shift_codes_label/migration.sql",
   ]
 
   for (const file of migrationFiles) {
@@ -124,6 +127,12 @@ function extractTriggerStatements(sql: string): string[] {
   const createTriggerRegex =
     /CREATE\s+TRIGGER\s+[\s\S]*?EXECUTE\s+FUNCTION\s+\w+\(\)\s*;/gi
   while ((match = createTriggerRegex.exec(sql)) !== null) {
+    statements.push(match[0])
+  }
+
+  // Extract ALTER TABLE statements
+  const alterTableRegex = /ALTER\s+TABLE\s+[^;]+;/gi
+  while ((match = alterTableRegex.exec(sql)) !== null) {
     statements.push(match[0])
   }
 

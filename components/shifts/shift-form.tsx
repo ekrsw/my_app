@@ -11,8 +11,27 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectSeparator,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { createShift, updateShift } from "@/lib/actions/shift-actions"
 import { toast } from "sonner"
+
+type ActiveShiftCode = {
+  id: number
+  code: string
+  defaultStartTime: Date | null
+  defaultEndTime: Date | null
+  defaultIsHoliday: boolean
+  defaultIsPaidLeave: boolean
+  isActive: boolean | null
+  sortOrder: number
+}
 
 type ShiftFormProps = {
   open: boolean
@@ -30,25 +49,40 @@ type ShiftFormProps = {
   }
   employeeId?: number
   date?: string
+  shiftCodes?: ActiveShiftCode[]
 }
 
-function timeToInput(d: Date | null): string {
+function timeToInput(d: Date | string | null): string {
   if (!d) return ""
-  return d.toISOString().substring(11, 16)
+  const iso = typeof d === "string" ? d : d.toISOString()
+  return iso.substring(11, 16)
 }
 
-export function ShiftForm({ open, onOpenChange, shift, employeeId, date }: ShiftFormProps) {
+const NONE_VALUE = "__none__"
+const CUSTOM_VALUE = "__custom__"
+
+export function ShiftForm({ open, onOpenChange, shift, employeeId, date, shiftCodes = [] }: ShiftFormProps) {
   const [loading, setLoading] = useState(false)
   const [code, setCode] = useState(shift?.shiftCode ?? "")
+  const [isCustom, setIsCustom] = useState(false)
   const [isHoliday, setIsHoliday] = useState(shift?.isHoliday ?? false)
   const [isPaidLeave, setIsPaidLeave] = useState(shift?.isPaidLeave ?? false)
   const [isRemote, setIsRemote] = useState(shift?.isRemote ?? false)
   const startTimeRef = useRef<HTMLInputElement>(null)
   const endTimeRef = useRef<HTMLInputElement>(null)
 
+  // 既存シフトコードがプリセットに含まれるか判定
+  function getSelectValue(shiftCode: string | null): string {
+    if (!shiftCode) return NONE_VALUE
+    if (shiftCodes.some((sc) => sc.code === shiftCode)) return shiftCode
+    return CUSTOM_VALUE
+  }
+
   useEffect(() => {
     if (open) {
-      setCode(shift?.shiftCode ?? "")
+      const currentCode = shift?.shiftCode ?? ""
+      setCode(currentCode)
+      setIsCustom(currentCode !== "" && !shiftCodes.some((sc) => sc.code === currentCode))
       setIsHoliday(shift?.isHoliday ?? false)
       setIsPaidLeave(shift?.isPaidLeave ?? false)
       setIsRemote(shift?.isRemote ?? false)
@@ -59,7 +93,35 @@ export function ShiftForm({ open, onOpenChange, shift, employeeId, date }: Shift
         endTimeRef.current.value = timeToInput(shift?.endTime ?? null)
       }
     }
-  }, [open, shift])
+  }, [open, shift, shiftCodes])
+
+  function handleSelectChange(value: string) {
+    if (value === NONE_VALUE) {
+      setCode("")
+      setIsCustom(false)
+      return
+    }
+    if (value === CUSTOM_VALUE) {
+      setCode("")
+      setIsCustom(true)
+      return
+    }
+    // プリセット選択 → デフォルト値を自動入力
+    setCode(value)
+    setIsCustom(false)
+    const preset = shiftCodes.find((sc) => sc.code === value)
+    if (preset) {
+      if (startTimeRef.current) {
+        startTimeRef.current.value = timeToInput(preset.defaultStartTime)
+      }
+      if (endTimeRef.current) {
+        endTimeRef.current.value = timeToInput(preset.defaultEndTime)
+      }
+      setIsHoliday(preset.defaultIsHoliday)
+      setIsPaidLeave(preset.defaultIsPaidLeave)
+      // isRemote は変更しない
+    }
+  }
 
   const isEdit = !!shift
 
@@ -105,6 +167,8 @@ export function ShiftForm({ open, onOpenChange, shift, employeeId, date }: Shift
     }
   }
 
+  const selectValue = getSelectValue(isCustom ? CUSTOM_VALUE : code || null)
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-sm">
@@ -113,14 +177,31 @@ export function ShiftForm({ open, onOpenChange, shift, employeeId, date }: Shift
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="shiftCode">シフトコード</Label>
-            <Input
-              id="shiftCode"
-              value={code}
-              onChange={(e) => setCode(e.target.value)}
-              placeholder="例: 9_1730, 13_22, 22_8, 休, 有"
-              maxLength={20}
-            />
+            <Label>シフトコード</Label>
+            <Select value={selectValue} onValueChange={handleSelectChange}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="選択してください" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={NONE_VALUE}>（なし）</SelectItem>
+                <SelectSeparator />
+                {shiftCodes.map((sc) => (
+                  <SelectItem key={sc.code} value={sc.code}>
+                    {sc.code}
+                  </SelectItem>
+                ))}
+                <SelectSeparator />
+                <SelectItem value={CUSTOM_VALUE}>カスタム入力</SelectItem>
+              </SelectContent>
+            </Select>
+            {isCustom && (
+              <Input
+                value={code}
+                onChange={(e) => setCode(e.target.value)}
+                placeholder="カスタムコードを入力"
+                maxLength={20}
+              />
+            )}
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">

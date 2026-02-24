@@ -1,0 +1,84 @@
+"use client"
+
+import { ColumnDef } from "@tanstack/react-table"
+import { Badge } from "@/components/ui/badge"
+import { ShiftCodeForm, ShiftCodeDeleteButton } from "./shift-code-form"
+
+type ShiftCodeRow = {
+  id: number
+  code: string
+  defaultStartTime: Date | null
+  defaultEndTime: Date | null
+  defaultIsHoliday: boolean
+  defaultIsPaidLeave: boolean
+  isActive: boolean | null
+  sortOrder: number
+}
+
+function formatTime(d: Date | string | null): string {
+  if (!d) return "-"
+  const iso = typeof d === "string" ? d : d.toISOString()
+  return iso.substring(11, 16)
+}
+
+export const shiftCodeColumns: ColumnDef<ShiftCodeRow>[] = [
+  {
+    accessorKey: "id",
+    header: "ID",
+  },
+  {
+    accessorKey: "code",
+    header: "コード",
+    cell: ({ getValue }) => (
+      <code className="rounded bg-muted px-1.5 py-0.5 text-sm">{getValue<string>()}</code>
+    ),
+  },
+{
+    id: "defaultTime",
+    header: "デフォルト時刻",
+    cell: ({ row }) => {
+      const start = formatTime(row.original.defaultStartTime)
+      const end = formatTime(row.original.defaultEndTime)
+      if (start === "-" && end === "-") return "-"
+      return `${start} - ${end}`
+    },
+  },
+  {
+    id: "flags",
+    header: "フラグ",
+    cell: ({ row }) => (
+      <div className="flex gap-1">
+        {row.original.defaultIsHoliday && (
+          <Badge variant="outline" className="text-red-600 border-red-200">休日</Badge>
+        )}
+        {row.original.defaultIsPaidLeave && (
+          <Badge variant="outline" className="text-green-600 border-green-200">有給</Badge>
+        )}
+        {!row.original.defaultIsHoliday && !row.original.defaultIsPaidLeave && "-"}
+      </div>
+    ),
+  },
+  {
+    accessorKey: "sortOrder",
+    header: "表示順",
+  },
+  {
+    accessorKey: "isActive",
+    header: "状態",
+    cell: ({ getValue }) => (
+      <Badge variant={getValue<boolean>() ? "default" : "secondary"}>
+        {getValue<boolean>() ? "有効" : "無効"}
+      </Badge>
+    ),
+  },
+  {
+    id: "actions",
+    header: "",
+    cell: ({ row }) => (
+      <div className="flex items-center gap-1">
+        <ShiftCodeForm shiftCode={row.original} />
+        <ShiftCodeDeleteButton id={row.original.id} />
+      </div>
+    ),
+  },
+]

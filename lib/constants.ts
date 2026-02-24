@@ -1,8 +1,8 @@
-// シフトコードのラベルと色マッピング
-export const SHIFT_CODE_MAP: Record<
-  string,
-  { label: string; color: string; bgColor: string }
-> = {
+// シフトコードの表示情報型
+export type ShiftCodeInfo = { label: string; color: string; bgColor: string }
+
+// シフトコードのラベルと色マッピング（ハードコード固定）
+export const SHIFT_CODE_MAP: Record<string, ShiftCodeInfo> = {
   A: { label: "日勤A", color: "text-blue-800", bgColor: "bg-blue-100" },
   B: { label: "日勤B", color: "text-indigo-800", bgColor: "bg-indigo-100" },
   C: { label: "日勤C", color: "text-purple-800", bgColor: "bg-purple-100" },
@@ -14,8 +14,13 @@ export const SHIFT_CODE_MAP: Record<
   S: { label: "特休", color: "text-yellow-800", bgColor: "bg-yellow-100" },
 } as const
 
-export function getShiftCodeInfo(code: string | null) {
+export function getShiftCodeInfo(
+  code: string | null,
+  dbMap?: Record<string, ShiftCodeInfo>
+): ShiftCodeInfo {
   if (!code) return { label: "-", color: "text-muted-foreground", bgColor: "bg-muted" }
+  // DB マップ優先 → ハードコードフォールバック
+  if (dbMap?.[code]) return dbMap[code]
   return SHIFT_CODE_MAP[code] ?? { label: code, color: "text-gray-800", bgColor: "bg-gray-100" }
 }
 
@@ -38,4 +43,5 @@ export const NAV_ITEMS = [
   { label: "グループ", href: "/groups", icon: "FolderOpen" },
   { label: "役割", href: "/roles", icon: "Shield" },
   { label: "役職", href: "/positions", icon: "Award" },
+  { label: "シフトコード", href: "/shift-codes", icon: "Tag" },
 ] as const

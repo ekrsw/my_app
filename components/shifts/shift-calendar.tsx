@@ -2,6 +2,7 @@
 
 import { useMemo } from "react"
 import type { ShiftCalendarData } from "@/types/shifts"
+import type { ShiftCodeInfo } from "@/lib/constants"
 import { ShiftCalendarCell } from "./shift-calendar-cell"
 import { useShiftCalendar } from "@/hooks/use-shift-calendar"
 import {
@@ -21,6 +22,7 @@ type ShiftCalendarProps = {
   onCellClick?: (employeeId: number, date: string, shiftId?: number) => void
   selectedCells?: Set<string>
   onCellSelect?: (cellKey: string) => void
+  shiftCodeMap?: Record<string, ShiftCodeInfo>
 }
 
 export function ShiftCalendar({
@@ -30,6 +32,7 @@ export function ShiftCalendar({
   onCellClick,
   selectedCells: externalSelectedCells,
   onCellSelect,
+  shiftCodeMap,
 }: ShiftCalendarProps) {
   const days = useMemo(() => getDaysInMonth(year, month), [year, month])
   const { groupedData, selectedCells: internalSelectedCells, toggleGroup } = useShiftCalendar(data)
@@ -104,6 +107,7 @@ export function ShiftCalendar({
                           isSelected={selectedCells.has(cellKey)}
                           onClick={() => onCellClick?.(emp.employeeId, dateStr, shift?.id)}
                           onSelect={() => onCellSelect?.(cellKey)}
+                          shiftCodeMap={shiftCodeMap}
                         />
                       </div>
                     )

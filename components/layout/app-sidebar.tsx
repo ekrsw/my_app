@@ -10,6 +10,7 @@ import {
   UsersRound,
   Shield,
   Award,
+  Tag,
   Settings,
   ChevronRight,
 } from "lucide-react"
@@ -44,6 +45,7 @@ const settingsSubItems = [
   { label: "グループ", href: "/groups", icon: UsersRound },
   { label: "役割", href: "/roles", icon: Shield },
   { label: "役職", href: "/positions", icon: Award },
+  { label: "シフトコード", href: "/shift-codes", icon: Tag },
 ]
 
 export function AppSidebar() {

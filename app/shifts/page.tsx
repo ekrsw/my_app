@@ -3,6 +3,7 @@ import { PageContainer } from "@/components/layout/page-container"
 import { ShiftPageClient } from "@/components/shifts/shift-page-client"
 import { getShiftsForCalendar, getShiftsTable } from "@/lib/db/shifts"
 import { getGroups } from "@/lib/db/groups"
+import { getActiveShiftCodes } from "@/lib/db/shift-codes"
 import type { SearchParams } from "@/types"
 
 export default async function ShiftsPage({
@@ -20,10 +21,11 @@ export default async function ShiftsPage({
 
   const filter = { year, month, groupId, employeeSearch: search }
 
-  const [calendarData, tableResult, groups] = await Promise.all([
+  const [calendarData, tableResult, groups, shiftCodes] = await Promise.all([
     getShiftsForCalendar(filter),
     getShiftsTable(filter, { page, pageSize: 20 }),
     getGroups(),
+    getActiveShiftCodes(),
   ])
 
   return (
@@ -45,6 +47,7 @@ export default async function ShiftsPage({
           groups={groups}
           year={year}
           month={month}
+          shiftCodes={shiftCodes}
         />
       </PageContainer>
     </>
