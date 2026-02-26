@@ -134,6 +134,16 @@ export async function bulkUpdateShifts(data: {
   }
 }
 
+export async function deleteShiftHistory(id: number) {
+  try {
+    await prisma.shiftChangeHistory.delete({ where: { id } })
+    revalidatePath("/shifts")
+    return { success: true }
+  } catch {
+    return { error: "変更履歴の削除に失敗しました" }
+  }
+}
+
 export async function restoreShiftVersion(shiftId: number, version: number) {
   try {
     const history = await prisma.shiftChangeHistory.findFirst({
