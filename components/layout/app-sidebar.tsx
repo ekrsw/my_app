@@ -5,7 +5,6 @@ import { usePathname } from "next/navigation"
 import {
   LayoutDashboard,
   Calendar,
-  History,
   User,
   UsersRound,
   Shield,
@@ -37,7 +36,6 @@ import {
 const navItems = [
   { label: "ダッシュボード", href: "/", icon: LayoutDashboard },
   { label: "シフト管理", href: "/shifts", icon: Calendar },
-  { label: "シフト履歴", href: "/shifts/history", icon: History },
   { label: "従業員", href: "/employees", icon: User },
 ]
 

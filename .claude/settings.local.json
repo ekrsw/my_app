@@ -46,7 +46,10 @@
       "Bash(npm test 2>&1 | tail -30)",
       "Bash(npm test 2>&1 | tail -20)",
       "Bash(grep -r \"\\\\.label\" /Users/ekoresawa/project/my_app/lib /Users/ekoresawa/project/my_app/components /Users/ekoresawa/project/my_app/tests /Users/ekoresawa/project/my_app/prisma --include=\"*.ts\" --include=\"*.tsx\" --include=\"*.sql\" 2>/dev/null | grep -E \"\\(shift-code|ShiftCode|shiftCode\\)\" | head -50)",
-      "Bash(npm test 2>&1)"
+      "Bash(npm test 2>&1)",
+      "Bash(find /Users/ekoresawa/project/my_app/app -type f -name \"*shift*\" 2>/dev/null | head -20)",
+      "Bash(find /Users/ekoresawa/project/my_app -type d -name \"*sidebar*\" -o -type d -name \"*nav*\" 2>/dev/null | head -20)",
+      "Bash(npm run lint 2>&1)"
     ]
   }
 }
