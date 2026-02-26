@@ -31,7 +31,8 @@ model Employee {
   externalAccounts EmployeeExternalAccount[]
   groupHistory     EmployeeGroupHistory[]
   roleHistory      EmployeeFunctionRoleHistory[]
-  positionHistory  EmployeePositionHistory[]
+  positionHistory    EmployeePositionHistory[]
+  shiftChangeHistory ShiftChangeHistory[]
 
   @@map("employees")
 }
@@ -47,8 +48,7 @@ model Shift {
   isPaidLeave Boolean?  @default(false) @map("is_paid_leave")
   isRemote    Boolean   @default(false) @map("is_remote")
 
-  employee      Employee?            @relation(fields: [employeeId], references: [id])
-  changeHistory ShiftChangeHistory[]
+  employee Employee? @relation(fields: [employeeId], references: [id])
 
   @@unique([employeeId, shiftDate])
   @@map("shifts")
@@ -82,22 +82,28 @@ model EmployeeFunctionRole {
 }
 
 model ShiftChangeHistory {
-  id          Int       @id @default(autoincrement())
-  shiftId     Int       @map("shift_id")
-  employeeId  Int?      @map("employee_id")
-  shiftDate   DateTime  @map("shift_date") @db.Date
-  shiftCode   String?   @map("shift_code") @db.VarChar(20)
-  startTime   DateTime? @map("start_time") @db.Time(6)
-  endTime     DateTime? @map("end_time") @db.Time(6)
-  isHoliday   Boolean?  @map("is_holiday")
-  isPaidLeave Boolean?  @map("is_paid_leave")
-  isRemote    Boolean?  @map("is_remote")
-  changeType  String    @map("change_type") @db.VarChar(10)
-  version     Int
-  changedAt   DateTime  @default(now()) @map("changed_at")
-  note        String?   @db.VarChar(255)
+  id             Int       @id @default(autoincrement())
+  shiftId        Int       @map("shift_id")
+  employeeId     Int?      @map("employee_id")
+  shiftDate      DateTime  @map("shift_date") @db.Date
+  shiftCode      String?   @map("shift_code") @db.VarChar(20)
+  startTime      DateTime? @map("start_time") @db.Time(6)
+  endTime        DateTime? @map("end_time") @db.Time(6)
+  isHoliday      Boolean?  @map("is_holiday")
+  isPaidLeave    Boolean?  @map("is_paid_leave")
+  isRemote       Boolean?  @map("is_remote")
+  newShiftCode   String?   @map("new_shift_code") @db.VarChar(20)
+  newStartTime   DateTime? @map("new_start_time") @db.Time(6)
+  newEndTime     DateTime? @map("new_end_time") @db.Time(6)
+  newIsHoliday   Boolean?  @map("new_is_holiday")
+  newIsPaidLeave Boolean?  @map("new_is_paid_leave")
+  newIsRemote    Boolean?  @map("new_is_remote")
+  changeType     String    @map("change_type") @db.VarChar(10)
+  version        Int
+  changedAt      DateTime  @default(now()) @map("changed_at")
+  note           String?   @db.VarChar(255)
 
-  shift Shift @relation(fields: [shiftId], references: [id], onDelete: Restrict)
+  employee Employee? @relation(fields: [employeeId], references: [id], onDelete: SetNull)
 
   @@unique([shiftId, version])
   @@index([shiftId, changedAt])

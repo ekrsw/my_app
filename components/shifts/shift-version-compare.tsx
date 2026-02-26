@@ -13,7 +13,7 @@ import { ShiftBadge } from "./shift-badge"
 import { formatDate, formatTime } from "@/lib/date-utils"
 import { restoreShiftVersion } from "@/lib/actions/shift-actions"
 import { toast } from "sonner"
-import { RotateCcw } from "lucide-react"
+import { ArrowRight, RotateCcw } from "lucide-react"
 import type { ShiftChangeHistory } from "@/app/generated/prisma/client"
 
 type ShiftVersionCompareProps = {
@@ -102,30 +102,75 @@ export function ShiftVersionCompare({
                     </Button>
                   )}
                 </div>
-                <div className="grid grid-cols-2 gap-2 text-sm">
-                  <div>
-                    <span className="text-muted-foreground">日付: </span>
-                    {formatDate(v.shiftDate)}
+
+                {v.changeType === "DELETE" ? (
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium text-destructive">削除されたシフト</p>
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                      <div>
+                        <span className="text-muted-foreground">日付: </span>
+                        {formatDate(v.shiftDate)}
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">コード: </span>
+                        <ShiftBadge code={v.shiftCode} />
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">開始: </span>
+                        {v.startTime ? formatTime(v.startTime) : "-"}
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">終了: </span>
+                        {v.endTime ? formatTime(v.endTime) : "-"}
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <span className="text-muted-foreground">コード: </span>
-                    <ShiftBadge code={v.shiftCode} />
+                ) : (
+                  <div className="space-y-2">
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                      <div>
+                        <span className="text-muted-foreground">日付: </span>
+                        {formatDate(v.shiftDate)}
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <span className="text-muted-foreground">コード: </span>
+                        <ShiftBadge code={v.shiftCode} />
+                        {v.newShiftCode !== null && v.shiftCode !== v.newShiftCode && (
+                          <>
+                            <ArrowRight className="h-3 w-3 text-muted-foreground" />
+                            <ShiftBadge code={v.newShiftCode} />
+                          </>
+                        )}
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">開始: </span>
+                        {v.startTime ? formatTime(v.startTime) : "-"}
+                        {v.newStartTime !== null && v.startTime?.toString() !== v.newStartTime?.toString() && (
+                          <span className="text-muted-foreground">
+                            {" "}<ArrowRight className="inline h-3 w-3" />{" "}
+                            {v.newStartTime ? formatTime(v.newStartTime) : "-"}
+                          </span>
+                        )}
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">終了: </span>
+                        {v.endTime ? formatTime(v.endTime) : "-"}
+                        {v.newEndTime !== null && v.endTime?.toString() !== v.newEndTime?.toString() && (
+                          <span className="text-muted-foreground">
+                            {" "}<ArrowRight className="inline h-3 w-3" />{" "}
+                            {v.newEndTime ? formatTime(v.newEndTime) : "-"}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex gap-3 text-xs text-muted-foreground">
+                      {v.isHoliday && <span>休日</span>}
+                      {v.isPaidLeave && <span>有給</span>}
+                      {v.isRemote && <span>テレワーク</span>}
+                      {v.note && <span>備考: {v.note}</span>}
+                    </div>
                   </div>
-                  <div>
-                    <span className="text-muted-foreground">開始: </span>
-                    {v.startTime ? formatTime(v.startTime) : "-"}
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">終了: </span>
-                    {v.endTime ? formatTime(v.endTime) : "-"}
-                  </div>
-                </div>
-                <div className="flex gap-3 text-xs text-muted-foreground">
-                  {v.isHoliday && <span>休日</span>}
-                  {v.isPaidLeave && <span>有給</span>}
-                  {v.isRemote && <span>テレワーク</span>}
-                  {v.note && <span>備考: {v.note}</span>}
-                </div>
+                )}
               </div>
             ))}
           </div>

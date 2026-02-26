@@ -20,7 +20,5 @@ export type ShiftFilterParams = {
 }
 
 export type ShiftHistoryEntry = ShiftChangeHistory & {
-  shift: Shift & {
-    employee: (Employee & { groups: (EmployeeGroup & { group: Group })[] }) | null
-  }
+  employee: (Employee & { groups: (EmployeeGroup & { group: Group })[] }) | null
 }

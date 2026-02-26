@@ -30,6 +30,7 @@ async function createShiftWithHistory() {
         employeeId: employee.id,
         shiftDate: new Date("2026-01-15"),
         shiftCode: "B",
+        newShiftCode: "A",
         changeType: "UPDATE",
         version: 1,
       },
@@ -38,6 +39,7 @@ async function createShiftWithHistory() {
         employeeId: employee.id,
         shiftDate: new Date("2026-01-15"),
         shiftCode: "A",
+        newShiftCode: "B",
         changeType: "UPDATE",
         version: 2,
       },
@@ -61,6 +63,15 @@ describe("History DB Queries", () => {
       expect(result.data).toHaveLength(2)
       expect(result.total).toBe(2)
       expect(result.data[0].shiftId).toBe(shift.id)
+    })
+
+    it("should include employee relation", async () => {
+      const { employee } = await createShiftWithHistory()
+
+      const result = await getShiftHistory({ page: 1, pageSize: 10 })
+
+      expect(result.data[0].employee).not.toBeNull()
+      expect(result.data[0].employee?.name).toBe(employee.name)
     })
 
     it("should filter by shiftId", async () => {

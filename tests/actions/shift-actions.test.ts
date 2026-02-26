@@ -106,6 +106,7 @@ describe("Shift Actions", () => {
 
       expect(history).toHaveLength(1)
       expect(history[0].shiftCode).toBe("A")
+      expect(history[0].newShiftCode).toBe("B")
       expect(history[0].changeType).toBe("UPDATE")
       expect(history[0].version).toBe(1)
     })
@@ -124,6 +125,48 @@ describe("Shift Actions", () => {
       const result = await deleteShift(shift!.id)
 
       expect(result).toEqual({ success: true })
+    })
+
+    it("should delete a shift that has change history", async () => {
+      await createShift({
+        employeeId,
+        shiftDate: "2026-01-15",
+        shiftCode: "A",
+      })
+
+      const shift = await prisma.shift.findFirst()
+
+      // Create history via update
+      await updateShift(shift!.id, { shiftCode: "B" })
+
+      // Should succeed even with history records
+      const result = await deleteShift(shift!.id)
+      expect(result).toEqual({ success: true })
+
+      // Verify shift is deleted
+      const deletedShift = await prisma.shift.findUnique({ where: { id: shift!.id } })
+      expect(deletedShift).toBeNull()
+    })
+
+    it("should create DELETE history record via trigger on deletion", async () => {
+      await createShift({
+        employeeId,
+        shiftDate: "2026-01-15",
+        shiftCode: "A",
+      })
+
+      const shift = await prisma.shift.findFirst()
+
+      await deleteShift(shift!.id)
+
+      const history = await prisma.shiftChangeHistory.findMany({
+        where: { shiftId: shift!.id },
+      })
+
+      expect(history).toHaveLength(1)
+      expect(history[0].changeType).toBe("DELETE")
+      expect(history[0].shiftCode).toBe("A")
+      expect(history[0].newShiftCode).toBeNull()
     })
   })
 
@@ -182,6 +225,7 @@ describe("Shift Actions", () => {
 
       expect(history).toHaveLength(2)
       expect(history.every((h) => h.shiftCode === "A")).toBe(true)
+      expect(history.every((h) => h.newShiftCode === "B")).toBe(true)
       expect(history.every((h) => h.changeType === "UPDATE")).toBe(true)
     })
   })

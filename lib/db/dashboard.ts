@@ -47,15 +47,11 @@ export async function getDashboardStats() {
       take: 10,
       orderBy: { changedAt: "desc" },
       include: {
-        shift: {
+        employee: {
           include: {
-            employee: {
-              include: {
-                groups: {
-                  include: { group: true },
-                  where: { endDate: null },
-                },
-              },
+            groups: {
+              include: { group: true },
+              where: { endDate: null },
             },
           },
         },

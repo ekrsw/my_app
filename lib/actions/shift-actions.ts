@@ -85,9 +85,10 @@ export async function deleteShift(id: number) {
   try {
     await prisma.shift.delete({ where: { id } })
     revalidatePath("/shifts")
+    revalidatePath("/shifts/history")
     return { success: true }
   } catch {
-    return { error: "シフトの削除に失敗しました。変更履歴がある場合は削除できません。" }
+    return { error: "シフトの削除に失敗しました" }
   }
 }
 

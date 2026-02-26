@@ -22,15 +22,11 @@ export async function getShiftHistory(
     prisma.shiftChangeHistory.findMany({
       where,
       include: {
-        shift: {
+        employee: {
           include: {
-            employee: {
-              include: {
-                groups: {
-                  include: { group: true },
-                  where: { endDate: null },
-                },
-              },
+            groups: {
+              include: { group: true },
+              where: { endDate: null },
             },
           },
         },

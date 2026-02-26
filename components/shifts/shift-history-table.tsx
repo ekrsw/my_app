@@ -9,7 +9,7 @@ import { ShiftBadge } from "./shift-badge"
 import { ShiftVersionCompare } from "./shift-version-compare"
 import { formatDate } from "@/lib/date-utils"
 import { useQueryParams } from "@/hooks/use-query-params"
-import { History } from "lucide-react"
+import { ArrowRight, History } from "lucide-react"
 import type { ShiftHistoryEntry } from "@/types/shifts"
 
 function ActionsCell({ row }: { row: ShiftHistoryEntry }) {
@@ -28,7 +28,7 @@ function ActionsCell({ row }: { row: ShiftHistoryEntry }) {
         open={open}
         onOpenChange={setOpen}
         shiftId={row.shiftId}
-        employeeName={row.shift.employee?.name ?? "不明"}
+        employeeName={row.employee?.name ?? "不明"}
       />
     </>
   )
@@ -53,7 +53,7 @@ const columns: ColumnDef<ShiftHistoryEntry>[] = [
     },
   },
   {
-    accessorFn: (row) => row.shift.employee?.name,
+    accessorFn: (row) => row.employee?.name,
     id: "employeeName",
     header: "従業員",
   },
@@ -66,6 +66,17 @@ const columns: ColumnDef<ShiftHistoryEntry>[] = [
     accessorKey: "shiftCode",
     header: "変更前シフト",
     cell: ({ getValue }) => <ShiftBadge code={getValue<string | null>()} />,
+  },
+  {
+    id: "newShiftCode",
+    header: "変更後シフト",
+    cell: ({ row }) => {
+      const entry = row.original
+      if (entry.changeType === "DELETE") {
+        return <span className="text-xs text-muted-foreground">削除</span>
+      }
+      return <ShiftBadge code={entry.newShiftCode} />
+    },
   },
   {
     accessorKey: "version",

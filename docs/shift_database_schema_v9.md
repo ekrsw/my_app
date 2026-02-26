@@ -21,7 +21,7 @@ erDiagram
     external_tools ||--o{ employee_external_accounts : defines
     employees ||--o{ employee_external_accounts : has
 
-    shifts ||--o{ shift_change_history : has
+    employees ||--o{ shift_change_history : has
     employees ||--o{ employee_group_history : has
     groups ||--o{ employee_group_history : refs
     employees ||--o{ employee_function_role_history : has
@@ -123,8 +123,8 @@ erDiagram
 
     shift_change_history {
         integer id PK
-        integer shift_id FK
-        integer employee_id
+        integer shift_id
+        integer employee_id FK
         date shift_date
         varchar shift_code
         time start_time
@@ -132,6 +132,12 @@ erDiagram
         boolean is_holiday
         boolean is_paid_leave
         boolean is_remote
+        varchar new_shift_code
+        time new_start_time
+        time new_end_time
+        boolean new_is_holiday
+        boolean new_is_paid_leave
+        boolean new_is_remote
         varchar change_type
         integer version
         timestamp changed_at
@@ -498,20 +504,26 @@ ORDER BY g.id, e.id
 
 ### 12. shift_change_history（シフト変更履歴）
 
-シフトデータの変更履歴を管理する。`shifts` テーブルへの UPDATE / DELETE 時にトリガーで自動保存する。UPDATE 時は変更があったフィールド（shift_code, start_time, end_time, is_holiday, is_paid_leave, is_remote のいずれか）が検知された場合のみ記録される。DELETE 時は常に記録される。
+シフトデータの変更履歴を管理する。`shifts` テーブルへの UPDATE / DELETE 時にトリガーで自動保存する。UPDATE 時は変更前（OLD）と変更後（NEW）の両方を記録。DELETE 時はOLD値のみ記録（NEW値はすべてNULL）。UPDATE 時は変更があったフィールド（shift_code, start_time, end_time, is_holiday, is_paid_leave, is_remote のいずれか）が検知された場合のみ記録される。DELETE 時は常に記録される。
 
 | カラム名 | データ型 | NULL | デフォルト | 説明 |
 |---------|---------|------|-----------|------|
 | id | SERIAL | NO | auto_increment | 主キー |
-| shift_id | INTEGER | NO | - | 対象シフトID |
-| employee_id | INTEGER | YES | - | 従業員ID（スナップショット） |
+| shift_id | INTEGER | NO | - | 対象シフトID（参照用、FK制約なし） |
+| employee_id | INTEGER | YES | - | 従業員ID |
 | shift_date | DATE | NO | - | シフト日付（スナップショット） |
-| shift_code | VARCHAR(20) | YES | - | シフトコード（スナップショット） |
-| start_time | TIME(6) | YES | - | 開始時刻（スナップショット） |
-| end_time | TIME(6) | YES | - | 終了時刻（スナップショット） |
-| is_holiday | BOOLEAN | YES | - | 休日フラグ（スナップショット） |
-| is_paid_leave | BOOLEAN | YES | - | 有給休暇フラグ（スナップショット） |
-| is_remote | BOOLEAN | YES | - | テレワークフラグ（スナップショット） |
+| shift_code | VARCHAR(20) | YES | - | 変更前シフトコード（OLD値） |
+| start_time | TIME(6) | YES | - | 変更前開始時刻（OLD値） |
+| end_time | TIME(6) | YES | - | 変更前終了時刻（OLD値） |
+| is_holiday | BOOLEAN | YES | - | 変更前休日フラグ（OLD値） |
+| is_paid_leave | BOOLEAN | YES | - | 変更前有給休暇フラグ（OLD値） |
+| is_remote | BOOLEAN | YES | - | 変更前テレワークフラグ（OLD値） |
+| new_shift_code | VARCHAR(20) | YES | - | 変更後シフトコード（NEW値、DELETE時はNULL） |
+| new_start_time | TIME(6) | YES | - | 変更後開始時刻（NEW値、DELETE時はNULL） |
+| new_end_time | TIME(6) | YES | - | 変更後終了時刻（NEW値、DELETE時はNULL） |
+| new_is_holiday | BOOLEAN | YES | - | 変更後休日フラグ（NEW値、DELETE時はNULL） |
+| new_is_paid_leave | BOOLEAN | YES | - | 変更後有給休暇フラグ（NEW値、DELETE時はNULL） |
+| new_is_remote | BOOLEAN | YES | - | 変更後テレワークフラグ（NEW値、DELETE時はNULL） |
 | change_type | VARCHAR(10) | NO | - | 変更種別（'UPDATE' / 'DELETE'） |
 | version | INTEGER | NO | - | バージョン番号（shift_id毎の連番） |
 | changed_at | TIMESTAMP(3) | NO | CURRENT_TIMESTAMP | 変更日時 |
@@ -519,14 +531,16 @@ ORDER BY g.id, e.id
 
 **制約**:
 - PK(id)
-- FK(shift_id → shifts.id) ON DELETE RESTRICT — 履歴がある限りシフトの削除を禁止
+- FK(employee_id → employees.id) ON DELETE SET NULL — 従業員削除時は履歴のemployee_idをNULLに
 - UNIQUE(shift_id, version) — 同一シフトのバージョン番号は一意
 - INDEX(shift_id, changed_at) — 特定シフトの履歴検索用
 - INDEX(employee_id, shift_date) — 従業員・日付での履歴検索用
 
+**備考**: `shift_id` は `shifts` テーブルへのFK制約を持たない（参照用の通常カラム）。これにより、シフト削除後も履歴レコードが `shift_id` を保持し、同一シフトの履歴をグルーピングできる。従業員データへのアクセスは `history → employee` の直接パスで取得する。
+
 **トリガー: シフト変更履歴の自動記録**:
 
-`shifts` テーブルへの UPDATE / DELETE 時にトリガーで変更前の値を `shift_change_history` に自動保存する。UPDATE 時は変更があったフィールドを検知した場合のみ記録、DELETE 時は常に記録する。
+`shifts` テーブルへの UPDATE / DELETE 時にトリガーで変更前後の値を `shift_change_history` に自動保存する。UPDATE 時は変更があったフィールドを検知した場合のみ記録し、OLD値とNEW値の両方を保存。DELETE 時は常に記録し、OLD値のみ保存（NEW値はNULL）。
 
 ```sql
 CREATE OR REPLACE FUNCTION record_shift_change()
@@ -534,7 +548,27 @@ RETURNS TRIGGER AS $$
 DECLARE
   next_version integer;
 BEGIN
-  -- UPDATE の場合: トラッキング対象カラムに変更がある場合のみ記録
+  -- DELETE の場合: 常に記録（NEW値はすべてNULL）
+  IF TG_OP = 'DELETE' THEN
+    SELECT COALESCE(MAX(version), 0) + 1 INTO next_version
+    FROM shift_change_history
+    WHERE shift_id = OLD.id;
+
+    INSERT INTO shift_change_history (
+      shift_id, employee_id, shift_date,
+      shift_code, start_time, end_time, is_holiday, is_paid_leave, is_remote,
+      new_shift_code, new_start_time, new_end_time, new_is_holiday, new_is_paid_leave, new_is_remote,
+      change_type, version, changed_at
+    ) VALUES (
+      OLD.id, OLD.employee_id, OLD.shift_date,
+      OLD.shift_code, OLD.start_time, OLD.end_time, OLD.is_holiday, OLD.is_paid_leave, OLD.is_remote,
+      NULL, NULL, NULL, NULL, NULL, NULL,
+      'DELETE', next_version, CURRENT_TIMESTAMP
+    );
+    RETURN OLD;
+  END IF;
+
+  -- UPDATE の場合: トラッキング対象カラムに変更がある場合のみ記録（OLD値とNEW値の両方を保存）
   IF TG_OP = 'UPDATE' THEN
     IF OLD.shift_code IS DISTINCT FROM NEW.shift_code
       OR OLD.start_time IS DISTINCT FROM NEW.start_time
@@ -548,34 +582,18 @@ BEGIN
       WHERE shift_id = OLD.id;
 
       INSERT INTO shift_change_history (
-        shift_id, employee_id, shift_date, shift_code,
-        start_time, end_time, is_holiday, is_paid_leave, is_remote,
+        shift_id, employee_id, shift_date,
+        shift_code, start_time, end_time, is_holiday, is_paid_leave, is_remote,
+        new_shift_code, new_start_time, new_end_time, new_is_holiday, new_is_paid_leave, new_is_remote,
         change_type, version, changed_at
       ) VALUES (
-        OLD.id, OLD.employee_id, OLD.shift_date, OLD.shift_code,
-        OLD.start_time, OLD.end_time, OLD.is_holiday, OLD.is_paid_leave, OLD.is_remote,
+        OLD.id, OLD.employee_id, OLD.shift_date,
+        OLD.shift_code, OLD.start_time, OLD.end_time, OLD.is_holiday, OLD.is_paid_leave, OLD.is_remote,
+        NEW.shift_code, NEW.start_time, NEW.end_time, NEW.is_holiday, NEW.is_paid_leave, NEW.is_remote,
         'UPDATE', next_version, CURRENT_TIMESTAMP
       );
     END IF;
     RETURN NEW;
-  END IF;
-
-  -- DELETE の場合: 常に記録
-  IF TG_OP = 'DELETE' THEN
-    SELECT COALESCE(MAX(version), 0) + 1 INTO next_version
-    FROM shift_change_history
-    WHERE shift_id = OLD.id;
-
-    INSERT INTO shift_change_history (
-      shift_id, employee_id, shift_date, shift_code,
-      start_time, end_time, is_holiday, is_paid_leave, is_remote,
-      change_type, version, changed_at
-    ) VALUES (
-      OLD.id, OLD.employee_id, OLD.shift_date, OLD.shift_code,
-      OLD.start_time, OLD.end_time, OLD.is_holiday, OLD.is_paid_leave, OLD.is_remote,
-      'DELETE', next_version, CURRENT_TIMESTAMP
-    );
-    RETURN OLD;
   END IF;
 
   RETURN NULL;
@@ -588,32 +606,31 @@ FOR EACH ROW
 EXECUTE FUNCTION record_shift_change();
 ```
 
-**注意**: BEFORE DELETE トリガーにより、シフト削除前に必ず履歴レコードが作成される。これと `shift_change_history.shift_id` の FK ON DELETE RESTRICT が組み合わさることで、実質的にシフトの物理削除は不可能となる（削除試行時にまず履歴が作成され、その参照がRESTRICTで削除をブロックする）。
-
 **特定シフトの変更履歴を確認**:
 ```sql
-SELECT version, shift_code, start_time, end_time,
-       is_holiday, is_paid_leave, is_remote,
+SELECT version, shift_code, new_shift_code,
+       start_time, new_start_time, end_time, new_end_time,
+       is_holiday, new_is_holiday, is_paid_leave, new_is_paid_leave,
+       is_remote, new_is_remote,
        change_type, changed_at, note
 FROM shift_change_history
 WHERE shift_id = :対象シフトID
 ORDER BY version DESC;
 ```
 
-**変更前後の比較（最新変更）**:
+**変更前後の比較（履歴レコード単体で完結）**:
 ```sql
-SELECT
-  s.shift_code    AS current_code,    h.shift_code    AS previous_code,
-  s.start_time    AS current_start,   h.start_time    AS previous_start,
-  s.end_time      AS current_end,     h.end_time      AS previous_end,
-  s.is_holiday    AS current_holiday, h.is_holiday    AS previous_holiday,
-  s.is_paid_leave AS current_leave,   h.is_paid_leave AS previous_leave,
-  s.is_remote     AS current_remote,  h.is_remote     AS previous_remote,
-  h.changed_at    AS changed_at
-FROM shifts s
-JOIN shift_change_history h ON h.shift_id = s.id
-WHERE s.id = :対象シフトID
-  AND h.version = (SELECT MAX(version) FROM shift_change_history WHERE shift_id = s.id);
+SELECT version,
+  shift_code    AS old_code,    new_shift_code    AS new_code,
+  start_time    AS old_start,   new_start_time    AS new_start,
+  end_time      AS old_end,     new_end_time      AS new_end,
+  is_holiday    AS old_holiday, new_is_holiday    AS new_holiday,
+  is_paid_leave AS old_leave,   new_is_paid_leave AS new_leave,
+  is_remote     AS old_remote,  new_is_remote     AS new_remote,
+  change_type, changed_at
+FROM shift_change_history
+WHERE shift_id = :対象シフトID
+ORDER BY version DESC;
 ```
 
 **復元（特定バージョンに戻す）**:
@@ -867,7 +884,9 @@ EXECUTE FUNCTION record_employee_position_change();
 ```
 groups (1) ────< (N) employee_groups (N) >────(1) employees
                                                     │
-                                                    ├────< (N) shifts (1) ────< (N) shift_change_history
+                                                    ├────< (N) shifts
+                                                    │
+                                                    ├────< (N) shift_change_history
                                                     │
                                                     ├────< (N) employee_function_roles (N) >────(1) function_roles
                                                     │
@@ -891,7 +910,7 @@ groups (1) ────< (N) employee_groups (N) >────(1) employees
 | function_roles | employee_function_roles | function_role_id | 1:N | SET NULL |
 | employees | employee_positions | employee_id | 1:N | RESTRICT |
 | positions | employee_positions | position_id | 1:N | RESTRICT |
-| shifts | shift_change_history | shift_id | 1:N | RESTRICT |
+| employees | shift_change_history | employee_id | 1:N | SET NULL |
 | employees | employee_group_history | employee_id | 1:N | RESTRICT |
 | groups | employee_group_history | group_id | 1:N | RESTRICT |
 | employees | employee_function_role_history | employee_id | 1:N | RESTRICT |
@@ -927,3 +946,4 @@ groups (1) ────< (N) employee_groups (N) >────(1) employees
 | v12 | 2026-02-23 | 実DB構造との整合性修正。record_shift_change()関数がUPDATE/DELETE両方を処理するよう更新されていた実態を反映。トリガー名をtrg_shift_change→trg_shift_change_historyに修正。shift_change_historyのchange_typeに'DELETE'を追加。BEFORE DELETE + FK RESTRICT によるシフト物理削除不可の挙動を注記。セクション番号の重複(8が2つ)を修正 |
 | v13 | 2026-02-25 | shift_codesテーブルからcolor/bg_colorカラムを削除（色はlib/constants.tsでハードコード管理に統一）。シフトコード管理画面CRUD、シフトフォームのドロップダウン化（プリセット選択→デフォルト値自動入力）、一括編集のドロップダウン対応を実装 |
 | v14 | 2026-02-25 | shift_codesテーブルからlabelカラムを削除（表示ラベルはlib/constants.tsのSHIFT_CODE_MAPでハードコード管理に統一） |
+| v15 | 2026-02-26 | shift_change_historyにNEW値カラム6つ（new_shift_code, new_start_time, new_end_time, new_is_holiday, new_is_paid_leave, new_is_remote）を追加。shifts→shift_change_historyのFK制約を削除し、employees→shift_change_historyのFK（ON DELETE SET NULL）を追加。トリガーをUPDATE/DELETE両対応に更新し、UPDATE時はOLD/NEW両方を記録、DELETE時はOLD値のみ記録。シフト削除が可能になり、削除時も履歴が記録される |

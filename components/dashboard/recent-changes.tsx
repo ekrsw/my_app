@@ -2,12 +2,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { formatDate } from "@/lib/date-utils"
 import { ShiftBadge } from "@/components/shifts/shift-badge"
-import type { ShiftChangeHistory, Shift, Employee, EmployeeGroup, Group } from "@/app/generated/prisma/client"
+import { ArrowRight } from "lucide-react"
+import type { ShiftChangeHistory, Employee, EmployeeGroup, Group } from "@/app/generated/prisma/client"
 
 type RecentChange = ShiftChangeHistory & {
-  shift: Shift & {
-    employee: (Employee & { groups: (EmployeeGroup & { group: Group })[] }) | null
-  }
+  employee: (Employee & { groups: (EmployeeGroup & { group: Group })[] }) | null
 }
 
 export function RecentChanges({ changes }: { changes: RecentChange[] }) {
@@ -39,7 +38,7 @@ export function RecentChanges({ changes }: { changes: RecentChange[] }) {
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
                   <span className="font-medium">
-                    {change.shift.employee?.name ?? "不明"}
+                    {change.employee?.name ?? "不明"}
                   </span>
                   <Badge
                     variant={change.changeType === "DELETE" ? "destructive" : "secondary"}
@@ -51,6 +50,15 @@ export function RecentChanges({ changes }: { changes: RecentChange[] }) {
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <span>{formatDate(change.shiftDate)}</span>
                   <ShiftBadge code={change.shiftCode} />
+                  {change.changeType === "UPDATE" && change.newShiftCode !== null && change.shiftCode !== change.newShiftCode && (
+                    <>
+                      <ArrowRight className="h-3 w-3" />
+                      <ShiftBadge code={change.newShiftCode} />
+                    </>
+                  )}
+                  {change.changeType === "DELETE" && (
+                    <span className="text-destructive text-xs">削除</span>
+                  )}
                 </div>
               </div>
               <div className="text-xs text-muted-foreground">
