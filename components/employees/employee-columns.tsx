@@ -2,7 +2,6 @@
 
 import { ColumnDef } from "@tanstack/react-table"
 import { Badge } from "@/components/ui/badge"
-import Link from "next/link"
 import type { EmployeeWithGroups } from "@/types/employees"
 import { formatDate } from "@/lib/date-utils"
 
@@ -11,19 +10,13 @@ export const employeeColumns: ColumnDef<EmployeeWithGroups>[] = [
     accessorKey: "id",
     header: "ID",
     cell: ({ row }) => (
-      <Link href={`/employees/${row.original.id}`} className="font-medium text-primary hover:underline">
-        {row.original.id}
-      </Link>
+      <span className="font-medium">{row.original.id}</span>
     ),
   },
   {
     accessorKey: "name",
     header: "氏名",
-    cell: ({ row }) => (
-      <Link href={`/employees/${row.original.id}`} className="hover:underline">
-        {row.original.name}
-      </Link>
-    ),
+    cell: ({ row }) => row.original.name,
   },
   {
     accessorKey: "nameKana",
