@@ -98,7 +98,6 @@ model ShiftChangeHistory {
   newIsHoliday   Boolean?  @map("new_is_holiday")
   newIsPaidLeave Boolean?  @map("new_is_paid_leave")
   newIsRemote    Boolean?  @map("new_is_remote")
-  changeType     String    @map("change_type") @db.VarChar(10)
   version        Int
   changedAt      DateTime  @default(now()) @map("changed_at")
   note           String?   @db.VarChar(255)

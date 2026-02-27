@@ -31,7 +31,6 @@ async function createShiftWithHistory() {
         shiftDate: new Date("2026-01-15"),
         shiftCode: "B",
         newShiftCode: "A",
-        changeType: "UPDATE",
         version: 1,
       },
       {
@@ -40,7 +39,6 @@ async function createShiftWithHistory() {
         shiftDate: new Date("2026-01-15"),
         shiftCode: "A",
         newShiftCode: "B",
-        changeType: "UPDATE",
         version: 2,
       },
     ],
@@ -94,7 +92,6 @@ describe("History DB Queries", () => {
           employeeId: employee2.id,
           shiftDate: new Date("2026-01-16"),
           shiftCode: "D",
-          changeType: "UPDATE",
           version: 1,
         },
       })

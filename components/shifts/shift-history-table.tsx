@@ -3,7 +3,6 @@
 import { useState } from "react"
 import { DataTable } from "@/components/data-table"
 import { ColumnDef } from "@tanstack/react-table"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { ShiftBadge } from "./shift-badge"
 import { ShiftVersionCompare } from "./shift-version-compare"
@@ -95,18 +94,6 @@ const columns: ColumnDef<ShiftHistoryEntry>[] = [
     cell: ({ getValue }) => formatDate(getValue<Date>(), "yyyy/MM/dd HH:mm"),
   },
   {
-    accessorKey: "changeType",
-    header: "種別",
-    cell: ({ getValue }) => {
-      const type = getValue<string>()
-      return (
-        <Badge variant={type === "DELETE" ? "destructive" : "secondary"}>
-          {type}
-        </Badge>
-      )
-    },
-  },
-  {
     accessorFn: (row) => row.employee?.name,
     id: "employeeName",
     header: "従業員",
@@ -126,7 +113,7 @@ const columns: ColumnDef<ShiftHistoryEntry>[] = [
     header: "変更後シフト",
     cell: ({ row }) => {
       const entry = row.original
-      if (entry.changeType === "DELETE") {
+      if (entry.newShiftCode === null) {
         return <span className="text-xs text-muted-foreground">削除</span>
       }
       return <ShiftBadge code={entry.newShiftCode} />

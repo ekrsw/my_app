@@ -49,7 +49,8 @@
       "Bash(npm test 2>&1)",
       "Bash(find /Users/ekoresawa/project/my_app/app -type f -name \"*shift*\" 2>/dev/null | head -20)",
       "Bash(find /Users/ekoresawa/project/my_app -type d -name \"*sidebar*\" -o -type d -name \"*nav*\" 2>/dev/null | head -20)",
-      "Bash(npm run lint 2>&1)"
+      "Bash(npm run lint 2>&1)",
+      "Bash(npm run test:setup-db 2>&1 && npm test 2>&1)"
     ]
   }
 }

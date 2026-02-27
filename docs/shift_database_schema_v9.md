@@ -138,7 +138,6 @@ erDiagram
         boolean new_is_holiday
         boolean new_is_paid_leave
         boolean new_is_remote
-        varchar change_type
         integer version
         timestamp changed_at
         varchar note
@@ -504,7 +503,7 @@ ORDER BY g.id, e.id
 
 ### 12. shift_change_history（シフト変更履歴）
 
-シフトデータの変更履歴を管理する。`shifts` テーブルへの UPDATE / DELETE 時にトリガーで自動保存する。UPDATE 時は変更前（OLD）と変更後（NEW）の両方を記録。DELETE 時はOLD値のみ記録（NEW値はすべてNULL）。UPDATE 時は変更があったフィールド（shift_code, start_time, end_time, is_holiday, is_paid_leave, is_remote のいずれか）が検知された場合のみ記録される。DELETE 時は常に記録される。
+シフトデータの変更履歴を管理する。`shifts` テーブルへの UPDATE / DELETE 時にトリガーで自動保存する。UPDATE 時は変更前（OLD）と変更後（NEW）の両方を記録。DELETE 時はOLD値のみ記録（NEW値はすべてNULL）。UPDATE 時は変更があったフィールド（shift_code, start_time, end_time, is_holiday, is_paid_leave, is_remote のいずれか）が検知された場合のみ記録される。DELETE 時は常に記録される。UPDATE/DELETEの判定は `new_shift_code` がNULLかどうかで行う（DELETEトリガーはNEW値をすべてNULLに設定するため）。
 
 | カラム名 | データ型 | NULL | デフォルト | 説明 |
 |---------|---------|------|-----------|------|
@@ -524,7 +523,6 @@ ORDER BY g.id, e.id
 | new_is_holiday | BOOLEAN | YES | - | 変更後休日フラグ（NEW値、DELETE時はNULL） |
 | new_is_paid_leave | BOOLEAN | YES | - | 変更後有給休暇フラグ（NEW値、DELETE時はNULL） |
 | new_is_remote | BOOLEAN | YES | - | 変更後テレワークフラグ（NEW値、DELETE時はNULL） |
-| change_type | VARCHAR(10) | NO | - | 変更種別（'UPDATE' / 'DELETE'） |
 | version | INTEGER | NO | - | バージョン番号（shift_id毎の連番） |
 | changed_at | TIMESTAMP(3) | NO | CURRENT_TIMESTAMP | 変更日時 |
 | note | VARCHAR(255) | YES | - | 変更理由メモ（任意） |
@@ -558,12 +556,12 @@ BEGIN
       shift_id, employee_id, shift_date,
       shift_code, start_time, end_time, is_holiday, is_paid_leave, is_remote,
       new_shift_code, new_start_time, new_end_time, new_is_holiday, new_is_paid_leave, new_is_remote,
-      change_type, version, changed_at
+      version, changed_at
     ) VALUES (
       OLD.id, OLD.employee_id, OLD.shift_date,
       OLD.shift_code, OLD.start_time, OLD.end_time, OLD.is_holiday, OLD.is_paid_leave, OLD.is_remote,
       NULL, NULL, NULL, NULL, NULL, NULL,
-      'DELETE', next_version, CURRENT_TIMESTAMP
+      next_version, CURRENT_TIMESTAMP
     );
     RETURN OLD;
   END IF;
@@ -585,12 +583,12 @@ BEGIN
         shift_id, employee_id, shift_date,
         shift_code, start_time, end_time, is_holiday, is_paid_leave, is_remote,
         new_shift_code, new_start_time, new_end_time, new_is_holiday, new_is_paid_leave, new_is_remote,
-        change_type, version, changed_at
+        version, changed_at
       ) VALUES (
         OLD.id, OLD.employee_id, OLD.shift_date,
         OLD.shift_code, OLD.start_time, OLD.end_time, OLD.is_holiday, OLD.is_paid_leave, OLD.is_remote,
         NEW.shift_code, NEW.start_time, NEW.end_time, NEW.is_holiday, NEW.is_paid_leave, NEW.is_remote,
-        'UPDATE', next_version, CURRENT_TIMESTAMP
+        next_version, CURRENT_TIMESTAMP
       );
     END IF;
     RETURN NEW;
@@ -612,7 +610,7 @@ SELECT version, shift_code, new_shift_code,
        start_time, new_start_time, end_time, new_end_time,
        is_holiday, new_is_holiday, is_paid_leave, new_is_paid_leave,
        is_remote, new_is_remote,
-       change_type, changed_at, note
+       changed_at, note
 FROM shift_change_history
 WHERE shift_id = :対象シフトID
 ORDER BY version DESC;
@@ -627,7 +625,7 @@ SELECT version,
   is_holiday    AS old_holiday, new_is_holiday    AS new_holiday,
   is_paid_leave AS old_leave,   new_is_paid_leave AS new_leave,
   is_remote     AS old_remote,  new_is_remote     AS new_remote,
-  change_type, changed_at
+  changed_at
 FROM shift_change_history
 WHERE shift_id = :対象シフトID
 ORDER BY version DESC;
@@ -947,3 +945,4 @@ groups (1) ────< (N) employee_groups (N) >────(1) employees
 | v13 | 2026-02-25 | shift_codesテーブルからcolor/bg_colorカラムを削除（色はlib/constants.tsでハードコード管理に統一）。シフトコード管理画面CRUD、シフトフォームのドロップダウン化（プリセット選択→デフォルト値自動入力）、一括編集のドロップダウン対応を実装 |
 | v14 | 2026-02-25 | shift_codesテーブルからlabelカラムを削除（表示ラベルはlib/constants.tsのSHIFT_CODE_MAPでハードコード管理に統一） |
 | v15 | 2026-02-26 | shift_change_historyにNEW値カラム6つ（new_shift_code, new_start_time, new_end_time, new_is_holiday, new_is_paid_leave, new_is_remote）を追加。shifts→shift_change_historyのFK制約を削除し、employees→shift_change_historyのFK（ON DELETE SET NULL）を追加。トリガーをUPDATE/DELETE両対応に更新し、UPDATE時はOLD/NEW両方を記録、DELETE時はOLD値のみ記録。シフト削除が可能になり、削除時も履歴が記録される |
+| v16 | 2026-02-27 | shift_change_historyからchange_typeカラムを削除。UPDATE/DELETEの判定はnew_shift_codeのNULL判定で代替（DELETEトリガーはNEW値をすべてNULLに設定するため）。トリガー関数record_shift_change()からchange_type関連のINSERT列を除去 |

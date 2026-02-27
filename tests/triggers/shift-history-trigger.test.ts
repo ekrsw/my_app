@@ -35,7 +35,6 @@ describe("Shift Change History Trigger", () => {
     expect(history).toHaveLength(1)
     expect(history[0].shiftCode).toBe("A") // OLD value
     expect(history[0].newShiftCode).toBe("B") // NEW value
-    expect(history[0].changeType).toBe("UPDATE")
     expect(history[0].version).toBe(1)
     expect(history[0].employeeId).toBe(employeeId)
   })
@@ -172,7 +171,6 @@ describe("Shift Change History Trigger", () => {
     })
 
     expect(history).toHaveLength(1)
-    expect(history[0].changeType).toBe("DELETE")
     expect(history[0].shiftCode).toBe("A")
     expect(history[0].isHoliday).toBe(false)
     expect(history[0].isPaidLeave).toBe(true)
@@ -216,8 +214,8 @@ describe("Shift Change History Trigger", () => {
     })
 
     expect(history).toHaveLength(2)
-    expect(history[0].changeType).toBe("UPDATE")
-    expect(history[1].changeType).toBe("DELETE")
+    expect(history[0].newShiftCode).not.toBeNull()
+    expect(history[1].newShiftCode).toBeNull()
   })
 
   it("should correctly increment version for DELETE after UPDATE", async () => {
@@ -249,11 +247,11 @@ describe("Shift Change History Trigger", () => {
 
     expect(history).toHaveLength(3)
     expect(history[0].version).toBe(1)
-    expect(history[0].changeType).toBe("UPDATE")
+    expect(history[0].newShiftCode).not.toBeNull()
     expect(history[1].version).toBe(2)
-    expect(history[1].changeType).toBe("UPDATE")
+    expect(history[1].newShiftCode).not.toBeNull()
     expect(history[2].version).toBe(3)
-    expect(history[2].changeType).toBe("DELETE")
+    expect(history[2].newShiftCode).toBeNull()
     expect(history[2].shiftCode).toBe("C") // Last value before deletion
   })
 })

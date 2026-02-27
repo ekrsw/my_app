@@ -107,7 +107,6 @@ describe("Shift Actions", () => {
       expect(history).toHaveLength(1)
       expect(history[0].shiftCode).toBe("A")
       expect(history[0].newShiftCode).toBe("B")
-      expect(history[0].changeType).toBe("UPDATE")
       expect(history[0].version).toBe(1)
     })
   })
@@ -164,7 +163,6 @@ describe("Shift Actions", () => {
       })
 
       expect(history).toHaveLength(1)
-      expect(history[0].changeType).toBe("DELETE")
       expect(history[0].shiftCode).toBe("A")
       expect(history[0].newShiftCode).toBeNull()
     })
@@ -226,7 +224,7 @@ describe("Shift Actions", () => {
       expect(history).toHaveLength(2)
       expect(history.every((h) => h.shiftCode === "A")).toBe(true)
       expect(history.every((h) => h.newShiftCode === "B")).toBe(true)
-      expect(history.every((h) => h.changeType === "UPDATE")).toBe(true)
+      expect(history.every((h) => h.newShiftCode !== null)).toBe(true)
     })
   })
 
@@ -248,7 +246,6 @@ describe("Shift Actions", () => {
           shiftDate: new Date("2026-01-15"),
           shiftCode: "B",
           isHoliday: true,
-          changeType: "UPDATE",
           version: 1,
         },
       })

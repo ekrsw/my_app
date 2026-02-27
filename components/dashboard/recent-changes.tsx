@@ -1,5 +1,4 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
 import { formatDate } from "@/lib/date-utils"
 import { ShiftBadge } from "@/components/shifts/shift-badge"
 import { ArrowRight } from "lucide-react"
@@ -40,23 +39,17 @@ export function RecentChanges({ changes }: { changes: RecentChange[] }) {
                   <span className="font-medium">
                     {change.employee?.name ?? "不明"}
                   </span>
-                  <Badge
-                    variant={change.changeType === "DELETE" ? "destructive" : "secondary"}
-                    className="text-xs"
-                  >
-                    {change.changeType}
-                  </Badge>
                 </div>
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <span>{formatDate(change.shiftDate)}</span>
                   <ShiftBadge code={change.shiftCode} />
-                  {change.changeType === "UPDATE" && change.newShiftCode !== null && change.shiftCode !== change.newShiftCode && (
+                  {change.newShiftCode !== null && change.shiftCode !== change.newShiftCode && (
                     <>
                       <ArrowRight className="h-3 w-3" />
                       <ShiftBadge code={change.newShiftCode} />
                     </>
                   )}
-                  {change.changeType === "DELETE" && (
+                  {change.newShiftCode === null && (
                     <span className="text-destructive text-xs">削除</span>
                   )}
                 </div>

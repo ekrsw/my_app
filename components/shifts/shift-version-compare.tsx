@@ -79,18 +79,11 @@ export function ShiftVersionCompare({
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Badge variant="outline">v{v.version}</Badge>
-                    <Badge
-                      variant={
-                        v.changeType === "DELETE" ? "destructive" : "secondary"
-                      }
-                    >
-                      {v.changeType}
-                    </Badge>
                     <span className="text-xs text-muted-foreground">
                       {formatDate(v.changedAt, "yyyy/MM/dd HH:mm")}
                     </span>
                   </div>
-                  {v.changeType !== "DELETE" && (
+                  {v.newShiftCode !== null && (
                     <Button
                       variant="ghost"
                       size="sm"
@@ -103,7 +96,7 @@ export function ShiftVersionCompare({
                   )}
                 </div>
 
-                {v.changeType === "DELETE" ? (
+                {v.newShiftCode === null ? (
                   <div className="space-y-2">
                     <p className="text-sm font-medium text-destructive">削除されたシフト</p>
                     <div className="grid grid-cols-2 gap-2 text-sm">
