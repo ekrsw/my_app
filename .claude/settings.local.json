@@ -55,7 +55,9 @@
       "Bash(node -e:*)",
       "Bash(npx tsx:*)",
       "Bash(curl:*)",
-      "Bash(npx eslint:*)"
+      "Bash(npx eslint:*)",
+      "Bash(npm run test:setup-db:*)",
+      "Bash(npm test:*)"
     ]
   }
 }
