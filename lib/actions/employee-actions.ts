@@ -113,11 +113,30 @@ export async function updateEmployee(id: number, formData: FormData) {
 
 export async function deleteEmployee(id: number) {
   try {
-    await prisma.employee.delete({ where: { id } })
+    await prisma.$transaction(async (tx) => {
+      // ステップ1: ジャンクションテーブル削除 (DELETEトリガーが履歴を自動生成)
+      await tx.employeeGroup.deleteMany({ where: { employeeId: id } })
+      await tx.employeeFunctionRole.deleteMany({ where: { employeeId: id } })
+      await tx.employeePosition.deleteMany({ where: { employeeId: id } })
+
+      // ステップ2: 全履歴レコード削除 (ステップ1のトリガーが作成した分を含む)
+      await tx.employeeGroupHistory.deleteMany({ where: { employeeId: id } })
+      await tx.employeeFunctionRoleHistory.deleteMany({ where: { employeeId: id } })
+      await tx.employeePositionHistory.deleteMany({ where: { employeeId: id } })
+
+      // ステップ3: シフト削除 (DELETEトリガーがshift_change_historyを自動生成)
+      await tx.shift.deleteMany({ where: { employeeId: id } })
+
+      // ステップ4: シフト変更履歴削除 (ステップ3のトリガーが作成した分を含む)
+      await tx.shiftChangeHistory.deleteMany({ where: { employeeId: id } })
+
+      // ステップ5: 従業員削除
+      await tx.employee.delete({ where: { id } })
+    })
     revalidatePath("/employees")
     return { success: true }
   } catch {
-    return { error: "従業員の削除に失敗しました。関連データがある場合は削除できません。" }
+    return { error: "従業員の削除に失敗しました" }
   }
 }
 

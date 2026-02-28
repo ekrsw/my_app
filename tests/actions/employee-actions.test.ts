@@ -98,7 +98,7 @@ describe("Employee Actions", () => {
       expect(found).toBeNull()
     })
 
-    it("should return error when employee has related data (ON DELETE RESTRICT)", async () => {
+    it("should cascade delete employee with related data", async () => {
       const group = await prisma.group.create({ data: { name: "開発部" } })
 
       const employee = await prisma.employee.create({
@@ -116,7 +116,25 @@ describe("Employee Actions", () => {
 
       const result = await deleteEmployee(employee.id)
 
-      expect(result.error).toBeDefined()
+      expect(result).toEqual({ success: true })
+
+      // 従業員が削除されていること
+      const found = await prisma.employee.findUnique({
+        where: { id: employee.id },
+      })
+      expect(found).toBeNull()
+
+      // 関連するジャンクションテーブルのレコードも削除されていること
+      const groups = await prisma.employeeGroup.findMany({
+        where: { employeeId: employee.id },
+      })
+      expect(groups).toHaveLength(0)
+
+      // 関連する履歴レコードも削除されていること
+      const history = await prisma.employeeGroupHistory.findMany({
+        where: { employeeId: employee.id },
+      })
+      expect(history).toHaveLength(0)
     })
   })
 })
