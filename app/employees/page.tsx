@@ -6,6 +6,7 @@ import { getEmployees } from "@/lib/db/employees"
 import { getGroups } from "@/lib/db/groups"
 import { EmployeeForm } from "@/components/employees/employee-form"
 import { EmployeeImportDialog } from "@/components/employees/employee-import-dialog"
+import { EmployeeExportButton } from "@/components/employees/employee-export-button"
 import { Suspense } from "react"
 import { Skeleton } from "@/components/ui/skeleton"
 import type { SearchParams } from "@/types"
@@ -41,6 +42,7 @@ export default async function EmployeesPage({
           <h1 className="text-2xl font-bold">従業員一覧</h1>
           <div className="flex items-center gap-2">
             <EmployeeImportDialog />
+            <EmployeeExportButton />
             <EmployeeForm groups={groups} />
           </div>
         </div>

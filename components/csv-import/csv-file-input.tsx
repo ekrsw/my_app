@@ -2,7 +2,7 @@
 
 import { useRef } from "react"
 import { Button } from "@/components/ui/button"
-import { Upload } from "lucide-react"
+import { Download } from "lucide-react"
 
 type CsvFileInputProps = {
   onFileLoaded: (csvText: string) => void
@@ -49,7 +49,7 @@ export function CsvFileInput({ onFileLoaded, disabled }: CsvFileInputProps) {
         onClick={() => inputRef.current?.click()}
         disabled={disabled}
       >
-        <Upload className="mr-1 h-4 w-4" />
+        <Download className="mr-1 h-4 w-4" />
         CSVファイルを選択
       </Button>
     </div>

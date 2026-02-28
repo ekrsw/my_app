@@ -257,6 +257,7 @@ export type EmployeeImportRow = {
   nameKana: string | null
   hireDate: string | null
   terminationDate: string | null
+  groupNames: string | null
 }
 
 export type EmployeeImportResult = {
@@ -275,7 +276,33 @@ export async function importEmployees(
 
   try {
     await prisma.$transaction(async (tx) => {
+      // グループ名→IDマップを作成
+      const allGroups = await tx.group.findMany()
+      const groupNameToId = new Map(allGroups.map((g) => [g.name, g.id]))
+
+      // グループ名のバリデーション（先に全行チェック）
       for (const row of rows) {
+        if (row.groupNames) {
+          const names = row.groupNames.split("|").map((n) => n.trim()).filter(Boolean)
+          const unknownNames = names.filter((n) => !groupNameToId.has(n))
+          if (unknownNames.length > 0) {
+            errors.push({
+              rowIndex: row.rowIndex,
+              error: `存在しないグループ: ${unknownNames.join(", ")}`,
+            })
+          }
+        }
+      }
+
+      // エラーがある行を除外
+      const errorRowIndices = new Set(errors.map((e) => e.rowIndex))
+
+      const now = new Date()
+      const today = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()))
+
+      for (const row of rows) {
+        if (errorRowIndices.has(row.rowIndex)) continue
+
         const data = {
           name: row.name,
           nameKana: row.nameKana,
@@ -283,21 +310,73 @@ export async function importEmployees(
           terminationDate: row.terminationDate ? new Date(row.terminationDate) : null,
         }
 
+        // CSVのグループ名リストを解析
+        const csvGroupIds: number[] | null = row.groupNames
+          ? row.groupNames.split("|").map((n) => n.trim()).filter(Boolean).map((n) => groupNameToId.get(n)!)
+          : null
+
+        // IDあり → 既存を検索して更新、存在しなければ新規作成にフォールスルー
+        let existingEmployeeId: number | null = null
         if (row.employeeId) {
-          // IDあり → 既存を更新
           const existing = await tx.employee.findUnique({
             where: { id: row.employeeId },
           })
-          if (!existing) {
-            errors.push({ rowIndex: row.rowIndex, error: `従業員ID ${row.employeeId} が存在しません` })
-            continue
+          if (existing) {
+            existingEmployeeId = existing.id
+            await tx.employee.update({ where: { id: existing.id }, data })
+            updated++
+
+            // グループ処理（nullの場合は変更しない）
+            if (csvGroupIds !== null) {
+              const activeGroups = await tx.employeeGroup.findMany({
+                where: { employeeId: existing.id, endDate: null },
+              })
+              const activeGroupIds = new Set(activeGroups.map((g) => g.groupId))
+              const csvGroupIdSet = new Set(csvGroupIds)
+
+              // CSVにないアクティブグループ → 終了
+              for (const ag of activeGroups) {
+                if (!csvGroupIdSet.has(ag.groupId)) {
+                  await tx.employeeGroup.update({
+                    where: { id: ag.id },
+                    data: { endDate: today },
+                  })
+                }
+              }
+
+              // CSVにあるが未所属のグループ → 追加
+              for (const gid of csvGroupIds) {
+                if (!activeGroupIds.has(gid)) {
+                  await tx.employeeGroup.create({
+                    data: {
+                      employeeId: existing.id,
+                      groupId: gid,
+                      startDate: today,
+                    },
+                  })
+                }
+              }
+            }
           }
-          await tx.employee.update({ where: { id: row.employeeId }, data })
-          updated++
-        } else {
-          // IDなし → 新規作成
-          await tx.employee.create({ data })
+        }
+
+        // 既存従業員が見つからなかった場合 → 新規作成
+        if (!existingEmployeeId) {
+          const newEmployee = await tx.employee.create({ data })
           created++
+
+          // 新規従業員のグループ登録
+          if (csvGroupIds !== null && csvGroupIds.length > 0) {
+            for (const gid of csvGroupIds) {
+              await tx.employeeGroup.create({
+                data: {
+                  employeeId: newEmployee.id,
+                  groupId: gid,
+                  startDate: today,
+                },
+              })
+            }
+          }
         }
       }
     })

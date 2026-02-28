@@ -108,3 +108,43 @@ export async function getAllEmployees() {
     orderBy: [{ name: "asc" }],
   })
 }
+
+export async function getEmployeesForExport(
+  filter: { groupId?: number; activeOnly?: boolean } = {}
+) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const where: any = {}
+  const conditions: object[] = []
+
+  if (filter.groupId) {
+    conditions.push({
+      groups: { some: { groupId: filter.groupId, endDate: null } },
+    })
+  }
+
+  if (filter.activeOnly) {
+    const now = new Date()
+    const today = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()))
+    conditions.push({
+      OR: [
+        { terminationDate: null },
+        { terminationDate: { gte: today } },
+      ],
+    })
+  }
+
+  if (conditions.length > 0) {
+    where.AND = conditions
+  }
+
+  return prisma.employee.findMany({
+    where,
+    include: {
+      groups: {
+        include: { group: true },
+        where: { endDate: null },
+      },
+    },
+    orderBy: [{ name: "asc" }],
+  })
+}

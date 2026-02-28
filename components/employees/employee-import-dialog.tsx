@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Upload } from "lucide-react"
+import { Download } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import {
@@ -65,6 +65,7 @@ export function EmployeeImportDialog() {
       nameKana: r.data.nameKana,
       hireDate: r.data.hireDate,
       terminationDate: r.data.terminationDate,
+      groupNames: r.data.groupNames,
     }))
 
     const res = await importEmployees(rows)
@@ -81,7 +82,7 @@ export function EmployeeImportDialog() {
   const validCount = parsedRows.filter((r) => r.valid).length
   const errorCount = parsedRows.filter((r) => !r.valid).length
 
-  const previewHeaders = ["従業員ID", "従業員名", "フリガナ", "入社日", "退職日"]
+  const previewHeaders = ["従業員ID", "従業員名", "フリガナ", "入社日", "退職日", "グループ"]
   const previewRows = parsedRows.map((r) => ({
     rowIndex: r.rowIndex,
     cells: [
@@ -90,6 +91,7 @@ export function EmployeeImportDialog() {
       r.data.nameKana || "",
       r.data.hireDate || "",
       r.data.terminationDate || "",
+      r.data.groupNames || "",
     ],
     valid: r.valid,
     error: r.error,
@@ -99,8 +101,8 @@ export function EmployeeImportDialog() {
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         <Button variant="outline" size="sm">
-          <Upload className="mr-1 h-4 w-4" />
-          CSVインポート
+          <Download className="mr-1 h-4 w-4" />
+          CSV
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-2xl">
@@ -111,9 +113,9 @@ export function EmployeeImportDialog() {
         {step === "select" && (
           <div className="space-y-4">
             <div className="text-sm text-muted-foreground">
-              <p>CSV形式: 従業員ID, 従業員名, フリガナ, 入社日, 退職日</p>
+              <p>CSV形式: 従業員ID, 従業員名, フリガナ, 入社日, 退職日, グループ</p>
               <p>従業員IDが空欄の場合は新規作成、値がある場合は既存データを更新します。</p>
-              <p>日付形式: yyyy/MM/dd</p>
+              <p>日付形式: yyyy/MM/dd　グループ列は任意（複数は | 区切り）</p>
             </div>
             <CsvFileInput onFileLoaded={handleFileLoaded} />
             {headerError && (
@@ -123,7 +125,7 @@ export function EmployeeImportDialog() {
         )}
 
         {step === "preview" && (
-          <div className="space-y-4">
+          <div className="space-y-4 min-w-0">
             <CsvPreviewTable headers={previewHeaders} rows={previewRows} />
             <div className="flex items-center justify-between">
               <Button variant="outline" onClick={resetState}>

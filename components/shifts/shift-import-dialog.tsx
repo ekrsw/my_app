@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Upload } from "lucide-react"
+import { Download } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import {
@@ -106,8 +106,8 @@ export function ShiftImportDialog() {
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         <Button variant="outline" size="sm">
-          <Upload className="mr-1 h-4 w-4" />
-          CSVインポート
+          <Download className="mr-1 h-4 w-4" />
+          CSV
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-3xl">

@@ -90,6 +90,7 @@ export const employeeCsvRowSchema = z.object({
   nameKana: z.string().max(100).nullable(),
   hireDate: z.string().nullable(),
   terminationDate: z.string().nullable(),
+  groupNames: z.string().nullable(),
 })
 
 export const shiftCsvRowSchema = z.object({

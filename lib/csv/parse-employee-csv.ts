@@ -7,9 +7,12 @@ const HEADER_MAP: Record<string, keyof EmployeeCsvRow> = {
   "フリガナ": "nameKana",
   "入社日": "hireDate",
   "退職日": "terminationDate",
+  "グループ": "groupNames",
 }
 
-const EXPECTED_HEADERS = Object.keys(HEADER_MAP)
+// グループは任意列（後方互換性のため）
+const OPTIONAL_HEADERS = new Set(["グループ"])
+const EXPECTED_HEADERS = Object.keys(HEADER_MAP).filter((h) => !OPTIONAL_HEADERS.has(h))
 
 export type ParsedEmployeeRow = {
   rowIndex: number
@@ -73,6 +76,9 @@ export function parseEmployeeCsv(csvText: string): EmployeeCsvParseResult {
     const rawNameKana = row[headerIndexMap.nameKana]?.trim() || ""
     const rawHireDate = row[headerIndexMap.hireDate]?.trim() || ""
     const rawTerminationDate = row[headerIndexMap.terminationDate]?.trim() || ""
+    const rawGroupNames = headerIndexMap.groupNames !== undefined
+      ? row[headerIndexMap.groupNames]?.trim() || ""
+      : ""
 
     const data = {
       employeeId: rawEmployeeId === "" ? null : Number(rawEmployeeId),
@@ -80,6 +86,7 @@ export function parseEmployeeCsv(csvText: string): EmployeeCsvParseResult {
       nameKana: rawNameKana === "" ? null : rawNameKana,
       hireDate: convertDate(rawHireDate),
       terminationDate: convertDate(rawTerminationDate),
+      groupNames: rawGroupNames === "" ? null : rawGroupNames,
     }
 
     const parsed = employeeCsvRowSchema.safeParse(data)

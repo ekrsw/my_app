@@ -8,7 +8,7 @@ import { ShiftFilters } from "./shift-filters"
 import { ShiftViewToggle } from "./shift-view-toggle"
 import { ShiftForm } from "./shift-form"
 import { ShiftBulkEditor } from "./shift-bulk-editor"
-import { Download, Pencil } from "lucide-react"
+import { Upload, Pencil } from "lucide-react"
 import { ShiftImportDialog } from "./shift-import-dialog"
 import { SHIFT_CODE_MAP, type ShiftCodeInfo } from "@/lib/constants"
 import type { ShiftCalendarData, ShiftWithEmployee } from "@/types/shifts"
@@ -146,7 +146,7 @@ export function ShiftPageClient({
           )}
           <ShiftImportDialog />
           <Button variant="outline" size="sm" onClick={handleExport}>
-            <Download className="h-4 w-4 mr-1" />
+            <Upload className="h-4 w-4 mr-1" />
             CSV
           </Button>
           <ShiftViewToggle view={view} onChange={setView} />
