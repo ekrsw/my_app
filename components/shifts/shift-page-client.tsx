@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback, useMemo } from "react"
+import { useState, useCallback, useMemo, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { ShiftCalendar } from "./shift-calendar"
 import { ShiftTable } from "./shift-table"
@@ -11,8 +11,9 @@ import { ShiftBulkEditor } from "./shift-bulk-editor"
 import { Upload, Pencil } from "lucide-react"
 import { ShiftImportDialog } from "./shift-import-dialog"
 import { SHIFT_CODE_MAP, type ShiftCodeInfo } from "@/lib/constants"
-import type { ShiftCalendarData, ShiftWithEmployee } from "@/types/shifts"
+import type { ShiftCalendarData, ShiftWithEmployee, ShiftFilterParams } from "@/types/shifts"
 import type { Shift } from "@/app/generated/prisma/client"
+import { loadMoreCalendarData } from "@/lib/actions/shift-actions"
 
 type Group = { id: number; name: string }
 
@@ -28,7 +29,11 @@ type ActiveShiftCode = {
 }
 
 type ShiftPageClientProps = {
-  calendarData: ShiftCalendarData[]
+  initialCalendarData: ShiftCalendarData[]
+  calendarTotal: number
+  calendarHasMore: boolean
+  calendarNextCursor: number | null
+  calendarFilter: ShiftFilterParams
   tableData: ShiftWithEmployee[]
   tablePageCount: number
   tablePage: number
@@ -39,7 +44,11 @@ type ShiftPageClientProps = {
 }
 
 export function ShiftPageClient({
-  calendarData,
+  initialCalendarData,
+  calendarTotal,
+  calendarHasMore: initialHasMore,
+  calendarNextCursor: initialNextCursor,
+  calendarFilter,
   tableData,
   tablePageCount,
   tablePage,
@@ -48,6 +57,32 @@ export function ShiftPageClient({
   month,
   shiftCodes,
 }: ShiftPageClientProps) {
+  const [calendarData, setCalendarData] = useState(initialCalendarData)
+  const [hasMore, setHasMore] = useState(initialHasMore)
+  const [nextCursor, setNextCursor] = useState(initialNextCursor)
+  const [isLoadingMore, setIsLoadingMore] = useState(false)
+
+  // フィルター変更時（Server Component再実行時）にリセット
+  useEffect(() => {
+    setCalendarData(initialCalendarData)
+    setHasMore(initialHasMore)
+    setNextCursor(initialNextCursor)
+    setIsLoadingMore(false)
+  }, [initialCalendarData, initialHasMore, initialNextCursor])
+
+  const handleLoadMore = useCallback(async () => {
+    if (!hasMore || nextCursor === null || isLoadingMore) return
+    setIsLoadingMore(true)
+    try {
+      const result = await loadMoreCalendarData(calendarFilter, nextCursor)
+      setCalendarData((prev) => [...prev, ...result.data])
+      setHasMore(result.hasMore)
+      setNextCursor(result.nextCursor)
+    } finally {
+      setIsLoadingMore(false)
+    }
+  }, [hasMore, nextCursor, isLoadingMore, calendarFilter])
+
   const [view, setView] = useState<"calendar" | "table">("calendar")
   const [editOpen, setEditOpen] = useState(false)
   const [editShift, setEditShift] = useState<Shift | undefined>()
@@ -162,6 +197,10 @@ export function ShiftPageClient({
           selectedCells={selectedCells}
           onCellSelect={handleCellSelect}
           shiftCodeMap={shiftCodeMap}
+          hasMore={hasMore}
+          isLoadingMore={isLoadingMore}
+          onLoadMore={handleLoadMore}
+          total={calendarTotal}
         />
       ) : (
         <>

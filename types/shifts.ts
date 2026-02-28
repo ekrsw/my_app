@@ -19,6 +19,13 @@ export type ShiftFilterParams = {
   employeeSearch?: string
 }
 
+export type ShiftCalendarPaginatedResult = {
+  data: ShiftCalendarData[]
+  total: number
+  hasMore: boolean
+  nextCursor: number | null
+}
+
 export type ShiftHistoryEntry = ShiftChangeHistory & {
   employee: (Employee & { groups: (EmployeeGroup & { group: Group })[] }) | null
 }

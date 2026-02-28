@@ -3,6 +3,9 @@
 import { prisma } from "@/lib/prisma"
 import { shiftSchema, shiftBulkSchema } from "@/lib/validators"
 import { revalidatePath } from "next/cache"
+import { getShiftsForCalendarPaginated } from "@/lib/db/shifts"
+import type { ShiftFilterParams } from "@/types"
+import type { ShiftCalendarPaginatedResult } from "@/types/shifts"
 
 export async function createShift(data: {
   employeeId: number
@@ -190,6 +193,14 @@ export type ShiftImportResult = {
   created: number
   updated: number
   errors: Array<{ rowIndex: number; error: string }>
+}
+
+export async function loadMoreCalendarData(
+  filter: ShiftFilterParams,
+  cursor: number,
+  pageSize?: number
+): Promise<ShiftCalendarPaginatedResult> {
+  return getShiftsForCalendarPaginated(filter, { cursor, pageSize })
 }
 
 export async function importShifts(

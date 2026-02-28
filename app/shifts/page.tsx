@@ -4,7 +4,7 @@ import { ShiftPageClient } from "@/components/shifts/shift-page-client"
 import { ShiftTabs } from "@/components/shifts/shift-tabs"
 import { ShiftHistoryTable } from "@/components/shifts/shift-history-table"
 import { TabsContent } from "@/components/ui/tabs"
-import { getShiftsForCalendar, getShiftsTable } from "@/lib/db/shifts"
+import { getShiftsForCalendarPaginated, getShiftsTable } from "@/lib/db/shifts"
 import { getShiftHistory } from "@/lib/db/history"
 import { getGroups } from "@/lib/db/groups"
 import { getActiveShiftCodes } from "@/lib/db/shift-codes"
@@ -28,11 +28,11 @@ export default async function ShiftsPage({
 
   const filter = { year, month, groupId, employeeSearch: search }
 
-  const [calendarData, tableResult, groups, shiftCodes, historyResult] =
+  const [calendarResult, tableResult, groups, shiftCodes, historyResult] =
     await Promise.all([
       isHistory
-        ? Promise.resolve([])
-        : getShiftsForCalendar(filter),
+        ? Promise.resolve({ data: [], total: 0, hasMore: false, nextCursor: null })
+        : getShiftsForCalendarPaginated(filter, { cursor: 0, pageSize: 50 }),
       isHistory
         ? Promise.resolve({ data: [], totalPages: 0 })
         : getShiftsTable(filter, { page, pageSize: 20 }),
@@ -59,7 +59,11 @@ export default async function ShiftsPage({
         <ShiftTabs activeTab={activeTab}>
           <TabsContent value="management" className="mt-4">
             <ShiftPageClient
-              calendarData={calendarData}
+              initialCalendarData={calendarResult.data}
+              calendarTotal={calendarResult.total}
+              calendarHasMore={calendarResult.hasMore}
+              calendarNextCursor={calendarResult.nextCursor}
+              calendarFilter={filter}
               tableData={tableResult.data}
               tablePageCount={tableResult.totalPages}
               tablePage={page}

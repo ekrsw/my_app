@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo } from "react"
+import { useMemo, useEffect, useRef, useCallback } from "react"
 import type { ShiftCalendarData } from "@/types/shifts"
 import type { ShiftCodeInfo } from "@/lib/constants"
 import { ShiftCalendarCell } from "./shift-calendar-cell"
@@ -12,7 +12,7 @@ import {
   isToday as checkToday,
   toDateString,
 } from "@/lib/date-utils"
-import { ChevronDown, ChevronRight } from "lucide-react"
+import { ChevronDown, ChevronRight, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 type ShiftCalendarProps = {
@@ -23,6 +23,10 @@ type ShiftCalendarProps = {
   selectedCells?: Set<string>
   onCellSelect?: (cellKey: string) => void
   shiftCodeMap?: Record<string, ShiftCodeInfo>
+  hasMore?: boolean
+  isLoadingMore?: boolean
+  onLoadMore?: () => void
+  total?: number
 }
 
 export function ShiftCalendar({
@@ -33,10 +37,34 @@ export function ShiftCalendar({
   selectedCells: externalSelectedCells,
   onCellSelect,
   shiftCodeMap,
+  hasMore,
+  isLoadingMore,
+  onLoadMore,
+  total,
 }: ShiftCalendarProps) {
   const days = useMemo(() => getDaysInMonth(year, month), [year, month])
   const { groupedData, selectedCells: internalSelectedCells, toggleGroup } = useShiftCalendar(data)
   const selectedCells = externalSelectedCells ?? internalSelectedCells
+
+  const sentinelRef = useRef<HTMLDivElement>(null)
+  const onLoadMoreRef = useRef(onLoadMore)
+  onLoadMoreRef.current = onLoadMore
+
+  useEffect(() => {
+    const sentinel = sentinelRef.current
+    if (!sentinel || !hasMore) return
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          onLoadMoreRef.current?.()
+        }
+      },
+      { rootMargin: "200px" }
+    )
+    observer.observe(sentinel)
+    return () => observer.disconnect()
+  }, [hasMore])
 
   return (
     <div className="w-full overflow-auto rounded-md border">
@@ -122,7 +150,24 @@ export function ShiftCalendar({
             データがありません
           </div>
         )}
+
+        {/* センチネル要素 + ローディング表示 */}
+        {data.length > 0 && hasMore && (
+          <div ref={sentinelRef} className="flex items-center justify-center py-4">
+            {isLoadingMore && (
+              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+            )}
+          </div>
+        )}
       </div>
+
+      {/* 件数表示 */}
+      {total != null && data.length > 0 && (
+        <div className="px-3 py-2 text-xs text-muted-foreground border-t">
+          {data.length} / 全{total}人 表示中
+          {hasMore && !isLoadingMore && " — スクロールで続きを読み込み"}
+        </div>
+      )}
     </div>
   )
 }
