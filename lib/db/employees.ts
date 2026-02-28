@@ -8,8 +8,9 @@ export async function getEmployees(
 ): Promise<PaginatedResult<EmployeeWithGroups>> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const where: any = {}
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
+  // @db.Date カラムとの比較は UTC 基準のため、ローカル日付を UTC midnight に変換
+  const now = new Date()
+  const today = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()))
 
   const conditions: object[] = []
 

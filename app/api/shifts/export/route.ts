@@ -8,8 +8,9 @@ export async function GET(request: NextRequest) {
   const month = Number(searchParams.get("month")) || new Date().getMonth() + 1
   const groupId = searchParams.get("groupId") ? Number(searchParams.get("groupId")) : undefined
 
-  const startDate = new Date(year, month - 1, 1)
-  const endDate = new Date(year, month, 0)
+  // @db.Date カラムとの比較は UTC 基準のため UTC midnight で生成
+  const startDate = new Date(Date.UTC(year, month - 1, 1))
+  const endDate = new Date(Date.UTC(year, month, 0))
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const where: any = {

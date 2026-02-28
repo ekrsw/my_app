@@ -1,8 +1,9 @@
 import { prisma } from "@/lib/prisma"
 
 export async function getDashboardStats() {
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
+  // @db.Date カラムとの比較は UTC 基準のため、ローカル日付を UTC midnight に変換
+  const now = new Date()
+  const today = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()))
 
   const [
     totalEmployees,
@@ -71,8 +72,9 @@ export async function getDashboardStats() {
 }
 
 export async function getTodayOverview() {
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
+  // @db.Date カラムとの比較は UTC 基準のため、ローカル日付を UTC midnight に変換
+  const now = new Date()
+  const today = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()))
 
   return prisma.shift.findMany({
     where: { shiftDate: today },

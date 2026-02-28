@@ -6,8 +6,10 @@ import { toDateString } from "@/lib/date-utils"
 export async function getShiftsForCalendar(
   filter: ShiftFilterParams
 ): Promise<ShiftCalendarData[]> {
-  const startDate = new Date(filter.year, filter.month - 1, 1)
-  const endDate = new Date(filter.year, filter.month, 0)
+  // @db.Date カラムとの比較は UTC 基準で行われるため、
+  // ローカル時刻ではなく UTC midnight で日付を生成する
+  const startDate = new Date(Date.UTC(filter.year, filter.month - 1, 1))
+  const endDate = new Date(Date.UTC(filter.year, filter.month, 0))
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const employeeWhere: any = {}
@@ -67,8 +69,10 @@ export async function getShiftsTable(
   filter: ShiftFilterParams,
   pagination: PaginationParams = { page: 1, pageSize: 20 }
 ): Promise<PaginatedResult<ShiftWithEmployee>> {
-  const startDate = new Date(filter.year, filter.month - 1, 1)
-  const endDate = new Date(filter.year, filter.month, 0)
+  // @db.Date カラムとの比較は UTC 基準で行われるため、
+  // ローカル時刻ではなく UTC midnight で日付を生成する
+  const startDate = new Date(Date.UTC(filter.year, filter.month - 1, 1))
+  const endDate = new Date(Date.UTC(filter.year, filter.month, 0))
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const where: any = {
