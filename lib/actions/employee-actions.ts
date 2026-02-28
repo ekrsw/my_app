@@ -250,3 +250,61 @@ export async function updateEmployeeWithRoles(
     return { error: "従業員情報の更新に失敗しました" }
   }
 }
+
+export type EmployeeImportRow = {
+  employeeId: number | null
+  name: string
+  nameKana: string | null
+  hireDate: string | null
+  terminationDate: string | null
+}
+
+export type EmployeeImportResult = {
+  success: boolean
+  created: number
+  updated: number
+  errors: Array<{ rowIndex: number; error: string }>
+}
+
+export async function importEmployees(
+  rows: Array<EmployeeImportRow & { rowIndex: number }>
+): Promise<EmployeeImportResult> {
+  let created = 0
+  let updated = 0
+  const errors: Array<{ rowIndex: number; error: string }> = []
+
+  try {
+    await prisma.$transaction(async (tx) => {
+      for (const row of rows) {
+        const data = {
+          name: row.name,
+          nameKana: row.nameKana,
+          hireDate: row.hireDate ? new Date(row.hireDate) : null,
+          terminationDate: row.terminationDate ? new Date(row.terminationDate) : null,
+        }
+
+        if (row.employeeId) {
+          // IDあり → 既存を更新
+          const existing = await tx.employee.findUnique({
+            where: { id: row.employeeId },
+          })
+          if (!existing) {
+            errors.push({ rowIndex: row.rowIndex, error: `従業員ID ${row.employeeId} が存在しません` })
+            continue
+          }
+          await tx.employee.update({ where: { id: row.employeeId }, data })
+          updated++
+        } else {
+          // IDなし → 新規作成
+          await tx.employee.create({ data })
+          created++
+        }
+      }
+    })
+
+    revalidatePath("/employees")
+    return { success: true, created, updated, errors }
+  } catch {
+    return { success: false, created: 0, updated: 0, errors: [{ rowIndex: 0, error: "インポート処理に失敗しました" }] }
+  }
+}

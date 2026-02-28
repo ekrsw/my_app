@@ -82,3 +82,26 @@ export const shiftCodeSchema = z.object({
   sortOrder: z.coerce.number().int().min(0, "0以上の数値を入力してください").default(0),
 })
 export type ShiftCodeFormData = z.infer<typeof shiftCodeSchema>
+
+// CSV Import schemas
+export const employeeCsvRowSchema = z.object({
+  employeeId: z.coerce.number().int().positive().nullable(),
+  name: z.string().min(1, "従業員名は必須です").max(100, "100文字以内で入力してください"),
+  nameKana: z.string().max(100).nullable(),
+  hireDate: z.string().nullable(),
+  terminationDate: z.string().nullable(),
+})
+
+export const shiftCsvRowSchema = z.object({
+  shiftDate: z.string().min(1, "日付は必須です"),
+  employeeId: z.coerce.number().int().positive("従業員IDは必須です"),
+  shiftCode: z.string().max(20).nullable(),
+  startTime: z.string().nullable(),
+  endTime: z.string().nullable(),
+  isHoliday: z.boolean(),
+  isPaidLeave: z.boolean(),
+  isRemote: z.boolean(),
+})
+
+export type EmployeeCsvRow = z.infer<typeof employeeCsvRowSchema>
+export type ShiftCsvRow = z.infer<typeof shiftCsvRowSchema>

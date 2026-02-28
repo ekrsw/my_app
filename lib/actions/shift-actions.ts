@@ -173,3 +173,93 @@ export async function restoreShiftVersion(shiftId: number, version: number) {
     return { error: "バージョンの復元に失敗しました" }
   }
 }
+
+export type ShiftImportRow = {
+  shiftDate: string
+  employeeId: number
+  shiftCode: string | null
+  startTime: string | null
+  endTime: string | null
+  isHoliday: boolean
+  isPaidLeave: boolean
+  isRemote: boolean
+}
+
+export type ShiftImportResult = {
+  success: boolean
+  created: number
+  updated: number
+  errors: Array<{ rowIndex: number; error: string }>
+}
+
+export async function importShifts(
+  rows: Array<ShiftImportRow & { rowIndex: number }>
+): Promise<ShiftImportResult> {
+  let created = 0
+  let updated = 0
+  const errors: Array<{ rowIndex: number; error: string }> = []
+
+  try {
+    // 従業員IDの存在チェック用
+    const employeeIds = [...new Set(rows.map((r) => r.employeeId))]
+    const existingEmployees = await prisma.employee.findMany({
+      where: { id: { in: employeeIds } },
+      select: { id: true },
+    })
+    const existingEmployeeIds = new Set(existingEmployees.map((e) => e.id))
+
+    await prisma.$transaction(async (tx) => {
+      for (const row of rows) {
+        if (!existingEmployeeIds.has(row.employeeId)) {
+          errors.push({ rowIndex: row.rowIndex, error: `従業員ID ${row.employeeId} が存在しません` })
+          continue
+        }
+
+        const data = {
+          shiftCode: row.shiftCode,
+          startTime: row.startTime
+            ? new Date(`1970-01-01T${row.startTime}Z`)
+            : null,
+          endTime: row.endTime
+            ? new Date(`1970-01-01T${row.endTime}Z`)
+            : null,
+          isHoliday: row.isHoliday,
+          isPaidLeave: row.isPaidLeave,
+          isRemote: row.isRemote,
+        }
+
+        // 既存シフトを確認
+        const existing = await tx.shift.findUnique({
+          where: {
+            employeeId_shiftDate: {
+              employeeId: row.employeeId,
+              shiftDate: new Date(row.shiftDate),
+            },
+          },
+        })
+
+        if (existing) {
+          await tx.shift.update({
+            where: { id: existing.id },
+            data,
+          })
+          updated++
+        } else {
+          await tx.shift.create({
+            data: {
+              employeeId: row.employeeId,
+              shiftDate: new Date(row.shiftDate),
+              ...data,
+            },
+          })
+          created++
+        }
+      }
+    })
+
+    revalidatePath("/shifts")
+    return { success: true, created, updated, errors }
+  } catch {
+    return { success: false, created: 0, updated: 0, errors: [{ rowIndex: 0, error: "インポート処理に失敗しました" }] }
+  }
+}

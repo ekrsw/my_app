@@ -9,6 +9,7 @@ import { ShiftViewToggle } from "./shift-view-toggle"
 import { ShiftForm } from "./shift-form"
 import { ShiftBulkEditor } from "./shift-bulk-editor"
 import { Download, Pencil } from "lucide-react"
+import { ShiftImportDialog } from "./shift-import-dialog"
 import { SHIFT_CODE_MAP, type ShiftCodeInfo } from "@/lib/constants"
 import type { ShiftCalendarData, ShiftWithEmployee } from "@/types/shifts"
 import type { Shift } from "@/app/generated/prisma/client"
@@ -143,6 +144,7 @@ export function ShiftPageClient({
               {selectedCells.size}件を一括編集
             </Button>
           )}
+          <ShiftImportDialog />
           <Button variant="outline" size="sm" onClick={handleExport}>
             <Download className="h-4 w-4 mr-1" />
             CSV

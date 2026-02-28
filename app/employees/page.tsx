@@ -5,6 +5,7 @@ import { EmployeeFilters } from "@/components/employees/employee-filters"
 import { getEmployees } from "@/lib/db/employees"
 import { getGroups } from "@/lib/db/groups"
 import { EmployeeForm } from "@/components/employees/employee-form"
+import { EmployeeImportDialog } from "@/components/employees/employee-import-dialog"
 import { Suspense } from "react"
 import { Skeleton } from "@/components/ui/skeleton"
 import type { SearchParams } from "@/types"
@@ -38,7 +39,10 @@ export default async function EmployeesPage({
       <PageContainer>
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-2xl font-bold">従業員一覧</h1>
-          <EmployeeForm groups={groups} />
+          <div className="flex items-center gap-2">
+            <EmployeeImportDialog />
+            <EmployeeForm groups={groups} />
+          </div>
         </div>
         <Suspense fallback={<Skeleton className="h-10 w-full" />}>
           <EmployeeFilters groups={groups} />
