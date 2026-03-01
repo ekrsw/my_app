@@ -10,7 +10,6 @@ type ShiftCodeRow = {
   defaultStartTime: Date | null
   defaultEndTime: Date | null
   defaultIsHoliday: boolean
-  defaultIsPaidLeave: boolean
   isActive: boolean | null
   sortOrder: number
 }
@@ -51,10 +50,7 @@ export const shiftCodeColumns: ColumnDef<ShiftCodeRow>[] = [
         {row.original.defaultIsHoliday && (
           <Badge variant="outline" className="text-red-600 border-red-200">休日</Badge>
         )}
-        {row.original.defaultIsPaidLeave && (
-          <Badge variant="outline" className="text-green-600 border-green-200">有給</Badge>
-        )}
-        {!row.original.defaultIsHoliday && !row.original.defaultIsPaidLeave && "-"}
+        {!row.original.defaultIsHoliday && "-"}
       </div>
     ),
   },

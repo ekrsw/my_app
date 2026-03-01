@@ -32,7 +32,7 @@ describe("ShiftCode Actions", () => {
           defaultStartTime: "09:00",
           defaultEndTime: "18:00",
           defaultIsHoliday: "false",
-          defaultIsPaidLeave: "false",
+
           isActive: "true",
           sortOrder: "0",
         })
@@ -54,7 +54,7 @@ describe("ShiftCode Actions", () => {
           defaultStartTime: "",
           defaultEndTime: "",
           defaultIsHoliday: "true",
-          defaultIsPaidLeave: "false",
+
           isActive: "true",
           sortOrder: "4",
         })
@@ -75,7 +75,7 @@ describe("ShiftCode Actions", () => {
         makeFormData({
           code: "A",
           defaultIsHoliday: "false",
-          defaultIsPaidLeave: "false",
+
           isActive: "true",
           sortOrder: "0",
         })
@@ -90,7 +90,7 @@ describe("ShiftCode Actions", () => {
         makeFormData({
           code: "",
           defaultIsHoliday: "false",
-          defaultIsPaidLeave: "false",
+
           isActive: "true",
           sortOrder: "0",
         })
@@ -113,7 +113,7 @@ describe("ShiftCode Actions", () => {
           defaultStartTime: "09:00",
           defaultEndTime: "17:30",
           defaultIsHoliday: "false",
-          defaultIsPaidLeave: "false",
+
           isActive: "true",
           sortOrder: "1",
         })
@@ -135,7 +135,7 @@ describe("ShiftCode Actions", () => {
         makeFormData({
           code: "B",
           defaultIsHoliday: "false",
-          defaultIsPaidLeave: "false",
+
           isActive: "true",
           sortOrder: "0",
         })

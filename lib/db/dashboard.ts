@@ -11,7 +11,6 @@ export async function getDashboardStats() {
     totalGroups,
     todayShifts,
     todayRemote,
-    todayPaidLeave,
     recentChanges,
   ] = await Promise.all([
     prisma.employee.count(),
@@ -29,19 +28,12 @@ export async function getDashboardStats() {
         shiftDate: today,
         startTime: { not: null },
         isHoliday: { not: true },
-        isPaidLeave: { not: true },
       },
     }),
     prisma.shift.count({
       where: {
         shiftDate: today,
         isRemote: true,
-      },
-    }),
-    prisma.shift.count({
-      where: {
-        shiftDate: today,
-        isPaidLeave: true,
       },
     }),
     prisma.shiftChangeHistory.findMany({
@@ -66,7 +58,6 @@ export async function getDashboardStats() {
     totalGroups,
     todayShifts,
     todayRemote,
-    todayPaidLeave,
     recentChanges,
   }
 }

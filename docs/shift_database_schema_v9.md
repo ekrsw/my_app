@@ -1,4 +1,4 @@
-# my_database スキーマ定義書 v12
+# my_database スキーマ定義書 v13
 
 ## 概要
 
@@ -33,7 +33,6 @@ erDiagram
         time default_start_time
         time default_end_time
         boolean default_is_holiday
-        boolean default_is_paid_leave
         boolean is_active
         integer sort_order
     }
@@ -67,7 +66,6 @@ erDiagram
         time start_time
         time end_time
         boolean is_holiday
-        boolean is_paid_leave
         boolean is_remote
     }
 
@@ -130,13 +128,11 @@ erDiagram
         time start_time
         time end_time
         boolean is_holiday
-        boolean is_paid_leave
         boolean is_remote
         varchar new_shift_code
         time new_start_time
         time new_end_time
         boolean new_is_holiday
-        boolean new_is_paid_leave
         boolean new_is_remote
         integer version
         timestamp changed_at
@@ -283,7 +279,6 @@ ORDER BY g.id, e.id;
 | start_time | TIME(6) | YES | - | 開始時刻 |
 | end_time | TIME(6) | YES | - | 終了時刻 |
 | is_holiday | BOOLEAN | YES | false | 休日フラグ |
-| is_paid_leave | BOOLEAN | YES | false | 有給休暇フラグ |
 | is_remote | BOOLEAN | NO | false | テレワークフラグ |
 
 **制約**: PK(id), FK(employee_id → employees.id) ON DELETE SET NULL, UNIQUE(employee_id, shift_date)
@@ -423,7 +418,6 @@ ORDER BY g.id, e.id
 | default_start_time | TIME(6) | YES | - | デフォルト開始時刻 |
 | default_end_time | TIME(6) | YES | - | デフォルト終了時刻 |
 | default_is_holiday | BOOLEAN | NO | false | デフォルト休日フラグ |
-| default_is_paid_leave | BOOLEAN | NO | false | デフォルト有給フラグ |
 | is_active | BOOLEAN | YES | true | 有効フラグ |
 | sort_order | INTEGER | NO | 0 | 表示順 |
 
@@ -503,7 +497,7 @@ ORDER BY g.id, e.id
 
 ### 12. shift_change_history（シフト変更履歴）
 
-シフトデータの変更履歴を管理する。`shifts` テーブルへの UPDATE / DELETE 時にトリガーで自動保存する。UPDATE 時は変更前（OLD）と変更後（NEW）の両方を記録。DELETE 時はOLD値のみ記録（NEW値はすべてNULL）。UPDATE 時は変更があったフィールド（shift_code, start_time, end_time, is_holiday, is_paid_leave, is_remote のいずれか）が検知された場合のみ記録される。DELETE 時は常に記録される。UPDATE/DELETEの判定は `new_shift_code` がNULLかどうかで行う（DELETEトリガーはNEW値をすべてNULLに設定するため）。
+シフトデータの変更履歴を管理する。`shifts` テーブルへの UPDATE / DELETE 時にトリガーで自動保存する。UPDATE 時は変更前（OLD）と変更後（NEW）の両方を記録。DELETE 時はOLD値のみ記録（NEW値はすべてNULL）。UPDATE 時は変更があったフィールド（shift_code, start_time, end_time, is_holiday, is_remote のいずれか）が検知された場合のみ記録される。DELETE 時は常に記録される。UPDATE/DELETEの判定は `new_shift_code` がNULLかどうかで行う（DELETEトリガーはNEW値をすべてNULLに設定するため）。
 
 | カラム名 | データ型 | NULL | デフォルト | 説明 |
 |---------|---------|------|-----------|------|
@@ -515,13 +509,11 @@ ORDER BY g.id, e.id
 | start_time | TIME(6) | YES | - | 変更前開始時刻（OLD値） |
 | end_time | TIME(6) | YES | - | 変更前終了時刻（OLD値） |
 | is_holiday | BOOLEAN | YES | - | 変更前休日フラグ（OLD値） |
-| is_paid_leave | BOOLEAN | YES | - | 変更前有給休暇フラグ（OLD値） |
 | is_remote | BOOLEAN | YES | - | 変更前テレワークフラグ（OLD値） |
 | new_shift_code | VARCHAR(20) | YES | - | 変更後シフトコード（NEW値、DELETE時はNULL） |
 | new_start_time | TIME(6) | YES | - | 変更後開始時刻（NEW値、DELETE時はNULL） |
 | new_end_time | TIME(6) | YES | - | 変更後終了時刻（NEW値、DELETE時はNULL） |
 | new_is_holiday | BOOLEAN | YES | - | 変更後休日フラグ（NEW値、DELETE時はNULL） |
-| new_is_paid_leave | BOOLEAN | YES | - | 変更後有給休暇フラグ（NEW値、DELETE時はNULL） |
 | new_is_remote | BOOLEAN | YES | - | 変更後テレワークフラグ（NEW値、DELETE時はNULL） |
 | version | INTEGER | NO | - | バージョン番号（shift_id毎の連番） |
 | changed_at | TIMESTAMP(3) | NO | CURRENT_TIMESTAMP | 変更日時 |
@@ -554,13 +546,13 @@ BEGIN
 
     INSERT INTO shift_change_history (
       shift_id, employee_id, shift_date,
-      shift_code, start_time, end_time, is_holiday, is_paid_leave, is_remote,
-      new_shift_code, new_start_time, new_end_time, new_is_holiday, new_is_paid_leave, new_is_remote,
+      shift_code, start_time, end_time, is_holiday, is_remote,
+      new_shift_code, new_start_time, new_end_time, new_is_holiday, new_is_remote,
       version, changed_at
     ) VALUES (
       OLD.id, OLD.employee_id, OLD.shift_date,
-      OLD.shift_code, OLD.start_time, OLD.end_time, OLD.is_holiday, OLD.is_paid_leave, OLD.is_remote,
-      NULL, NULL, NULL, NULL, NULL, NULL,
+      OLD.shift_code, OLD.start_time, OLD.end_time, OLD.is_holiday, OLD.is_remote,
+      NULL, NULL, NULL, NULL, NULL,
       next_version, CURRENT_TIMESTAMP
     );
     RETURN OLD;
@@ -572,7 +564,6 @@ BEGIN
       OR OLD.start_time IS DISTINCT FROM NEW.start_time
       OR OLD.end_time IS DISTINCT FROM NEW.end_time
       OR OLD.is_holiday IS DISTINCT FROM NEW.is_holiday
-      OR OLD.is_paid_leave IS DISTINCT FROM NEW.is_paid_leave
       OR OLD.is_remote IS DISTINCT FROM NEW.is_remote
     THEN
       SELECT COALESCE(MAX(version), 0) + 1 INTO next_version
@@ -581,13 +572,13 @@ BEGIN
 
       INSERT INTO shift_change_history (
         shift_id, employee_id, shift_date,
-        shift_code, start_time, end_time, is_holiday, is_paid_leave, is_remote,
-        new_shift_code, new_start_time, new_end_time, new_is_holiday, new_is_paid_leave, new_is_remote,
+        shift_code, start_time, end_time, is_holiday, is_remote,
+        new_shift_code, new_start_time, new_end_time, new_is_holiday, new_is_remote,
         version, changed_at
       ) VALUES (
         OLD.id, OLD.employee_id, OLD.shift_date,
-        OLD.shift_code, OLD.start_time, OLD.end_time, OLD.is_holiday, OLD.is_paid_leave, OLD.is_remote,
-        NEW.shift_code, NEW.start_time, NEW.end_time, NEW.is_holiday, NEW.is_paid_leave, NEW.is_remote,
+        OLD.shift_code, OLD.start_time, OLD.end_time, OLD.is_holiday, OLD.is_remote,
+        NEW.shift_code, NEW.start_time, NEW.end_time, NEW.is_holiday, NEW.is_remote,
         next_version, CURRENT_TIMESTAMP
       );
     END IF;
@@ -608,7 +599,7 @@ EXECUTE FUNCTION record_shift_change();
 ```sql
 SELECT version, shift_code, new_shift_code,
        start_time, new_start_time, end_time, new_end_time,
-       is_holiday, new_is_holiday, is_paid_leave, new_is_paid_leave,
+       is_holiday, new_is_holiday,
        is_remote, new_is_remote,
        changed_at, note
 FROM shift_change_history
@@ -623,7 +614,6 @@ SELECT version,
   start_time    AS old_start,   new_start_time    AS new_start,
   end_time      AS old_end,     new_end_time      AS new_end,
   is_holiday    AS old_holiday, new_is_holiday    AS new_holiday,
-  is_paid_leave AS old_leave,   new_is_paid_leave AS new_leave,
   is_remote     AS old_remote,  new_is_remote     AS new_remote,
   changed_at
 FROM shift_change_history
@@ -638,7 +628,6 @@ UPDATE shifts s SET
   start_time    = h.start_time,
   end_time      = h.end_time,
   is_holiday    = h.is_holiday,
-  is_paid_leave = h.is_paid_leave,
   is_remote     = h.is_remote
 FROM shift_change_history h
 WHERE h.shift_id = s.id
@@ -946,3 +935,4 @@ groups (1) ────< (N) employee_groups (N) >────(1) employees
 | v14 | 2026-02-25 | shift_codesテーブルからlabelカラムを削除（表示ラベルはlib/constants.tsのSHIFT_CODE_MAPでハードコード管理に統一） |
 | v15 | 2026-02-26 | shift_change_historyにNEW値カラム6つ（new_shift_code, new_start_time, new_end_time, new_is_holiday, new_is_paid_leave, new_is_remote）を追加。shifts→shift_change_historyのFK制約を削除し、employees→shift_change_historyのFK（ON DELETE SET NULL）を追加。トリガーをUPDATE/DELETE両対応に更新し、UPDATE時はOLD/NEW両方を記録、DELETE時はOLD値のみ記録。シフト削除が可能になり、削除時も履歴が記録される |
 | v16 | 2026-02-27 | shift_change_historyからchange_typeカラムを削除。UPDATE/DELETEの判定はnew_shift_codeのNULL判定で代替（DELETEトリガーはNEW値をすべてNULLに設定するため）。トリガー関数record_shift_change()からchange_type関連のINSERT列を除去 |
+| v17 | 2026-03-01 | is_paid_leave（有給休暇）関連カラムを全テーブルから削除。shifts.is_paid_leave、shift_codes.default_is_paid_leave、shift_change_history.is_paid_leave / new_is_paid_leaveを削除。record_shift_change()およびapply_shift_code_defaults()トリガー関数を更新 |

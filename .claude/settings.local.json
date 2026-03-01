@@ -67,7 +67,9 @@
       "mcp__playwright__browser_file_upload",
       "mcp__playwright__browser_take_screenshot",
       "mcp__playwright__browser_snapshot",
-      "Bash(npm run lint:*)"
+      "Bash(npm run lint:*)",
+      "mcp__postgres__query",
+      "Bash(psql:*)"
     ]
   }
 }

@@ -52,7 +52,7 @@ export function ShiftCalendarCell({
             "border-r border-b border-border/50",
             "hover:ring-2 hover:ring-primary/30 hover:z-10",
             info.bgColor,
-            shift?.isHoliday ? "text-red-600" : shift?.isPaidLeave ? "text-green-600" : info.color,
+            shift?.isHoliday ? "text-red-600" : info.color,
             isWeekend && "bg-red-50",
             isToday && "ring-1 ring-primary z-10",
             isSelected && "ring-2 ring-primary bg-primary/10 z-20"
@@ -72,7 +72,6 @@ export function ShiftCalendarCell({
             )}
             <div className="flex gap-1">
               {shift.isHoliday && <span className="text-red-600">休日</span>}
-              {shift.isPaidLeave && <span className="text-green-600">有給</span>}
               {shift.isRemote && <span className="text-sky-600">テレワーク</span>}
             </div>
           </div>

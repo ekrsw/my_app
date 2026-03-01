@@ -10,11 +10,10 @@ const HEADER_MAP: Record<string, string> = {
   "開始時刻": "startTime",
   "終了時刻": "endTime",
   "休日": "isHoliday",
-  "有給": "isPaidLeave",
   "テレワーク": "isRemote",
 }
 
-const REQUIRED_HEADERS = ["日付", "従業員ID", "シフトコード", "開始時刻", "終了時刻", "休日", "有給", "テレワーク"]
+const REQUIRED_HEADERS = ["日付", "従業員ID", "シフトコード", "開始時刻", "終了時刻", "休日", "テレワーク"]
 
 export type ParsedShiftRow = {
   rowIndex: number
@@ -45,7 +44,8 @@ function convertTime(value: string): string | null {
 }
 
 function convertBoolean(value: string): boolean {
-  return value.trim() === "○"
+  const v = value.trim().toLowerCase()
+  return v === "○" || v === "t"
 }
 
 export function parseShiftCsv(csvText: string): ShiftCsvParseResult {
@@ -92,7 +92,6 @@ export function parseShiftCsv(csvText: string): ShiftCsvParseResult {
     const rawStartTime = row[headerIndexMap.startTime]?.trim() || ""
     const rawEndTime = row[headerIndexMap.endTime]?.trim() || ""
     const rawIsHoliday = row[headerIndexMap.isHoliday]?.trim() || ""
-    const rawIsPaidLeave = row[headerIndexMap.isPaidLeave]?.trim() || ""
     const rawIsRemote = row[headerIndexMap.isRemote]?.trim() || ""
 
     const convertedDate = convertDate(rawDate)
@@ -106,7 +105,6 @@ export function parseShiftCsv(csvText: string): ShiftCsvParseResult {
       startTime: convertTime(rawStartTime),
       endTime: convertTime(rawEndTime),
       isHoliday: convertBoolean(rawIsHoliday),
-      isPaidLeave: convertBoolean(rawIsPaidLeave),
       isRemote: convertBoolean(rawIsRemote),
     }
 

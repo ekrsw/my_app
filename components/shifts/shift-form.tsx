@@ -28,7 +28,6 @@ type ActiveShiftCode = {
   defaultStartTime: Date | null
   defaultEndTime: Date | null
   defaultIsHoliday: boolean
-  defaultIsPaidLeave: boolean
   isActive: boolean | null
   sortOrder: number
 }
@@ -44,7 +43,6 @@ type ShiftFormProps = {
     startTime: Date | null
     endTime: Date | null
     isHoliday: boolean | null
-    isPaidLeave: boolean | null
     isRemote: boolean
   }
   employeeId?: number
@@ -66,7 +64,6 @@ export function ShiftForm({ open, onOpenChange, shift, employeeId, date, shiftCo
   const [code, setCode] = useState(shift?.shiftCode ?? "")
   const [isCustom, setIsCustom] = useState(false)
   const [isHoliday, setIsHoliday] = useState(shift?.isHoliday ?? false)
-  const [isPaidLeave, setIsPaidLeave] = useState(shift?.isPaidLeave ?? false)
   const [isRemote, setIsRemote] = useState(shift?.isRemote ?? false)
   const startTimeRef = useRef<HTMLInputElement>(null)
   const endTimeRef = useRef<HTMLInputElement>(null)
@@ -84,7 +81,6 @@ export function ShiftForm({ open, onOpenChange, shift, employeeId, date, shiftCo
       setCode(currentCode)
       setIsCustom(currentCode !== "" && !shiftCodes.some((sc) => sc.code === currentCode))
       setIsHoliday(shift?.isHoliday ?? false)
-      setIsPaidLeave(shift?.isPaidLeave ?? false)
       setIsRemote(shift?.isRemote ?? false)
       if (startTimeRef.current) {
         startTimeRef.current.value = timeToInput(shift?.startTime ?? null)
@@ -118,7 +114,6 @@ export function ShiftForm({ open, onOpenChange, shift, employeeId, date, shiftCo
         endTimeRef.current.value = timeToInput(preset.defaultEndTime)
       }
       setIsHoliday(preset.defaultIsHoliday)
-      setIsPaidLeave(preset.defaultIsPaidLeave)
       // isRemote は変更しない
     }
   }
@@ -136,7 +131,6 @@ export function ShiftForm({ open, onOpenChange, shift, employeeId, date, shiftCo
         startTime: (form.get("startTime") as string) || null,
         endTime: (form.get("endTime") as string) || null,
         isHoliday,
-        isPaidLeave,
         isRemote,
       })
       setLoading(false)
@@ -154,7 +148,6 @@ export function ShiftForm({ open, onOpenChange, shift, employeeId, date, shiftCo
         startTime: (form.get("startTime") as string) || null,
         endTime: (form.get("endTime") as string) || null,
         isHoliday,
-        isPaidLeave,
         isRemote,
       })
       setLoading(false)
@@ -233,14 +226,6 @@ export function ShiftForm({ open, onOpenChange, shift, employeeId, date, shiftCo
                 onCheckedChange={(v) => setIsHoliday(v === true)}
               />
               <Label htmlFor="isHoliday">休日</Label>
-            </div>
-            <div className="flex items-center gap-2">
-              <Checkbox
-                id="isPaidLeave"
-                checked={isPaidLeave}
-                onCheckedChange={(v) => setIsPaidLeave(v === true)}
-              />
-              <Label htmlFor="isPaidLeave">有給休暇</Label>
             </div>
             <div className="flex items-center gap-2">
               <Checkbox

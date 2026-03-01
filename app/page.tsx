@@ -23,7 +23,6 @@ export default async function DashboardPage() {
           totalEmployees={stats.totalEmployees}
           todayShifts={stats.todayShifts}
           todayRemote={stats.todayRemote}
-          todayPaidLeave={stats.todayPaidLeave}
         />
 
         <div className="mt-6 grid gap-6 lg:grid-cols-2">

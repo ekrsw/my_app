@@ -61,7 +61,6 @@ describe("ShiftCode DB Queries", () => {
           defaultStartTime: new Date("1970-01-01T09:00:00Z"),
           defaultEndTime: new Date("1970-01-01T18:00:00Z"),
           defaultIsHoliday: false,
-          defaultIsPaidLeave: false,
           sortOrder: 0,
         },
       })

@@ -66,7 +66,6 @@ export function ShiftImportDialog() {
       startTime: r.data.startTime,
       endTime: r.data.endTime,
       isHoliday: r.data.isHoliday,
-      isPaidLeave: r.data.isPaidLeave,
       isRemote: r.data.isRemote,
     }))
 
@@ -84,7 +83,7 @@ export function ShiftImportDialog() {
   const validCount = parsedRows.filter((r) => r.valid).length
   const errorCount = parsedRows.filter((r) => !r.valid).length
 
-  const previewHeaders = ["日付", "従業員ID", "従業員名", "シフトコード", "開始", "終了", "休日", "有給", "テレワーク"]
+  const previewHeaders = ["日付", "従業員ID", "従業員名", "シフトコード", "開始", "終了", "休日", "テレワーク"]
   const previewRows = parsedRows.map((r) => ({
     rowIndex: r.rowIndex,
     cells: [
@@ -94,9 +93,8 @@ export function ShiftImportDialog() {
       r.data.shiftCode || "",
       r.data.startTime || "-",
       r.data.endTime || "-",
-      r.data.isHoliday ? "○" : "",
-      r.data.isPaidLeave ? "○" : "",
-      r.data.isRemote ? "○" : "",
+      r.data.isHoliday ? "t" : "f",
+      r.data.isRemote ? "t" : "f",
     ],
     valid: r.valid,
     error: r.error,

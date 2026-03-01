@@ -34,7 +34,6 @@ type ShiftCodeFormProps = {
     defaultStartTime: Date | null
     defaultEndTime: Date | null
     defaultIsHoliday: boolean
-    defaultIsPaidLeave: boolean
     isActive: boolean | null
     sortOrder: number
   }
@@ -51,13 +50,11 @@ export function ShiftCodeForm({ shiftCode }: ShiftCodeFormProps) {
   const [loading, setLoading] = useState(false)
   const [isActive, setIsActive] = useState(shiftCode?.isActive ?? true)
   const [defaultIsHoliday, setDefaultIsHoliday] = useState(shiftCode?.defaultIsHoliday ?? false)
-  const [defaultIsPaidLeave, setDefaultIsPaidLeave] = useState(shiftCode?.defaultIsPaidLeave ?? false)
   const isEdit = !!shiftCode
 
   async function handleSubmit(formData: FormData) {
     formData.set("isActive", String(isActive))
     formData.set("defaultIsHoliday", String(defaultIsHoliday))
-    formData.set("defaultIsPaidLeave", String(defaultIsPaidLeave))
     setLoading(true)
     const result = isEdit
       ? await updateShiftCode(shiftCode.id, formData)
@@ -130,14 +127,6 @@ export function ShiftCodeForm({ shiftCode }: ShiftCodeFormProps) {
                 onCheckedChange={(v) => setDefaultIsHoliday(v === true)}
               />
               <Label htmlFor="defaultIsHoliday">休日</Label>
-            </div>
-            <div className="flex items-center gap-2">
-              <Checkbox
-                id="defaultIsPaidLeave"
-                checked={defaultIsPaidLeave}
-                onCheckedChange={(v) => setDefaultIsPaidLeave(v === true)}
-              />
-              <Label htmlFor="defaultIsPaidLeave">有給休暇</Label>
             </div>
           </div>
           <div className="space-y-2">

@@ -15,7 +15,6 @@ export async function createShiftCode(formData: FormData) {
     defaultStartTime: formData.get("defaultStartTime") || null,
     defaultEndTime: formData.get("defaultEndTime") || null,
     defaultIsHoliday: formData.get("defaultIsHoliday") === "true",
-    defaultIsPaidLeave: formData.get("defaultIsPaidLeave") === "true",
     isActive: formData.get("isActive") === "true",
     sortOrder: formData.get("sortOrder"),
   })
@@ -31,7 +30,6 @@ export async function createShiftCode(formData: FormData) {
         defaultStartTime: toTimeOrNull(parsed.data.defaultStartTime),
         defaultEndTime: toTimeOrNull(parsed.data.defaultEndTime),
         defaultIsHoliday: parsed.data.defaultIsHoliday,
-        defaultIsPaidLeave: parsed.data.defaultIsPaidLeave,
         isActive: parsed.data.isActive,
         sortOrder: parsed.data.sortOrder,
       },
@@ -52,7 +50,6 @@ export async function updateShiftCode(id: number, formData: FormData) {
     defaultStartTime: formData.get("defaultStartTime") || null,
     defaultEndTime: formData.get("defaultEndTime") || null,
     defaultIsHoliday: formData.get("defaultIsHoliday") === "true",
-    defaultIsPaidLeave: formData.get("defaultIsPaidLeave") === "true",
     isActive: formData.get("isActive") === "true",
     sortOrder: formData.get("sortOrder"),
   })
@@ -69,7 +66,6 @@ export async function updateShiftCode(id: number, formData: FormData) {
         defaultStartTime: toTimeOrNull(parsed.data.defaultStartTime),
         defaultEndTime: toTimeOrNull(parsed.data.defaultEndTime),
         defaultIsHoliday: parsed.data.defaultIsHoliday,
-        defaultIsPaidLeave: parsed.data.defaultIsPaidLeave,
         isActive: parsed.data.isActive,
         sortOrder: parsed.data.sortOrder,
       },

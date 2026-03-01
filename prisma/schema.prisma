@@ -45,7 +45,6 @@ model Shift {
   startTime   DateTime? @map("start_time") @db.Time(6)
   endTime     DateTime? @map("end_time") @db.Time(6)
   isHoliday   Boolean?  @default(false) @map("is_holiday")
-  isPaidLeave Boolean?  @default(false) @map("is_paid_leave")
   isRemote    Boolean   @default(false) @map("is_remote")
 
   employee Employee? @relation(fields: [employeeId], references: [id])
@@ -90,13 +89,11 @@ model ShiftChangeHistory {
   startTime      DateTime? @map("start_time") @db.Time(6)
   endTime        DateTime? @map("end_time") @db.Time(6)
   isHoliday      Boolean?  @map("is_holiday")
-  isPaidLeave    Boolean?  @map("is_paid_leave")
   isRemote       Boolean?  @map("is_remote")
   newShiftCode   String?   @map("new_shift_code") @db.VarChar(20)
   newStartTime   DateTime? @map("new_start_time") @db.Time(6)
   newEndTime     DateTime? @map("new_end_time") @db.Time(6)
   newIsHoliday   Boolean?  @map("new_is_holiday")
-  newIsPaidLeave Boolean?  @map("new_is_paid_leave")
   newIsRemote    Boolean?  @map("new_is_remote")
   version        Int
   changedAt      DateTime  @default(now()) @map("changed_at")
@@ -178,7 +175,6 @@ model ShiftCode {
   defaultStartTime   DateTime? @map("default_start_time") @db.Time(6)
   defaultEndTime     DateTime? @map("default_end_time") @db.Time(6)
   defaultIsHoliday   Boolean   @default(false) @map("default_is_holiday")
-  defaultIsPaidLeave Boolean   @default(false) @map("default_is_paid_leave")
   isActive           Boolean?  @default(true) @map("is_active")
   sortOrder          Int       @default(0) @map("sort_order")
 

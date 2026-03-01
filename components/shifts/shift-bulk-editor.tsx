@@ -29,7 +29,6 @@ type ActiveShiftCode = {
   defaultStartTime: Date | null
   defaultEndTime: Date | null
   defaultIsHoliday: boolean
-  defaultIsPaidLeave: boolean
   isActive: boolean | null
   sortOrder: number
 }
@@ -68,8 +67,6 @@ export function ShiftBulkEditor({
   const [applyEndTime, setApplyEndTime] = useState(false)
   const [isHoliday, setIsHoliday] = useState(false)
   const [applyHoliday, setApplyHoliday] = useState(false)
-  const [isPaidLeave, setIsPaidLeave] = useState(false)
-  const [applyPaidLeave, setApplyPaidLeave] = useState(false)
   const [isRemote, setIsRemote] = useState(false)
   const [applyRemote, setApplyRemote] = useState(false)
 
@@ -102,8 +99,6 @@ export function ShiftBulkEditor({
       }
       setIsHoliday(preset.defaultIsHoliday)
       setApplyHoliday(true)
-      setIsPaidLeave(preset.defaultIsPaidLeave)
-      setApplyPaidLeave(true)
       // isRemote は変更しない
     }
   }
@@ -119,7 +114,6 @@ export function ShiftBulkEditor({
     if (applyStartTime) data.startTime = startTime || null
     if (applyEndTime) data.endTime = endTime || null
     if (applyHoliday) data.isHoliday = isHoliday
-    if (applyPaidLeave) data.isPaidLeave = isPaidLeave
     if (applyRemote) data.isRemote = isRemote
 
     setLoading(true)
@@ -236,23 +230,6 @@ export function ShiftBulkEditor({
                   <Checkbox
                     checked={isHoliday}
                     onCheckedChange={(v) => setIsHoliday(v === true)}
-                  />
-                )}
-              </Label>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <Checkbox
-                id="applyPaidLeave"
-                checked={applyPaidLeave}
-                onCheckedChange={(v) => setApplyPaidLeave(v === true)}
-              />
-              <Label htmlFor="applyPaidLeave" className="flex items-center gap-2">
-                有給休暇
-                {applyPaidLeave && (
-                  <Checkbox
-                    checked={isPaidLeave}
-                    onCheckedChange={(v) => setIsPaidLeave(v === true)}
                   />
                 )}
               </Label>

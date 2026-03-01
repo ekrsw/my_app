@@ -62,9 +62,6 @@ const columns: ColumnDef<ShiftWithEmployee>[] = [
       return (
         <div className="flex gap-1">
           {s.isHoliday && <Badge variant="destructive">休日</Badge>}
-          {s.isPaidLeave && (
-            <Badge className="bg-green-100 text-green-800 border-0">有給</Badge>
-          )}
           {s.isRemote && (
             <Badge className="bg-sky-100 text-sky-800 border-0">テレワーク</Badge>
           )}

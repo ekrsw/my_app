@@ -159,7 +159,6 @@ describe("Shift Change History Trigger", () => {
         shiftDate: new Date("2026-01-15"),
         shiftCode: "A",
         isHoliday: false,
-        isPaidLeave: true,
         isRemote: false,
       },
     })
@@ -173,7 +172,6 @@ describe("Shift Change History Trigger", () => {
     expect(history).toHaveLength(1)
     expect(history[0].shiftCode).toBe("A")
     expect(history[0].isHoliday).toBe(false)
-    expect(history[0].isPaidLeave).toBe(true)
     expect(history[0].isRemote).toBe(false)
     expect(history[0].employeeId).toBe(employeeId)
     // NEW values should all be NULL for DELETE
@@ -181,7 +179,6 @@ describe("Shift Change History Trigger", () => {
     expect(history[0].newStartTime).toBeNull()
     expect(history[0].newEndTime).toBeNull()
     expect(history[0].newIsHoliday).toBeNull()
-    expect(history[0].newIsPaidLeave).toBeNull()
     expect(history[0].newIsRemote).toBeNull()
   })
 

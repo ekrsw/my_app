@@ -81,7 +81,7 @@ describe("Zod Validation Schemas", () => {
         startTime: "09:00",
         endTime: "18:00",
         isHoliday: false,
-        isPaidLeave: false,
+
         isRemote: false,
       })
       expect(result.success).toBe(true)
@@ -110,7 +110,6 @@ describe("Zod Validation Schemas", () => {
       expect(result.success).toBe(true)
       if (result.success) {
         expect(result.data.isHoliday).toBe(false)
-        expect(result.data.isPaidLeave).toBe(false)
         expect(result.data.isRemote).toBe(false)
       }
     })
@@ -295,7 +294,7 @@ describe("Zod Validation Schemas", () => {
         defaultStartTime: "09:00",
         defaultEndTime: "18:00",
         defaultIsHoliday: false,
-        defaultIsPaidLeave: false,
+
         isActive: true,
         sortOrder: 0,
       })
@@ -326,7 +325,6 @@ describe("Zod Validation Schemas", () => {
       expect(result.success).toBe(true)
       if (result.success) {
         expect(result.data.defaultIsHoliday).toBe(false)
-        expect(result.data.defaultIsPaidLeave).toBe(false)
       }
     })
 

@@ -84,11 +84,6 @@ export function TodayOverview({ shifts }: { shifts: TodayShift[] }) {
                               テレワーク
                             </Badge>
                           )}
-                          {shift.isPaidLeave && (
-                            <Badge className="bg-green-100 text-green-800 border-0 text-xs">
-                              有給
-                            </Badge>
-                          )}
                           {shift.isHoliday && (
                             <Badge variant="destructive" className="text-xs">
                               休日

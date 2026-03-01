@@ -67,6 +67,7 @@ async function main() {
     "20260225120000_remove_shift_codes_label/migration.sql",
     "20260226100000_enhance_shift_change_history/migration.sql",
     "20260227100000_remove_shift_change_history_change_type/migration.sql",
+    "20260301100000_remove_is_paid_leave/migration.sql",
   ]
 
   for (const file of migrationFiles) {

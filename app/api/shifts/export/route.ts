@@ -48,7 +48,6 @@ export async function GET(request: NextRequest) {
     "開始時刻",
     "終了時刻",
     "休日",
-    "有給",
     "テレワーク",
   ]
 
@@ -60,9 +59,8 @@ export async function GET(request: NextRequest) {
     s.shiftCode ?? "",
     formatTime(s.startTime),
     formatTime(s.endTime),
-    s.isHoliday ? "○" : "",
-    s.isPaidLeave ? "○" : "",
-    s.isRemote ? "○" : "",
+    s.isHoliday ? "t" : "f",
+    s.isRemote ? "t" : "f",
   ])
 
   const csv = [headers, ...rows]

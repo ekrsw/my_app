@@ -158,7 +158,6 @@ export function ShiftVersionCompare({
                     </div>
                     <div className="flex gap-3 text-xs text-muted-foreground">
                       {v.isHoliday && <span>休日</span>}
-                      {v.isPaidLeave && <span>有給</span>}
                       {v.isRemote && <span>テレワーク</span>}
                       {v.note && <span>備考: {v.note}</span>}
                     </div>

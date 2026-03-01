@@ -14,7 +14,6 @@ export async function createShift(data: {
   startTime?: string | null
   endTime?: string | null
   isHoliday?: boolean
-  isPaidLeave?: boolean
   isRemote?: boolean
 }) {
   const parsed = shiftSchema.safeParse(data)
@@ -36,7 +35,6 @@ export async function createShift(data: {
           ? new Date(`1970-01-01T${parsed.data.endTime}Z`)
           : null,
         isHoliday: parsed.data.isHoliday,
-        isPaidLeave: parsed.data.isPaidLeave,
         isRemote: parsed.data.isRemote,
       },
     })
@@ -57,7 +55,6 @@ export async function updateShift(
     startTime?: string | null
     endTime?: string | null
     isHoliday?: boolean
-    isPaidLeave?: boolean
     isRemote?: boolean
   }
 ) {
@@ -73,7 +70,6 @@ export async function updateShift(
           ? new Date(`1970-01-01T${data.endTime}Z`)
           : null,
         isHoliday: data.isHoliday,
-        isPaidLeave: data.isPaidLeave,
         isRemote: data.isRemote,
       },
     })
@@ -101,7 +97,6 @@ export async function bulkUpdateShifts(data: {
   startTime?: string | null
   endTime?: string | null
   isHoliday?: boolean
-  isPaidLeave?: boolean
   isRemote?: boolean
 }) {
   const parsed = shiftBulkSchema.safeParse(data)
@@ -122,7 +117,6 @@ export async function bulkUpdateShifts(data: {
       ? new Date(`1970-01-01T${parsed.data.endTime}Z`)
       : null
   if (parsed.data.isHoliday !== undefined) updateData.isHoliday = parsed.data.isHoliday
-  if (parsed.data.isPaidLeave !== undefined) updateData.isPaidLeave = parsed.data.isPaidLeave
   if (parsed.data.isRemote !== undefined) updateData.isRemote = parsed.data.isRemote
 
   try {
@@ -164,7 +158,6 @@ export async function restoreShiftVersion(shiftId: number, version: number) {
         startTime: history.startTime,
         endTime: history.endTime,
         isHoliday: history.isHoliday ?? false,
-        isPaidLeave: history.isPaidLeave ?? false,
         isRemote: history.isRemote ?? false,
       },
     })
@@ -184,7 +177,6 @@ export type ShiftImportRow = {
   startTime: string | null
   endTime: string | null
   isHoliday: boolean
-  isPaidLeave: boolean
   isRemote: boolean
 }
 
@@ -235,7 +227,6 @@ export async function importShifts(
             ? new Date(`1970-01-01T${row.endTime}Z`)
             : null,
           isHoliday: row.isHoliday,
-          isPaidLeave: row.isPaidLeave,
           isRemote: row.isRemote,
         }
 

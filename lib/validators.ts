@@ -18,7 +18,6 @@ export const shiftSchema = z.object({
   startTime: z.string().nullable().optional(),
   endTime: z.string().nullable().optional(),
   isHoliday: z.boolean().default(false),
-  isPaidLeave: z.boolean().default(false),
   isRemote: z.boolean().default(false),
 })
 
@@ -28,7 +27,6 @@ export const shiftBulkSchema = z.object({
   startTime: z.string().nullable().optional(),
   endTime: z.string().nullable().optional(),
   isHoliday: z.boolean().optional(),
-  isPaidLeave: z.boolean().optional(),
   isRemote: z.boolean().optional(),
 })
 
@@ -77,7 +75,6 @@ export const shiftCodeSchema = z.object({
   defaultStartTime: z.string().nullable().optional(),
   defaultEndTime: z.string().nullable().optional(),
   defaultIsHoliday: z.boolean().default(false),
-  defaultIsPaidLeave: z.boolean().default(false),
   isActive: z.boolean().default(true),
   sortOrder: z.coerce.number().int().min(0, "0以上の数値を入力してください").default(0),
 })
@@ -100,7 +97,6 @@ export const shiftCsvRowSchema = z.object({
   startTime: z.string().nullable(),
   endTime: z.string().nullable(),
   isHoliday: z.boolean(),
-  isPaidLeave: z.boolean(),
   isRemote: z.boolean(),
 })
 

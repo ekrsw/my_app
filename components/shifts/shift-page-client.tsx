@@ -23,7 +23,6 @@ type ActiveShiftCode = {
   defaultStartTime: Date | null
   defaultEndTime: Date | null
   defaultIsHoliday: boolean
-  defaultIsPaidLeave: boolean
   isActive: boolean | null
   sortOrder: number
 }

@@ -16,7 +16,6 @@ describe("Shift Code Defaults Trigger", () => {
     defaultStartTime: Date | null
     defaultEndTime: Date | null
     defaultIsHoliday: boolean
-    defaultIsPaidLeave: boolean
   }> = {}) {
     return prisma.shiftCode.create({
       data: {
@@ -24,7 +23,6 @@ describe("Shift Code Defaults Trigger", () => {
         defaultStartTime: overrides.defaultStartTime ?? new Date("1970-01-01T09:00:00Z"),
         defaultEndTime: overrides.defaultEndTime ?? new Date("1970-01-01T18:00:00Z"),
         defaultIsHoliday: overrides.defaultIsHoliday ?? false,
-        defaultIsPaidLeave: overrides.defaultIsPaidLeave ?? false,
       },
     })
   }
@@ -46,7 +44,6 @@ describe("Shift Code Defaults Trigger", () => {
           startTime: null,
           endTime: null,
           isHoliday: false,
-          isPaidLeave: false,
         },
       })
 
@@ -70,7 +67,6 @@ describe("Shift Code Defaults Trigger", () => {
           startTime: new Date("1970-01-01T10:00:00Z"),
           endTime: new Date("1970-01-01T19:00:00Z"),
           isHoliday: false,
-          isPaidLeave: false,
         },
       })
 
@@ -79,11 +75,10 @@ describe("Shift Code Defaults Trigger", () => {
       expect(saved!.endTime!.toISOString()).toContain("19:00:00")
     })
 
-    it("should set is_holiday and is_paid_leave from defaults when NULL", async () => {
+    it("should set is_holiday from defaults when NULL", async () => {
       await seedShiftCode({
         code: "H",
         defaultIsHoliday: true,
-        defaultIsPaidLeave: false,
         defaultStartTime: null,
         defaultEndTime: null,
       })
@@ -95,13 +90,11 @@ describe("Shift Code Defaults Trigger", () => {
           shiftDate: new Date("2026-03-01"),
           shiftCode: "H",
           isHoliday: null,
-          isPaidLeave: null,
         },
       })
 
       const saved = await prisma.shift.findUnique({ where: { id: shift.id } })
       expect(saved!.isHoliday).toBe(true)
-      expect(saved!.isPaidLeave).toBe(false)
     })
 
     it("should not apply defaults when shift_code has no match in shift_codes", async () => {
