@@ -18,18 +18,22 @@ import { importShifts } from "@/lib/actions/shift-actions"
 
 type Step = "select" | "preview" | "importing" | "result"
 
+const CLIENT_CHUNK_SIZE = 2000
+
 export function ShiftImportDialog() {
   const [open, setOpen] = useState(false)
   const [step, setStep] = useState<Step>("select")
   const [parsedRows, setParsedRows] = useState<ParsedShiftRow[]>([])
   const [headerError, setHeaderError] = useState<string>()
   const [result, setResult] = useState<{ created: number; updated: number; errors: Array<{ rowIndex: number; error: string }> }>()
+  const [progress, setProgress] = useState<{ current: number; total: number } | null>(null)
 
   function resetState() {
     setStep("select")
     setParsedRows([])
     setHeaderError(undefined)
     setResult(undefined)
+    setProgress(null)
   }
 
   function handleOpenChange(value: boolean) {
@@ -69,13 +73,38 @@ export function ShiftImportDialog() {
       isRemote: r.data.isRemote,
     }))
 
-    const res = await importShifts(rows)
-    setResult(res)
-    setStep("result")
+    let totalCreated = 0
+    let totalUpdated = 0
+    const allErrors: Array<{ rowIndex: number; error: string }> = []
 
-    if (res.success) {
-      toast.success(`インポート完了: 新規${res.created}件、更新${res.updated}件`)
-    } else {
+    try {
+      for (let i = 0; i < rows.length; i += CLIENT_CHUNK_SIZE) {
+        const chunk = rows.slice(i, i + CLIENT_CHUNK_SIZE)
+        setProgress({ current: i, total: rows.length })
+
+        const res = await importShifts(chunk)
+        totalCreated += res.created
+        totalUpdated += res.updated
+        allErrors.push(...res.errors)
+      }
+
+      setProgress(null)
+      setResult({ created: totalCreated, updated: totalUpdated, errors: allErrors })
+      setStep("result")
+
+      if (allErrors.length === 0) {
+        toast.success(`インポート完了: 新規${totalCreated}件、更新${totalUpdated}件`)
+      } else {
+        toast.error("一部のインポートに失敗しました")
+      }
+    } catch {
+      setProgress(null)
+      setResult({
+        created: totalCreated,
+        updated: totalUpdated,
+        errors: [...allErrors, { rowIndex: 0, error: "サーバーとの通信に失敗しました" }],
+      })
+      setStep("result")
       toast.error("インポートに失敗しました")
     }
   }
@@ -148,8 +177,13 @@ export function ShiftImportDialog() {
         )}
 
         {step === "importing" && (
-          <div className="py-8 text-center text-muted-foreground">
-            インポート中...
+          <div className="py-8 text-center text-muted-foreground space-y-2">
+            <p>インポート中...</p>
+            {progress && (
+              <p className="text-xs">
+                {Math.min(progress.current + CLIENT_CHUNK_SIZE, progress.total).toLocaleString()} / {progress.total.toLocaleString()} 件処理中
+              </p>
+            )}
           </div>
         )}
 
@@ -161,11 +195,16 @@ export function ShiftImportDialog() {
               {result.errors.length > 0 && (
                 <div className="space-y-1">
                   <p className="text-red-600">エラー: {result.errors.length}件</p>
-                  {result.errors.map((e, i) => (
+                  {result.errors.slice(0, 50).map((e, i) => (
                     <p key={i} className="text-xs text-red-600">
                       {e.rowIndex > 0 ? `${e.rowIndex}行目: ` : ""}{e.error}
                     </p>
                   ))}
+                  {result.errors.length > 50 && (
+                    <p className="text-xs text-muted-foreground">
+                      他 {result.errors.length - 50} 件のエラー
+                    </p>
+                  )}
                 </div>
               )}
             </div>

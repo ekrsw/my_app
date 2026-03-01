@@ -79,7 +79,8 @@
       "Bash(wmic process where \"name=''node.exe''\" get ProcessId,CommandLine)",
       "Bash(net stop:*)",
       "Bash(net start:*)",
-      "mcp__serena__search_for_pattern"
+      "mcp__serena__search_for_pattern",
+      "Bash(awk:*)"
     ]
   }
 }

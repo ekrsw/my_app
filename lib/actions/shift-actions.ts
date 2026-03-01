@@ -195,6 +195,8 @@ export async function loadMoreCalendarData(
   return getShiftsForCalendarPaginated(filter, { cursor, pageSize })
 }
 
+const IMPORT_BATCH_SIZE = 200
+
 export async function importShifts(
   rows: Array<ShiftImportRow & { rowIndex: number }>
 ): Promise<ShiftImportResult> {
@@ -211,57 +213,84 @@ export async function importShifts(
     })
     const existingEmployeeIds = new Set(existingEmployees.map((e) => e.id))
 
-    await prisma.$transaction(async (tx) => {
-      for (const row of rows) {
-        if (!existingEmployeeIds.has(row.employeeId)) {
-          errors.push({ rowIndex: row.rowIndex, error: `従業員ID ${row.employeeId} が存在しません` })
-          continue
-        }
+    // 従業員ID不正の行を除外
+    const validRows: typeof rows = []
+    for (const row of rows) {
+      if (!existingEmployeeIds.has(row.employeeId)) {
+        errors.push({ rowIndex: row.rowIndex, error: `従業員ID ${row.employeeId} が存在しません` })
+      } else {
+        validRows.push(row)
+      }
+    }
 
-        try {
-          const data = {
-            shiftCode: row.shiftCode,
-            startTime: row.startTime
-              ? new Date(`1970-01-01T${row.startTime}Z`)
-              : null,
-            endTime: row.endTime
-              ? new Date(`1970-01-01T${row.endTime}Z`)
-              : null,
-            isHoliday: row.isHoliday,
-            isRemote: row.isRemote,
-          }
+    // バッチに分割して処理
+    for (let i = 0; i < validRows.length; i += IMPORT_BATCH_SIZE) {
+      const batch = validRows.slice(i, i + IMPORT_BATCH_SIZE)
 
-          // 既存シフトを確認
-          const existing = await tx.shift.findUnique({
-            where: {
-              employeeId_shiftDate: {
-                employeeId: row.employeeId,
-                shiftDate: new Date(row.shiftDate),
-              },
-            },
-          })
+      try {
+        // バッチ内の既存シフトを一括取得
+        const existingShifts = await prisma.shift.findMany({
+          where: {
+            OR: batch.map((r) => ({
+              employeeId: r.employeeId,
+              shiftDate: new Date(r.shiftDate),
+            })),
+          },
+          select: { employeeId: true, shiftDate: true },
+        })
+        const existingSet = new Set(
+          existingShifts.map((s) => `${s.employeeId}_${s.shiftDate.toISOString()}`)
+        )
 
-          if (existing) {
-            await tx.shift.update({
-              where: { id: existing.id },
-              data,
-            })
-            updated++
-          } else {
-            await tx.shift.create({
-              data: {
-                employeeId: row.employeeId,
-                shiftDate: new Date(row.shiftDate),
-                ...data,
-              },
-            })
-            created++
-          }
-        } catch {
+        await prisma.$transaction(
+          async (tx) => {
+            for (const row of batch) {
+              const shiftData = {
+                shiftCode: row.shiftCode,
+                startTime: row.startTime
+                  ? new Date(`1970-01-01T${row.startTime}Z`)
+                  : null,
+                endTime: row.endTime
+                  ? new Date(`1970-01-01T${row.endTime}Z`)
+                  : null,
+                isHoliday: row.isHoliday,
+                isRemote: row.isRemote,
+              }
+
+              const shiftDate = new Date(row.shiftDate)
+
+              await tx.shift.upsert({
+                where: {
+                  employeeId_shiftDate: {
+                    employeeId: row.employeeId,
+                    shiftDate,
+                  },
+                },
+                create: {
+                  employeeId: row.employeeId,
+                  shiftDate,
+                  ...shiftData,
+                },
+                update: shiftData,
+              })
+
+              const key = `${row.employeeId}_${shiftDate.toISOString()}`
+              if (existingSet.has(key)) {
+                updated++
+              } else {
+                created++
+              }
+            }
+          },
+          { timeout: 30000 }
+        )
+      } catch {
+        // バッチ単位でエラーを記録（他のバッチは続行）
+        for (const row of batch) {
           errors.push({ rowIndex: row.rowIndex, error: "シフトデータの保存に失敗しました" })
         }
       }
-    })
+    }
 
     revalidatePath("/shifts")
     return { success: errors.length === 0, created, updated, errors }
