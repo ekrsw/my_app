@@ -35,6 +35,29 @@ async function main() {
 
   await adminClient.end()
 
+  // 1.5. Create uuid_generate_v7() function (required before prisma db push)
+  console.log("Creating uuid_generate_v7() function...")
+  const preClient = new Client({ connectionString: TEST_DB_URL })
+  await preClient.connect()
+  await preClient.query(`
+    CREATE OR REPLACE FUNCTION uuid_generate_v7()
+    RETURNS uuid AS $$
+    DECLARE
+      unix_ts_ms bigint;
+      uuid_bytes bytea;
+    BEGIN
+      unix_ts_ms := (EXTRACT(EPOCH FROM clock_timestamp()) * 1000)::bigint;
+      uuid_bytes := substring(int8send(unix_ts_ms) from 3)
+                 || substring(uuid_send(gen_random_uuid()) from 7);
+      uuid_bytes := set_byte(uuid_bytes, 6, (get_byte(uuid_bytes, 6) & 15) | 112);
+      uuid_bytes := set_byte(uuid_bytes, 8, (get_byte(uuid_bytes, 8) & 63) | 128);
+      RETURN encode(uuid_bytes, 'hex')::uuid;
+    END;
+    $$ LANGUAGE plpgsql VOLATILE;
+  `)
+  await preClient.end()
+  console.log("  uuid_generate_v7() created.")
+
   // 2. Run prisma db push to sync schema
   console.log("Syncing schema with prisma db push...")
   execSync("npx prisma db push --skip-generate --accept-data-loss", {
@@ -68,6 +91,7 @@ async function main() {
     "20260226100000_enhance_shift_change_history/migration.sql",
     "20260227100000_remove_shift_change_history_change_type/migration.sql",
     "20260301100000_remove_is_paid_leave/migration.sql",
+    "20260302100000_employee_id_uuid_v7/migration.sql",
   ]
 
   for (const file of migrationFiles) {
@@ -114,7 +138,7 @@ function extractTriggerStatements(sql: string): string[] {
 
   // Extract CREATE OR REPLACE FUNCTION blocks (which contain $$ delimiters)
   const funcRegex =
-    /CREATE\s+OR\s+REPLACE\s+FUNCTION\s+[\s\S]*?\$\$[\s\S]*?\$\$\s+LANGUAGE\s+plpgsql\s*;/gi
+    /CREATE\s+OR\s+REPLACE\s+FUNCTION\s+[\s\S]*?\$\$[\s\S]*?\$\$\s+LANGUAGE\s+plpgsql(?:\s+(?:VOLATILE|STABLE|IMMUTABLE))?\s*;/gi
   let match
   while ((match = funcRegex.exec(sql)) !== null) {
     statements.push(match[0])

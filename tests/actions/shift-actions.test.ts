@@ -16,7 +16,7 @@ const {
 } = await import("@/lib/actions/shift-actions")
 
 describe("Shift Actions", () => {
-  let employeeId: number
+  let employeeId: string
 
   beforeEach(async () => {
     await cleanupDatabase()

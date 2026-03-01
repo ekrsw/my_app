@@ -69,7 +69,17 @@
       "mcp__playwright__browser_snapshot",
       "Bash(npm run lint:*)",
       "mcp__postgres__query",
-      "Bash(psql:*)"
+      "Bash(psql:*)",
+      "mcp__postgres__execute",
+      "Bash(tasklist:*)",
+      "Bash(npm ls:*)",
+      "Bash(PGPASSWORD=postgres psql:*)",
+      "Bash(1:*)",
+      "Bash(echo:*)",
+      "Bash(wmic process where \"name=''node.exe''\" get ProcessId,CommandLine)",
+      "Bash(net stop:*)",
+      "Bash(net start:*)",
+      "mcp__serena__search_for_pattern"
     ]
   }
 }

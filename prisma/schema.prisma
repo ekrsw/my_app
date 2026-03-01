@@ -18,7 +18,7 @@ model Group {
 }
 
 model Employee {
-  id              Int       @id @default(autoincrement())
+  id              String    @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
   name            String    @db.VarChar(100)
   nameKana        String?   @map("name_kana") @db.VarChar(100)
   hireDate        DateTime? @map("hire_date") @db.Date
@@ -39,7 +39,7 @@ model Employee {
 
 model Shift {
   id          Int       @id @default(autoincrement())
-  employeeId  Int?      @map("employee_id")
+  employeeId  String?   @map("employee_id") @db.Uuid
   shiftDate   DateTime  @map("shift_date") @db.Date
   shiftCode   String?   @map("shift_code") @db.VarChar(20)
   startTime   DateTime? @map("start_time") @db.Time(6)
@@ -47,7 +47,7 @@ model Shift {
   isHoliday   Boolean?  @default(false) @map("is_holiday")
   isRemote    Boolean   @default(false) @map("is_remote")
 
-  employee Employee? @relation(fields: [employeeId], references: [id])
+  employee Employee? @relation(fields: [employeeId], references: [id], onDelete: Cascade)
 
   @@unique([employeeId, shiftDate])
   @@map("shifts")
@@ -67,14 +67,14 @@ model FunctionRole {
 
 model EmployeeFunctionRole {
   id             Int       @id @default(autoincrement())
-  employeeId     Int?      @map("employee_id")
+  employeeId     String?   @map("employee_id") @db.Uuid
   functionRoleId Int?      @map("function_role_id")
   roleType       String    @default("FUNCTION") @map("role_type") @db.VarChar(20)
   isPrimary      Boolean?  @default(false) @map("is_primary")
   startDate      DateTime? @map("start_date") @db.Date
   endDate        DateTime? @map("end_date") @db.Date
 
-  employee     Employee?     @relation(fields: [employeeId], references: [id])
+  employee     Employee?     @relation(fields: [employeeId], references: [id], onDelete: Cascade)
   functionRole FunctionRole? @relation(fields: [functionRoleId], references: [id])
 
   @@map("employee_function_roles")
@@ -83,7 +83,7 @@ model EmployeeFunctionRole {
 model ShiftChangeHistory {
   id             Int       @id @default(autoincrement())
   shiftId        Int       @map("shift_id")
-  employeeId     Int?      @map("employee_id")
+  employeeId     String?   @map("employee_id") @db.Uuid
   shiftDate      DateTime  @map("shift_date") @db.Date
   shiftCode      String?   @map("shift_code") @db.VarChar(20)
   startTime      DateTime? @map("start_time") @db.Time(6)
@@ -99,7 +99,7 @@ model ShiftChangeHistory {
   changedAt      DateTime  @default(now()) @map("changed_at")
   note           String?   @db.VarChar(255)
 
-  employee Employee? @relation(fields: [employeeId], references: [id], onDelete: SetNull)
+  employee Employee? @relation(fields: [employeeId], references: [id], onDelete: Cascade)
 
   @@unique([shiftId, version])
   @@index([shiftId, changedAt])
@@ -109,7 +109,7 @@ model ShiftChangeHistory {
 
 model EmployeeGroupHistory {
   id         Int       @id @default(autoincrement())
-  employeeId Int       @map("employee_id")
+  employeeId String    @map("employee_id") @db.Uuid
   groupId    Int?      @map("group_id")
   startDate  DateTime? @map("start_date") @db.Date
   endDate    DateTime? @map("end_date") @db.Date
@@ -117,7 +117,7 @@ model EmployeeGroupHistory {
   version    Int
   changedAt  DateTime  @default(now()) @map("changed_at")
 
-  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Restrict)
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
   group    Group?   @relation(fields: [groupId], references: [id], onDelete: Restrict)
 
   @@unique([employeeId, version])
@@ -138,13 +138,13 @@ model ExternalTool {
 
 model EmployeeExternalAccount {
   id             Int     @id @default(autoincrement())
-  employeeId     Int?    @map("employee_id")
+  employeeId     String? @map("employee_id") @db.Uuid
   externalToolId Int?    @map("external_tool_id")
   externalName   String  @map("external_name") @db.VarChar(100)
   externalId     String? @map("external_id") @db.VarChar(100)
   isActive       Boolean? @default(true) @map("is_active")
 
-  employee     Employee?     @relation(fields: [employeeId], references: [id])
+  employee     Employee?     @relation(fields: [employeeId], references: [id], onDelete: Cascade)
   externalTool ExternalTool? @relation(fields: [externalToolId], references: [id])
 
   @@map("employee_external_accounts")
@@ -152,7 +152,7 @@ model EmployeeExternalAccount {
 
 model EmployeeFunctionRoleHistory {
   id             Int       @id @default(autoincrement())
-  employeeId     Int       @map("employee_id")
+  employeeId     String    @map("employee_id") @db.Uuid
   functionRoleId Int?      @map("function_role_id")
   roleType       String?   @map("role_type") @db.VarChar(20)
   isPrimary      Boolean?  @map("is_primary")
@@ -162,7 +162,7 @@ model EmployeeFunctionRoleHistory {
   version        Int
   changedAt      DateTime  @default(now()) @map("changed_at")
 
-  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Restrict)
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
 
   @@unique([employeeId, version])
   @@index([employeeId, changedAt])
@@ -195,12 +195,12 @@ model Position {
 
 model EmployeePosition {
   id         Int       @id @default(autoincrement())
-  employeeId Int       @map("employee_id")
+  employeeId String    @map("employee_id") @db.Uuid
   positionId Int       @map("position_id")
   startDate  DateTime  @map("start_date") @db.Date
   endDate    DateTime? @map("end_date") @db.Date
 
-  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Restrict)
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
   position Position @relation(fields: [positionId], references: [id], onDelete: Restrict)
 
   @@map("employee_positions")
@@ -208,12 +208,12 @@ model EmployeePosition {
 
 model EmployeeGroup {
   id         Int       @id @default(autoincrement())
-  employeeId Int       @map("employee_id")
+  employeeId String    @map("employee_id") @db.Uuid
   groupId    Int       @map("group_id")
   startDate  DateTime  @map("start_date") @db.Date
   endDate    DateTime? @map("end_date") @db.Date
 
-  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Restrict)
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
   group    Group    @relation(fields: [groupId], references: [id], onDelete: Restrict)
 
   @@map("employee_groups")
@@ -221,7 +221,7 @@ model EmployeeGroup {
 
 model EmployeePositionHistory {
   id         Int       @id @default(autoincrement())
-  employeeId Int       @map("employee_id")
+  employeeId String    @map("employee_id") @db.Uuid
   positionId Int?      @map("position_id")
   startDate  DateTime? @map("start_date") @db.Date
   endDate    DateTime? @map("end_date") @db.Date
@@ -229,7 +229,7 @@ model EmployeePositionHistory {
   version    Int
   changedAt  DateTime  @default(now()) @map("changed_at")
 
-  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Restrict)
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
 
   @@unique([employeeId, version])
   @@index([employeeId, changedAt])

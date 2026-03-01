@@ -81,7 +81,7 @@ export function parseEmployeeCsv(csvText: string): EmployeeCsvParseResult {
       : ""
 
     const data = {
-      employeeId: rawEmployeeId === "" ? null : Number(rawEmployeeId),
+      employeeId: rawEmployeeId === "" ? null : rawEmployeeId,
       name: rawName,
       nameKana: rawNameKana === "" ? null : rawNameKana,
       hireDate: convertDate(rawHireDate),

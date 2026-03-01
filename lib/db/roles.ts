@@ -39,7 +39,7 @@ export async function getFunctionRoleById(id: number) {
   })
 }
 
-export async function getEmployeeFunctionRoles(employeeId: number) {
+export async function getEmployeeFunctionRoles(employeeId: string) {
   return prisma.employeeFunctionRole.findMany({
     where: { employeeId },
     include: { functionRole: true },

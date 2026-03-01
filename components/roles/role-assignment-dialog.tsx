@@ -23,7 +23,7 @@ import { assignRole } from "@/lib/actions/role-actions"
 import { toast } from "sonner"
 import { UserPlus } from "lucide-react"
 
-type Employee = { id: number; name: string }
+type Employee = { id: string; name: string }
 
 type RoleAssignmentDialogProps = {
   roleId: number
@@ -50,7 +50,7 @@ export function RoleAssignmentDialog({
     const form = new FormData(e.currentTarget)
     setLoading(true)
     const result = await assignRole({
-      employeeId: Number(employeeId),
+      employeeId,
       functionRoleId: roleId,
       isPrimary,
       startDate: (form.get("startDate") as string) || null,

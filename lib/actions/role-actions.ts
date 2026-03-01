@@ -66,7 +66,7 @@ export async function deleteFunctionRole(id: number) {
 }
 
 export async function assignRole(data: {
-  employeeId: number
+  employeeId: string
   functionRoleId: number
   isPrimary?: boolean
   startDate?: string | null

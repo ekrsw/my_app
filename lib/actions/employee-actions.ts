@@ -78,7 +78,7 @@ export async function createEmployee(formData: FormData) {
   }
 }
 
-export async function updateEmployee(id: number, formData: FormData) {
+export async function updateEmployee(id: string, formData: FormData) {
   const parsed = employeeSchema.safeParse({
     name: formData.get("name"),
     nameKana: formData.get("nameKana") || null,
@@ -111,7 +111,7 @@ export async function updateEmployee(id: number, formData: FormData) {
   }
 }
 
-export async function deleteEmployee(id: number) {
+export async function deleteEmployee(id: string) {
   try {
     await prisma.$transaction(async (tx) => {
       // ステップ1: ジャンクションテーブル削除 (DELETEトリガーが履歴を自動生成)
@@ -141,7 +141,7 @@ export async function deleteEmployee(id: number) {
 }
 
 export async function updateEmployeeWithRoles(
-  id: number,
+  id: string,
   employeeData: {
     name: string
     nameKana: string | null
@@ -271,7 +271,7 @@ export async function updateEmployeeWithRoles(
 }
 
 export type EmployeeImportRow = {
-  employeeId: number | null
+  employeeId: string | null
   name: string
   nameKana: string | null
   hireDate: string | null
@@ -322,87 +322,98 @@ export async function importEmployees(
       for (const row of rows) {
         if (errorRowIndices.has(row.rowIndex)) continue
 
-        const data = {
-          name: row.name,
-          nameKana: row.nameKana,
-          hireDate: row.hireDate ? new Date(row.hireDate) : null,
-          terminationDate: row.terminationDate ? new Date(row.terminationDate) : null,
-        }
+        try {
+          const data = {
+            name: row.name,
+            nameKana: row.nameKana,
+            hireDate: row.hireDate ? new Date(row.hireDate) : null,
+            terminationDate: row.terminationDate ? new Date(row.terminationDate) : null,
+          }
 
-        // CSVのグループ名リストを解析
-        const csvGroupIds: number[] | null = row.groupNames
-          ? row.groupNames.split("|").map((n) => n.trim()).filter(Boolean).map((n) => groupNameToId.get(n)!)
-          : null
+          // CSVのグループ名リストを解析
+          const csvGroupIds: number[] | null = row.groupNames
+            ? row.groupNames.split("|").map((n) => n.trim()).filter(Boolean).map((n) => groupNameToId.get(n)!)
+            : null
 
-        // IDあり → 既存を検索して更新、存在しなければ新規作成にフォールスルー
-        let existingEmployeeId: number | null = null
-        if (row.employeeId) {
-          const existing = await tx.employee.findUnique({
-            where: { id: row.employeeId },
-          })
-          if (existing) {
-            existingEmployeeId = existing.id
-            await tx.employee.update({ where: { id: existing.id }, data })
-            updated++
+          // IDあり → 既存を検索して更新、存在しなければ新規作成にフォールスルー
+          let existingEmployeeId: string | null = null
+          if (row.employeeId) {
+            const existing = await tx.employee.findUnique({
+              where: { id: row.employeeId },
+            })
+            if (existing) {
+              existingEmployeeId = existing.id
+              await tx.employee.update({ where: { id: existing.id }, data })
+              updated++
 
-            // グループ処理（nullの場合は変更しない）
-            if (csvGroupIds !== null) {
-              const activeGroups = await tx.employeeGroup.findMany({
-                where: { employeeId: existing.id, endDate: null },
-              })
-              const activeGroupIds = new Set(activeGroups.map((g) => g.groupId))
-              const csvGroupIdSet = new Set(csvGroupIds)
+              // グループ処理（nullの場合は変更しない）
+              if (csvGroupIds !== null) {
+                const activeGroups = await tx.employeeGroup.findMany({
+                  where: { employeeId: existing.id, endDate: null },
+                })
+                const activeGroupIds = new Set(activeGroups.map((g) => g.groupId))
+                const csvGroupIdSet = new Set(csvGroupIds)
 
-              // CSVにないアクティブグループ → 終了
-              for (const ag of activeGroups) {
-                if (!csvGroupIdSet.has(ag.groupId)) {
-                  await tx.employeeGroup.update({
-                    where: { id: ag.id },
-                    data: { endDate: today },
-                  })
+                // CSVにないアクティブグループ → 終了
+                for (const ag of activeGroups) {
+                  if (!csvGroupIdSet.has(ag.groupId)) {
+                    await tx.employeeGroup.update({
+                      where: { id: ag.id },
+                      data: { endDate: today },
+                    })
+                  }
+                }
+
+                // CSVにあるが未所属のグループ → 追加
+                for (const gid of csvGroupIds) {
+                  if (!activeGroupIds.has(gid)) {
+                    await tx.employeeGroup.create({
+                      data: {
+                        employeeId: existing.id,
+                        groupId: gid,
+                        startDate: today,
+                      },
+                    })
+                  }
                 }
               }
+            }
+          }
 
-              // CSVにあるが未所属のグループ → 追加
+          // 既存従業員が見つからなかった場合 → 新規作成
+          if (!existingEmployeeId) {
+            const newEmployee = await tx.employee.create({ data })
+            created++
+
+            // 新規従業員のグループ登録
+            if (csvGroupIds !== null && csvGroupIds.length > 0) {
               for (const gid of csvGroupIds) {
-                if (!activeGroupIds.has(gid)) {
-                  await tx.employeeGroup.create({
-                    data: {
-                      employeeId: existing.id,
-                      groupId: gid,
-                      startDate: today,
-                    },
-                  })
-                }
+                await tx.employeeGroup.create({
+                  data: {
+                    employeeId: newEmployee.id,
+                    groupId: gid,
+                    startDate: today,
+                  },
+                })
               }
             }
           }
-        }
-
-        // 既存従業員が見つからなかった場合 → 新規作成
-        if (!existingEmployeeId) {
-          const newEmployee = await tx.employee.create({ data })
-          created++
-
-          // 新規従業員のグループ登録
-          if (csvGroupIds !== null && csvGroupIds.length > 0) {
-            for (const gid of csvGroupIds) {
-              await tx.employeeGroup.create({
-                data: {
-                  employeeId: newEmployee.id,
-                  groupId: gid,
-                  startDate: today,
-                },
-              })
-            }
-          }
+        } catch {
+          errors.push({ rowIndex: row.rowIndex, error: "データの保存に失敗しました" })
         }
       }
     })
 
     revalidatePath("/employees")
-    return { success: true, created, updated, errors }
+    return { success: errors.length === 0, created, updated, errors }
   } catch {
-    return { success: false, created: 0, updated: 0, errors: [{ rowIndex: 0, error: "インポート処理に失敗しました" }] }
+    return {
+      success: false,
+      created: 0,
+      updated: 0,
+      errors: errors.length > 0
+        ? errors
+        : [{ rowIndex: 0, error: "インポート処理に失敗しました" }],
+    }
   }
 }

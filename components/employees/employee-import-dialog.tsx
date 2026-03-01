@@ -114,7 +114,7 @@ export function EmployeeImportDialog() {
           <div className="space-y-4">
             <div className="text-sm text-muted-foreground">
               <p>CSV形式: 従業員ID, 従業員名, フリガナ, 入社日, 退職日, グループ</p>
-              <p>従業員IDが空欄の場合は新規作成、値がある場合は既存データを更新します。</p>
+              <p>従業員IDが空欄の場合は新規追加されます。一致するIDがある場合は上書き更新、一致しない場合も新規追加されます。</p>
               <p>日付形式: yyyy/MM/dd　グループ列は任意（複数は | 区切り）</p>
             </div>
             <CsvFileInput onFileLoaded={handleFileLoaded} />

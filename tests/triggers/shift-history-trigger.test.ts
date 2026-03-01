@@ -3,7 +3,7 @@ import { prisma } from "../helpers/prisma"
 import { cleanupDatabase } from "../helpers/cleanup"
 
 describe("Shift Change History Trigger", () => {
-  let employeeId: number
+  let employeeId: string
 
   beforeEach(async () => {
     await cleanupDatabase()

@@ -85,7 +85,7 @@ export function ShiftPageClient({
   const [view, setView] = useState<"calendar" | "table">("calendar")
   const [editOpen, setEditOpen] = useState(false)
   const [editShift, setEditShift] = useState<Shift | undefined>()
-  const [editEmployeeId, setEditEmployeeId] = useState<number | undefined>()
+  const [editEmployeeId, setEditEmployeeId] = useState<string | undefined>()
   const [editDate, setEditDate] = useState<string | undefined>()
   const [bulkOpen, setBulkOpen] = useState(false)
   const [selectedCells, setSelectedCells] = useState<Set<string>>(new Set())
@@ -108,8 +108,7 @@ export function ShiftPageClient({
   const selectedShiftIds = useMemo(() => {
     const ids: number[] = []
     for (const cellKey of selectedCells) {
-      const [empIdStr, date] = cellKey.split(":")
-      const empId = Number(empIdStr)
+      const [empId, date] = cellKey.split(":")
       for (const emp of calendarData) {
         if (emp.employeeId === empId) {
           const shift = emp.shifts[date]
@@ -121,7 +120,7 @@ export function ShiftPageClient({
   }, [selectedCells, calendarData])
 
   const handleCellClick = useCallback(
-    (employeeId: number, date: string, shiftId?: number) => {
+    (employeeId: string, date: string, shiftId?: number) => {
       setEditEmployeeId(employeeId)
       setEditDate(date)
 

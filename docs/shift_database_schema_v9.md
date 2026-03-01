@@ -1,4 +1,4 @@
-# my_database スキーマ定義書 v13
+# my_database スキーマ定義書 v19
 
 ## 概要
 
@@ -43,7 +43,7 @@ erDiagram
     }
 
     employees {
-        integer id PK
+        uuid id PK
         varchar name
         varchar name_kana
         date hire_date
@@ -52,7 +52,7 @@ erDiagram
 
     employee_groups {
         integer id PK
-        integer employee_id FK
+        uuid employee_id FK
         integer group_id FK
         date start_date
         date end_date
@@ -60,7 +60,7 @@ erDiagram
 
     shifts {
         integer id PK
-        integer employee_id FK
+        uuid employee_id FK
         date shift_date
         varchar shift_code
         time start_time
@@ -79,7 +79,7 @@ erDiagram
 
     employee_function_roles {
         integer id PK
-        integer employee_id FK
+        uuid employee_id FK
         integer function_role_id FK
         varchar role_type
         boolean is_primary
@@ -97,7 +97,7 @@ erDiagram
 
     employee_positions {
         integer id PK
-        integer employee_id FK
+        uuid employee_id FK
         integer position_id FK
         date start_date
         date end_date
@@ -112,7 +112,7 @@ erDiagram
 
     employee_external_accounts {
         integer id PK
-        integer employee_id FK
+        uuid employee_id FK
         integer external_tool_id FK
         varchar external_name
         varchar external_id
@@ -122,7 +122,7 @@ erDiagram
     shift_change_history {
         integer id PK
         integer shift_id
-        integer employee_id FK
+        uuid employee_id FK
         date shift_date
         varchar shift_code
         time start_time
@@ -141,7 +141,7 @@ erDiagram
 
     employee_group_history {
         integer id PK
-        integer employee_id FK
+        uuid employee_id FK
         integer group_id FK
         date start_date
         date end_date
@@ -152,7 +152,7 @@ erDiagram
 
     employee_function_role_history {
         integer id PK
-        integer employee_id FK
+        uuid employee_id FK
         integer function_role_id
         varchar role_type
         boolean is_primary
@@ -165,7 +165,7 @@ erDiagram
 
     employee_position_history {
         integer id PK
-        integer employee_id FK
+        uuid employee_id FK
         integer position_id
         date start_date
         date end_date
@@ -220,13 +220,15 @@ erDiagram
 
 | カラム名 | データ型 | NULL | デフォルト | 説明 |
 |---------|---------|------|-----------|------|
-| id | SERIAL | NO | auto_increment | 主キー |
+| id | UUID | NO | uuid_generate_v7() | 主キー（UUID v7） |
 | name | VARCHAR(100) | NO | - | 従業員名 |
 | name_kana | VARCHAR(100) | YES | - | 従業員名（カナ） |
 | hire_date | DATE | YES | - | 入社日 |
 | termination_date | DATE | YES | - | 退職日（在籍中はNULL） |
 
 **制約**: PK(id)
+
+**UUID v7**: タイムスタンプベースのUUIDで時系列ソート可能。`uuid_generate_v7()` カスタム関数で生成。
 
 **在籍者抽出クエリ例**:
 ```sql
@@ -245,14 +247,14 @@ WHERE hire_date <= :対象日
 | カラム名 | データ型 | NULL | デフォルト | 説明 |
 |---------|---------|------|-----------|------|
 | id | SERIAL | NO | auto_increment | 主キー |
-| employee_id | INTEGER | NO | - | 従業員ID |
+| employee_id | UUID | NO | - | 従業員ID |
 | group_id | INTEGER | NO | - | グループID |
 | start_date | DATE | NO | - | 開始日 |
 | end_date | DATE | YES | - | 終了日（現行はNULL） |
 
 **制約**:
 - PK(id)
-- FK(employee_id → employees.id) ON DELETE RESTRICT
+- FK(employee_id → employees.id) ON DELETE CASCADE
 - FK(group_id → groups.id) ON DELETE RESTRICT
 
 **従業員の現行グループ取得クエリ例**:
@@ -273,7 +275,7 @@ ORDER BY g.id, e.id;
 | カラム名 | データ型 | NULL | デフォルト | 説明 |
 |---------|---------|------|-----------|------|
 | id | SERIAL | NO | auto_increment | 主キー |
-| employee_id | INTEGER | YES | - | 従業員ID |
+| employee_id | UUID | YES | - | 従業員ID |
 | shift_date | DATE | NO | - | シフト日付 |
 | shift_code | VARCHAR(20) | YES | - | シフトコード |
 | start_time | TIME(6) | YES | - | 開始時刻 |
@@ -281,7 +283,7 @@ ORDER BY g.id, e.id;
 | is_holiday | BOOLEAN | YES | false | 休日フラグ |
 | is_remote | BOOLEAN | NO | false | テレワークフラグ |
 
-**制約**: PK(id), FK(employee_id → employees.id) ON DELETE SET NULL, UNIQUE(employee_id, shift_date)
+**制約**: PK(id), FK(employee_id → employees.id) ON DELETE CASCADE, UNIQUE(employee_id, shift_date)
 
 **テレワーク集計クエリ例**:
 ```sql
@@ -345,7 +347,7 @@ ORDER BY g.id, e.id;
 | カラム名 | データ型 | NULL | デフォルト | 説明 |
 |---------|---------|------|-----------|------|
 | id | SERIAL | NO | auto_increment | 主キー |
-| employee_id | INTEGER | YES | - | 従業員ID |
+| employee_id | UUID | YES | - | 従業員ID |
 | function_role_id | INTEGER | YES | - | 機能役割ID |
 | role_type | VARCHAR(20) | NO | 'FUNCTION' | 役割分類（function_rolesから自動設定） |
 | is_primary | BOOLEAN | YES | false | 主担当フラグ |
@@ -354,7 +356,7 @@ ORDER BY g.id, e.id;
 
 **制約**:
 - PK(id)
-- FK(employee_id → employees.id) ON DELETE SET NULL
+- FK(employee_id → employees.id) ON DELETE CASCADE
 - FK(function_role_id → function_roles.id) ON DELETE SET NULL
 - **部分ユニークインデックス①**: `(employee_id, function_role_id) WHERE end_date IS NULL` — 同一従業員で同一役割の現行レコードは1件のみ
 - **部分ユニークインデックス②（カテゴリ重複防止）**: `(employee_id, role_type) WHERE end_date IS NULL` — 同一従業員で同一カテゴリ（role_type）の現行レコードは1件のみ
@@ -450,14 +452,14 @@ ORDER BY g.id, e.id
 | カラム名 | データ型 | NULL | デフォルト | 説明 |
 |---------|---------|------|-----------|------|
 | id | SERIAL | NO | auto_increment | 主キー |
-| employee_id | INTEGER | NO | - | 従業員ID |
+| employee_id | UUID | NO | - | 従業員ID |
 | position_id | INTEGER | NO | - | 役職ID |
 | start_date | DATE | NO | - | 開始日 |
 | end_date | DATE | YES | - | 終了日（現行はNULL） |
 
 **制約**:
 - PK(id)
-- FK(employee_id → employees.id) ON DELETE RESTRICT
+- FK(employee_id → employees.id) ON DELETE CASCADE
 - FK(position_id → positions.id) ON DELETE RESTRICT
 - **EXCLUDE制約**: `EXCLUDE USING GiST (employee_id WITH =, daterange(start_date, COALESCE(end_date, '9999-12-31'::date), '[)') WITH &&)` — 同一従業員の期間重複を禁止（btree_gist拡張が必要）
 
@@ -485,13 +487,13 @@ ORDER BY g.id, e.id
 | カラム名 | データ型 | NULL | デフォルト | 説明 |
 |---------|---------|------|-----------|------|
 | id | SERIAL | NO | auto_increment | 主キー |
-| employee_id | INTEGER | YES | - | 従業員ID |
+| employee_id | UUID | YES | - | 従業員ID |
 | external_tool_id | INTEGER | YES | - | 外部ツールID |
 | external_name | VARCHAR(100) | NO | - | 外部ツール上の表示名 |
 | external_id | VARCHAR(100) | YES | - | 外部ツール上のID |
 | is_active | BOOLEAN | YES | true | 有効フラグ |
 
-**制約**: PK(id), FK(employee_id → employees.id) ON DELETE SET NULL, FK(external_tool_id → external_tools.id) ON DELETE SET NULL
+**制約**: PK(id), FK(employee_id → employees.id) ON DELETE CASCADE, FK(external_tool_id → external_tools.id) ON DELETE SET NULL
 
 ---
 
@@ -503,7 +505,7 @@ ORDER BY g.id, e.id
 |---------|---------|------|-----------|------|
 | id | SERIAL | NO | auto_increment | 主キー |
 | shift_id | INTEGER | NO | - | 対象シフトID（参照用、FK制約なし） |
-| employee_id | INTEGER | YES | - | 従業員ID |
+| employee_id | UUID | YES | - | 従業員ID |
 | shift_date | DATE | NO | - | シフト日付（スナップショット） |
 | shift_code | VARCHAR(20) | YES | - | 変更前シフトコード（OLD値） |
 | start_time | TIME(6) | YES | - | 変更前開始時刻（OLD値） |
@@ -521,7 +523,7 @@ ORDER BY g.id, e.id
 
 **制約**:
 - PK(id)
-- FK(employee_id → employees.id) ON DELETE SET NULL — 従業員削除時は履歴のemployee_idをNULLに
+- FK(employee_id → employees.id) ON DELETE CASCADE — 従業員削除時は履歴も自動削除
 - UNIQUE(shift_id, version) — 同一シフトのバージョン番号は一意
 - INDEX(shift_id, changed_at) — 特定シフトの履歴検索用
 - INDEX(employee_id, shift_date) — 従業員・日付での履歴検索用
@@ -645,7 +647,7 @@ WHERE h.shift_id = s.id
 | カラム名 | データ型 | NULL | デフォルト | 説明 |
 |---------|---------|------|-----------|------|
 | id | SERIAL | NO | auto_increment | 主キー |
-| employee_id | INTEGER | NO | - | 従業員ID |
+| employee_id | UUID | NO | - | 従業員ID |
 | group_id | INTEGER | YES | - | グループID（スナップショット） |
 | start_date | DATE | YES | - | 開始日（スナップショット） |
 | end_date | DATE | YES | - | 終了日（スナップショット） |
@@ -655,7 +657,7 @@ WHERE h.shift_id = s.id
 
 **制約**:
 - PK(id)
-- FK(employee_id → employees.id) ON DELETE RESTRICT
+- FK(employee_id → employees.id) ON DELETE CASCADE
 - FK(group_id → groups.id) ON DELETE RESTRICT
 - UNIQUE(employee_id, version)
 - INDEX(employee_id, changed_at)
@@ -667,7 +669,7 @@ CREATE OR REPLACE FUNCTION record_employee_group_change()
 RETURNS TRIGGER AS $$
 DECLARE
   next_version integer;
-  target_employee_id integer;
+  target_employee_id uuid;
 BEGIN
   target_employee_id := COALESCE(NEW.employee_id, OLD.employee_id);
 
@@ -715,7 +717,7 @@ EXECUTE FUNCTION record_employee_group_change();
 | カラム名 | データ型 | NULL | デフォルト | 説明 |
 |---------|---------|------|-----------|------|
 | id | SERIAL | NO | auto_increment | 主キー |
-| employee_id | INTEGER | NO | - | 従業員ID |
+| employee_id | UUID | NO | - | 従業員ID |
 | function_role_id | INTEGER | YES | - | 機能役割ID（スナップショット） |
 | role_type | VARCHAR(20) | YES | - | 役割分類（スナップショット） |
 | is_primary | BOOLEAN | YES | - | 主担当フラグ（スナップショット） |
@@ -727,7 +729,7 @@ EXECUTE FUNCTION record_employee_group_change();
 
 **制約**:
 - PK(id)
-- FK(employee_id → employees.id) ON DELETE RESTRICT
+- FK(employee_id → employees.id) ON DELETE CASCADE
 - UNIQUE(employee_id, version)
 - INDEX(employee_id, changed_at)
 
@@ -738,7 +740,7 @@ CREATE OR REPLACE FUNCTION record_employee_role_change()
 RETURNS TRIGGER AS $$
 DECLARE
   next_version integer;
-  target_employee_id integer;
+  target_employee_id uuid;
 BEGIN
   target_employee_id := COALESCE(NEW.employee_id, OLD.employee_id);
 
@@ -792,7 +794,7 @@ EXECUTE FUNCTION record_employee_role_change();
 | カラム名 | データ型 | NULL | デフォルト | 説明 |
 |---------|---------|------|-----------|------|
 | id | SERIAL | NO | auto_increment | 主キー |
-| employee_id | INTEGER | NO | - | 従業員ID |
+| employee_id | UUID | NO | - | 従業員ID |
 | position_id | INTEGER | YES | - | 役職ID（スナップショット） |
 | start_date | DATE | YES | - | 開始日（スナップショット） |
 | end_date | DATE | YES | - | 終了日（スナップショット） |
@@ -802,7 +804,7 @@ EXECUTE FUNCTION record_employee_role_change();
 
 **制約**:
 - PK(id)
-- FK(employee_id → employees.id) ON DELETE RESTRICT
+- FK(employee_id → employees.id) ON DELETE CASCADE
 - UNIQUE(employee_id, version)
 - INDEX(employee_id, changed_at)
 
@@ -813,7 +815,7 @@ CREATE OR REPLACE FUNCTION record_employee_position_change()
 RETURNS TRIGGER AS $$
 DECLARE
   next_version integer;
-  target_employee_id integer;
+  target_employee_id uuid;
 BEGIN
   target_employee_id := COALESCE(NEW.employee_id, OLD.employee_id);
 
@@ -890,19 +892,19 @@ groups (1) ────< (N) employee_groups (N) >────(1) employees
 
 | 親テーブル | 子テーブル | 外部キー | 関係 | ON DELETE |
 |-----------|-----------|---------|------|-----------|
-| employees | employee_groups | employee_id | 1:N | RESTRICT |
+| employees | employee_groups | employee_id | 1:N | CASCADE |
 | groups | employee_groups | group_id | 1:N | RESTRICT |
-| employees | shifts | employee_id | 1:N | SET NULL |
-| employees | employee_function_roles | employee_id | 1:N | SET NULL |
+| employees | shifts | employee_id | 1:N | CASCADE |
+| employees | employee_function_roles | employee_id | 1:N | CASCADE |
 | function_roles | employee_function_roles | function_role_id | 1:N | SET NULL |
-| employees | employee_positions | employee_id | 1:N | RESTRICT |
+| employees | employee_positions | employee_id | 1:N | CASCADE |
 | positions | employee_positions | position_id | 1:N | RESTRICT |
-| employees | shift_change_history | employee_id | 1:N | SET NULL |
-| employees | employee_group_history | employee_id | 1:N | RESTRICT |
+| employees | shift_change_history | employee_id | 1:N | CASCADE |
+| employees | employee_group_history | employee_id | 1:N | CASCADE |
 | groups | employee_group_history | group_id | 1:N | RESTRICT |
-| employees | employee_function_role_history | employee_id | 1:N | RESTRICT |
-| employees | employee_position_history | employee_id | 1:N | RESTRICT |
-| employees | employee_external_accounts | employee_id | 1:N | SET NULL |
+| employees | employee_function_role_history | employee_id | 1:N | CASCADE |
+| employees | employee_position_history | employee_id | 1:N | CASCADE |
+| employees | employee_external_accounts | employee_id | 1:N | CASCADE |
 | external_tools | employee_external_accounts | external_tool_id | 1:N | SET NULL |
 
 ---
@@ -912,6 +914,12 @@ groups (1) ────< (N) employee_groups (N) >────(1) employees
 | 拡張名 | 用途 |
 |--------|------|
 | btree_gist | `employee_positions` のEXCLUDE制約（GiSTインデックス）に必要 |
+
+## カスタム関数
+
+| 関数名 | 用途 |
+|--------|------|
+| uuid_generate_v7() | UUID v7生成（タイムスタンプベース、外部拡張不要） |
 
 ---
 
@@ -936,3 +944,5 @@ groups (1) ────< (N) employee_groups (N) >────(1) employees
 | v15 | 2026-02-26 | shift_change_historyにNEW値カラム6つ（new_shift_code, new_start_time, new_end_time, new_is_holiday, new_is_paid_leave, new_is_remote）を追加。shifts→shift_change_historyのFK制約を削除し、employees→shift_change_historyのFK（ON DELETE SET NULL）を追加。トリガーをUPDATE/DELETE両対応に更新し、UPDATE時はOLD/NEW両方を記録、DELETE時はOLD値のみ記録。シフト削除が可能になり、削除時も履歴が記録される |
 | v16 | 2026-02-27 | shift_change_historyからchange_typeカラムを削除。UPDATE/DELETEの判定はnew_shift_codeのNULL判定で代替（DELETEトリガーはNEW値をすべてNULLに設定するため）。トリガー関数record_shift_change()からchange_type関連のINSERT列を除去 |
 | v17 | 2026-03-01 | is_paid_leave（有給休暇）関連カラムを全テーブルから削除。shifts.is_paid_leave、shift_codes.default_is_paid_leave、shift_change_history.is_paid_leave / new_is_paid_leaveを削除。record_shift_change()およびapply_shift_code_defaults()トリガー関数を更新 |
+| v18 | 2026-03-02 | employeesを参照する全9テーブルの外部キーをON DELETE CASCADEに変更。従業員削除時に関連レコード（shifts, employee_groups, employee_positions, employee_function_roles, employee_external_accounts, shift_change_history, employee_group_history, employee_function_role_history, employee_position_history）が自動削除されるようになった |
+| v19 | 2026-03-02 | employees.idをSERIAL（INTEGER）からUUID v7に変更。カスタムPL/pgSQL関数uuid_generate_v7()を作成しDBレベルで自動生成。関連9テーブルのemployee_idもINTEGER→UUIDに変更。トリガー関数（record_employee_role_change, record_employee_position_change, record_employee_group_change）のtarget_employee_id変数をinteger→uuidに更新 |

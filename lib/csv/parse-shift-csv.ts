@@ -98,7 +98,7 @@ export function parseShiftCsv(csvText: string): ShiftCsvParseResult {
 
     const data = {
       shiftDate: convertedDate || "",
-      employeeId: rawEmployeeId === "" ? 0 : Number(rawEmployeeId),
+      employeeId: rawEmployeeId === "" ? "" : rawEmployeeId,
       _employeeName: rawEmployeeName,
       _groupName: rawGroupName,
       shiftCode: rawShiftCode === "" ? null : rawShiftCode,

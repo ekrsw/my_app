@@ -8,7 +8,7 @@ import type { ShiftFilterParams } from "@/types"
 import type { ShiftCalendarPaginatedResult } from "@/types/shifts"
 
 export async function createShift(data: {
-  employeeId: number
+  employeeId: string
   shiftDate: string
   shiftCode?: string | null
   startTime?: string | null
@@ -172,7 +172,7 @@ export async function restoreShiftVersion(shiftId: number, version: number) {
 
 export type ShiftImportRow = {
   shiftDate: string
-  employeeId: number
+  employeeId: string
   shiftCode: string | null
   startTime: string | null
   endTime: string | null
@@ -218,50 +218,61 @@ export async function importShifts(
           continue
         }
 
-        const data = {
-          shiftCode: row.shiftCode,
-          startTime: row.startTime
-            ? new Date(`1970-01-01T${row.startTime}Z`)
-            : null,
-          endTime: row.endTime
-            ? new Date(`1970-01-01T${row.endTime}Z`)
-            : null,
-          isHoliday: row.isHoliday,
-          isRemote: row.isRemote,
-        }
+        try {
+          const data = {
+            shiftCode: row.shiftCode,
+            startTime: row.startTime
+              ? new Date(`1970-01-01T${row.startTime}Z`)
+              : null,
+            endTime: row.endTime
+              ? new Date(`1970-01-01T${row.endTime}Z`)
+              : null,
+            isHoliday: row.isHoliday,
+            isRemote: row.isRemote,
+          }
 
-        // 既存シフトを確認
-        const existing = await tx.shift.findUnique({
-          where: {
-            employeeId_shiftDate: {
-              employeeId: row.employeeId,
-              shiftDate: new Date(row.shiftDate),
-            },
-          },
-        })
-
-        if (existing) {
-          await tx.shift.update({
-            where: { id: existing.id },
-            data,
-          })
-          updated++
-        } else {
-          await tx.shift.create({
-            data: {
-              employeeId: row.employeeId,
-              shiftDate: new Date(row.shiftDate),
-              ...data,
+          // 既存シフトを確認
+          const existing = await tx.shift.findUnique({
+            where: {
+              employeeId_shiftDate: {
+                employeeId: row.employeeId,
+                shiftDate: new Date(row.shiftDate),
+              },
             },
           })
-          created++
+
+          if (existing) {
+            await tx.shift.update({
+              where: { id: existing.id },
+              data,
+            })
+            updated++
+          } else {
+            await tx.shift.create({
+              data: {
+                employeeId: row.employeeId,
+                shiftDate: new Date(row.shiftDate),
+                ...data,
+              },
+            })
+            created++
+          }
+        } catch {
+          errors.push({ rowIndex: row.rowIndex, error: "シフトデータの保存に失敗しました" })
         }
       }
     })
 
     revalidatePath("/shifts")
-    return { success: true, created, updated, errors }
+    return { success: errors.length === 0, created, updated, errors }
   } catch {
-    return { success: false, created: 0, updated: 0, errors: [{ rowIndex: 0, error: "インポート処理に失敗しました" }] }
+    return {
+      success: false,
+      created: 0,
+      updated: 0,
+      errors: errors.length > 0
+        ? errors
+        : [{ rowIndex: 0, error: "インポート処理に失敗しました" }],
+    }
   }
 }

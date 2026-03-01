@@ -67,7 +67,7 @@ export async function getEmployees(
   }
 }
 
-export async function getEmployeeById(id: number): Promise<EmployeeWithDetails | null> {
+export async function getEmployeeById(id: string): Promise<EmployeeWithDetails | null> {
   return prisma.employee.findUnique({
     where: { id },
     include: {

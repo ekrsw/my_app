@@ -19,7 +19,7 @@ type ShiftCalendarProps = {
   data: ShiftCalendarData[]
   year: number
   month: number
-  onCellClick?: (employeeId: number, date: string, shiftId?: number) => void
+  onCellClick?: (employeeId: string, date: string, shiftId?: number) => void
   selectedCells?: Set<string>
   onCellSelect?: (cellKey: string) => void
   shiftCodeMap?: Record<string, ShiftCodeInfo>

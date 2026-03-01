@@ -135,7 +135,7 @@ export function EmployeeForm({ groups }: EmployeeFormProps) {
   )
 }
 
-export function EmployeeDeleteButton({ id }: { id: number }) {
+export function EmployeeDeleteButton({ id }: { id: string }) {
   const [loading, setLoading] = useState(false)
 
   async function handleDelete() {

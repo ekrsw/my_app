@@ -19,7 +19,7 @@ export default async function EmployeeDetailPage({
 }) {
   const { id } = await params
   const [employee, groups, allRoles, allPositions] = await Promise.all([
-    getEmployeeById(Number(id)),
+    getEmployeeById(id),
     getGroups(),
     getFunctionRoles(),
     getActivePositions(),

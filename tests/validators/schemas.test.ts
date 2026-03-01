@@ -75,7 +75,7 @@ describe("Zod Validation Schemas", () => {
   describe("shiftSchema", () => {
     it("should accept valid shift data", () => {
       const result = shiftSchema.safeParse({
-        employeeId: 1,
+        employeeId: "550e8400-e29b-41d4-a716-446655440000",
         shiftDate: "2026-01-15",
         shiftCode: "A",
         startTime: "09:00",
@@ -96,7 +96,7 @@ describe("Zod Validation Schemas", () => {
 
     it("should require shiftDate", () => {
       const result = shiftSchema.safeParse({
-        employeeId: 1,
+        employeeId: "550e8400-e29b-41d4-a716-446655440000",
         shiftDate: "",
       })
       expect(result.success).toBe(false)
@@ -104,7 +104,7 @@ describe("Zod Validation Schemas", () => {
 
     it("should default boolean fields to false", () => {
       const result = shiftSchema.safeParse({
-        employeeId: 1,
+        employeeId: "550e8400-e29b-41d4-a716-446655440000",
         shiftDate: "2026-01-15",
       })
       expect(result.success).toBe(true)
@@ -116,7 +116,7 @@ describe("Zod Validation Schemas", () => {
 
     it("should accept nullable optional fields", () => {
       const result = shiftSchema.safeParse({
-        employeeId: 1,
+        employeeId: "550e8400-e29b-41d4-a716-446655440000",
         shiftDate: "2026-01-15",
         shiftCode: null,
         startTime: null,
@@ -245,7 +245,7 @@ describe("Zod Validation Schemas", () => {
   describe("roleAssignmentSchema", () => {
     it("should accept valid assignment data", () => {
       const result = roleAssignmentSchema.safeParse({
-        employeeId: 1,
+        employeeId: "550e8400-e29b-41d4-a716-446655440000",
         functionRoleId: 1,
         isPrimary: true,
         startDate: "2026-01-01",
@@ -254,21 +254,21 @@ describe("Zod Validation Schemas", () => {
       expect(result.success).toBe(true)
     })
 
-    it("should coerce string numbers", () => {
+    it("should coerce functionRoleId from string", () => {
       const result = roleAssignmentSchema.safeParse({
-        employeeId: "1",
+        employeeId: "550e8400-e29b-41d4-a716-446655440000",
         functionRoleId: "2",
       })
       expect(result.success).toBe(true)
       if (result.success) {
-        expect(result.data.employeeId).toBe(1)
+        expect(result.data.employeeId).toBe("550e8400-e29b-41d4-a716-446655440000")
         expect(result.data.functionRoleId).toBe(2)
       }
     })
 
     it("should default isPrimary to false", () => {
       const result = roleAssignmentSchema.safeParse({
-        employeeId: 1,
+        employeeId: "550e8400-e29b-41d4-a716-446655440000",
         functionRoleId: 1,
       })
       expect(result.success).toBe(true)
@@ -279,7 +279,7 @@ describe("Zod Validation Schemas", () => {
 
     it("should accept optional date fields", () => {
       const result = roleAssignmentSchema.safeParse({
-        employeeId: 1,
+        employeeId: "550e8400-e29b-41d4-a716-446655440000",
         functionRoleId: 1,
       })
       expect(result.success).toBe(true)

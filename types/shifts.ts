@@ -5,7 +5,7 @@ export type ShiftWithEmployee = Shift & {
 }
 
 export type ShiftCalendarData = {
-  employeeId: number
+  employeeId: string
   employeeName: string
   groupId: number | null
   groupName: string | null

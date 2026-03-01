@@ -22,6 +22,10 @@ export function EmployeeDetailCard({ employee }: { employee: EmployeeWithDetails
       </CardHeader>
       <CardContent>
         <dl className="grid grid-cols-2 gap-4 text-sm">
+          <div className="col-span-2">
+            <dt className="text-muted-foreground">従業員ID</dt>
+            <dd className="font-mono text-xs">{employee.id}</dd>
+          </div>
           <div>
             <dt className="text-muted-foreground">カナ</dt>
             <dd className="font-medium">{employee.nameKana ?? "-"}</dd>

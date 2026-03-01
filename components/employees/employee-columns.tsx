@@ -7,13 +7,6 @@ import { formatDate } from "@/lib/date-utils"
 
 export const employeeColumns: ColumnDef<EmployeeWithGroups>[] = [
   {
-    accessorKey: "id",
-    header: "ID",
-    cell: ({ row }) => (
-      <span className="font-medium">{row.original.id}</span>
-    ),
-  },
-  {
     accessorKey: "name",
     header: "氏名",
     cell: ({ row }) => row.original.name,

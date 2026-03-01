@@ -37,7 +37,7 @@ type ShiftFormProps = {
   onOpenChange: (open: boolean) => void
   shift?: {
     id: number
-    employeeId: number | null
+    employeeId: string | null
     shiftDate: Date
     shiftCode: string | null
     startTime: Date | null
@@ -45,7 +45,7 @@ type ShiftFormProps = {
     isHoliday: boolean | null
     isRemote: boolean
   }
-  employeeId?: number
+  employeeId?: string
   date?: string
   shiftCodes?: ActiveShiftCode[]
 }

@@ -12,7 +12,7 @@ export const employeeSchema = z.object({
 })
 
 export const shiftSchema = z.object({
-  employeeId: z.coerce.number().int().positive("従業員を選択してください"),
+  employeeId: z.string().uuid("従業員を選択してください"),
   shiftDate: z.string().min(1, "日付は必須です"),
   shiftCode: z.string().max(20).nullable().optional(),
   startTime: z.string().nullable().optional(),
@@ -44,7 +44,7 @@ export const functionRoleSchema = z.object({
 })
 
 export const roleAssignmentSchema = z.object({
-  employeeId: z.coerce.number().int().positive("従業員を選択してください"),
+  employeeId: z.string().uuid("従業員を選択してください"),
   functionRoleId: z.coerce.number().int().positive("役割を選択してください"),
   isPrimary: z.boolean().default(false),
   startDate: z.string().nullable().optional(),
@@ -82,7 +82,7 @@ export type ShiftCodeFormData = z.infer<typeof shiftCodeSchema>
 
 // CSV Import schemas
 export const employeeCsvRowSchema = z.object({
-  employeeId: z.coerce.number().int().positive().nullable(),
+  employeeId: z.string().uuid().nullable(),
   name: z.string().min(1, "従業員名は必須です").max(100, "100文字以内で入力してください"),
   nameKana: z.string().max(100).nullable(),
   hireDate: z.string().nullable(),
@@ -92,7 +92,7 @@ export const employeeCsvRowSchema = z.object({
 
 export const shiftCsvRowSchema = z.object({
   shiftDate: z.string().min(1, "日付は必須です"),
-  employeeId: z.coerce.number().int().positive("従業員IDは必須です"),
+  employeeId: z.string().uuid("従業員IDは必須です"),
   shiftCode: z.string().max(20).nullable(),
   startTime: z.string().nullable(),
   endTime: z.string().nullable(),

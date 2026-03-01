@@ -5,7 +5,7 @@ import type { ShiftHistoryEntry } from "@/types/shifts"
 export async function getShiftHistory(
   pagination: PaginationParams = { page: 1, pageSize: 20 },
   shiftId?: number,
-  employeeId?: number
+  employeeId?: string
 ): Promise<PaginatedResult<ShiftHistoryEntry>> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const where: any = {}

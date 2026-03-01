@@ -137,7 +137,7 @@ describe("Employee DB Queries", () => {
     })
 
     it("should return null for non-existent id", async () => {
-      const result = await getEmployeeById(99999)
+      const result = await getEmployeeById("00000000-0000-0000-0000-000000000000")
       expect(result).toBeNull()
     })
   })
