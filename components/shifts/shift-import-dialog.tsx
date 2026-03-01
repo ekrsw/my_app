@@ -15,6 +15,7 @@ import { CsvFileInput } from "@/components/csv-import/csv-file-input"
 import { CsvPreviewTable } from "@/components/csv-import/csv-preview-table"
 import { parseShiftCsv, type ParsedShiftRow } from "@/lib/csv/parse-shift-csv"
 import { importShifts } from "@/lib/actions/shift-actions"
+import { Progress } from "@/components/ui/progress"
 
 type Step = "select" | "preview" | "importing" | "result"
 
@@ -177,12 +178,15 @@ export function ShiftImportDialog() {
         )}
 
         {step === "importing" && (
-          <div className="py-8 text-center text-muted-foreground space-y-2">
-            <p>インポート中...</p>
+          <div className="py-8 space-y-3">
+            <p className="text-center text-muted-foreground">インポート中...</p>
             {progress && (
-              <p className="text-xs">
-                {Math.min(progress.current + CLIENT_CHUNK_SIZE, progress.total).toLocaleString()} / {progress.total.toLocaleString()} 件処理中
-              </p>
+              <>
+                <Progress value={Math.round((Math.min(progress.current + CLIENT_CHUNK_SIZE, progress.total) / progress.total) * 100)} />
+                <p className="text-center text-xs text-muted-foreground">
+                  {Math.round((Math.min(progress.current + CLIENT_CHUNK_SIZE, progress.total) / progress.total) * 100)}% ({Math.min(progress.current + CLIENT_CHUNK_SIZE, progress.total).toLocaleString()} / {progress.total.toLocaleString()} 件)
+                </p>
+              </>
             )}
           </div>
         )}
