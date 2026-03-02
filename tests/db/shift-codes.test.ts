@@ -54,6 +54,21 @@ describe("ShiftCode DB Queries", () => {
       expect(result.every((sc) => sc.isActive === true)).toBe(true)
     })
 
+    it("should return shift codes with color field", async () => {
+      await prisma.shiftCode.createMany({
+        data: [
+          { code: "A", sortOrder: 0, color: "blue" },
+          { code: "B", sortOrder: 1, color: null },
+        ],
+      })
+
+      const result = await getActiveShiftCodes()
+
+      expect(result).toHaveLength(2)
+      expect(result[0].color).toBe("blue")
+      expect(result[1].color).toBeNull()
+    })
+
     it("should return shift codes with default time values", async () => {
       await prisma.shiftCode.create({
         data: {

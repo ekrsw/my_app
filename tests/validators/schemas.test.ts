@@ -379,5 +379,39 @@ describe("Zod Validation Schemas", () => {
       })
       expect(result.success).toBe(true)
     })
+
+    it("should accept color field", () => {
+      const result = shiftCodeSchema.safeParse({
+        code: "A",
+        color: "blue",
+      })
+      expect(result.success).toBe(true)
+      if (result.success) {
+        expect(result.data.color).toBe("blue")
+      }
+    })
+
+    it("should accept null color", () => {
+      const result = shiftCodeSchema.safeParse({
+        code: "A",
+        color: null,
+      })
+      expect(result.success).toBe(true)
+    })
+
+    it("should accept omitted color", () => {
+      const result = shiftCodeSchema.safeParse({
+        code: "A",
+      })
+      expect(result.success).toBe(true)
+    })
+
+    it("should reject color over 20 characters", () => {
+      const result = shiftCodeSchema.safeParse({
+        code: "A",
+        color: "a".repeat(21),
+      })
+      expect(result.success).toBe(false)
+    })
   })
 })

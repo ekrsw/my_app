@@ -12,6 +12,7 @@ function toTimeOrNull(value: string | null | undefined): Date | null {
 export async function createShiftCode(formData: FormData) {
   const parsed = shiftCodeSchema.safeParse({
     code: formData.get("code"),
+    color: formData.get("color") || null,
     defaultStartTime: formData.get("defaultStartTime") || null,
     defaultEndTime: formData.get("defaultEndTime") || null,
     defaultIsHoliday: formData.get("defaultIsHoliday") === "true",
@@ -27,6 +28,7 @@ export async function createShiftCode(formData: FormData) {
     await prisma.shiftCode.create({
       data: {
         code: parsed.data.code,
+        color: parsed.data.color ?? null,
         defaultStartTime: toTimeOrNull(parsed.data.defaultStartTime),
         defaultEndTime: toTimeOrNull(parsed.data.defaultEndTime),
         defaultIsHoliday: parsed.data.defaultIsHoliday,
@@ -47,6 +49,7 @@ export async function createShiftCode(formData: FormData) {
 export async function updateShiftCode(id: number, formData: FormData) {
   const parsed = shiftCodeSchema.safeParse({
     code: formData.get("code"),
+    color: formData.get("color") || null,
     defaultStartTime: formData.get("defaultStartTime") || null,
     defaultEndTime: formData.get("defaultEndTime") || null,
     defaultIsHoliday: formData.get("defaultIsHoliday") === "true",
@@ -63,6 +66,7 @@ export async function updateShiftCode(id: number, formData: FormData) {
       where: { id },
       data: {
         code: parsed.data.code,
+        color: parsed.data.color ?? null,
         defaultStartTime: toTimeOrNull(parsed.data.defaultStartTime),
         defaultEndTime: toTimeOrNull(parsed.data.defaultEndTime),
         defaultIsHoliday: parsed.data.defaultIsHoliday,

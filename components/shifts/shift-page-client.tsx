@@ -10,7 +10,7 @@ import { ShiftForm } from "./shift-form"
 import { ShiftBulkEditor } from "./shift-bulk-editor"
 import { Upload, Pencil } from "lucide-react"
 import { ShiftImportDialog } from "./shift-import-dialog"
-import { SHIFT_CODE_MAP, type ShiftCodeInfo } from "@/lib/constants"
+import { SHIFT_CODE_MAP, getColorClasses, type ShiftCodeInfo } from "@/lib/constants"
 import type { ShiftCalendarData, ShiftWithEmployee, ShiftFilterParams } from "@/types/shifts"
 import type { Shift } from "@/app/generated/prisma/client"
 import { loadMoreCalendarData } from "@/lib/actions/shift-actions"
@@ -20,6 +20,7 @@ type Group = { id: number; name: string }
 type ActiveShiftCode = {
   id: number
   code: string
+  color: string | null
   defaultStartTime: Date | null
   defaultEndTime: Date | null
   defaultIsHoliday: boolean
@@ -94,12 +95,12 @@ export function ShiftPageClient({
   const shiftCodeMap = useMemo(() => {
     const map: Record<string, ShiftCodeInfo> = {}
     for (const sc of shiftCodes) {
-      // ハードコードの色がある場合はそれを使い、なければデフォルトの色
+      const dbColor = getColorClasses(sc.color)
       const hardcoded = SHIFT_CODE_MAP[sc.code]
       map[sc.code] = {
         label: hardcoded?.label ?? sc.code,
-        color: hardcoded?.color ?? "text-gray-800",
-        bgColor: hardcoded?.bgColor ?? "bg-gray-100",
+        color: dbColor?.text ?? hardcoded?.color ?? "text-gray-800",
+        bgColor: dbColor?.bg ?? hardcoded?.bgColor ?? "bg-gray-100",
       }
     }
     return map

@@ -25,6 +25,7 @@ import { toast } from "sonner"
 type ActiveShiftCode = {
   id: number
   code: string
+  color: string | null
   defaultStartTime: Date | null
   defaultEndTime: Date | null
   defaultIsHoliday: boolean

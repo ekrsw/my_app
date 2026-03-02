@@ -30,6 +30,7 @@ erDiagram
     shift_codes {
         integer id PK
         varchar code
+        varchar color
         time default_start_time
         time default_end_time
         boolean default_is_holiday
@@ -417,6 +418,7 @@ ORDER BY g.id, e.id
 |---------|---------|------|-----------|------|
 | id | SERIAL | NO | auto_increment | 主キー |
 | code | VARCHAR(20) | NO | - | シフトコード（ユニーク） |
+| color | VARCHAR(20) | YES | - | 表示色キー（Tailwind色名: blue, red等） |
 | default_start_time | TIME(6) | YES | - | デフォルト開始時刻 |
 | default_end_time | TIME(6) | YES | - | デフォルト終了時刻 |
 | default_is_holiday | BOOLEAN | NO | false | デフォルト休日フラグ |
@@ -425,7 +427,7 @@ ORDER BY g.id, e.id
 
 **制約**: PK(id), UNIQUE(code)
 
-**備考**: 色（文字色・背景色）はDBに保持せず、`lib/constants.ts` の `SHIFT_CODE_MAP` でハードコード管理。`shifts.shift_code` への FK は張らず、カスタム入力も許容する。
+**備考**: 色は`color`カラムにTailwind色キー（blue, red等）を保持。`lib/constants.ts`の`COLOR_PALETTE`で表示クラスに変換。`color`がNULLの場合は`SHIFT_CODE_MAP`のハードコードにフォールバック。`shifts.shift_code` への FK は張らず、カスタム入力も許容する。
 
 ---
 
@@ -946,3 +948,4 @@ groups (1) ────< (N) employee_groups (N) >────(1) employees
 | v17 | 2026-03-01 | is_paid_leave（有給休暇）関連カラムを全テーブルから削除。shifts.is_paid_leave、shift_codes.default_is_paid_leave、shift_change_history.is_paid_leave / new_is_paid_leaveを削除。record_shift_change()およびapply_shift_code_defaults()トリガー関数を更新 |
 | v18 | 2026-03-02 | employeesを参照する全9テーブルの外部キーをON DELETE CASCADEに変更。従業員削除時に関連レコード（shifts, employee_groups, employee_positions, employee_function_roles, employee_external_accounts, shift_change_history, employee_group_history, employee_function_role_history, employee_position_history）が自動削除されるようになった |
 | v19 | 2026-03-02 | employees.idをSERIAL（INTEGER）からUUID v7に変更。カスタムPL/pgSQL関数uuid_generate_v7()を作成しDBレベルで自動生成。関連9テーブルのemployee_idもINTEGER→UUIDに変更。トリガー関数（record_employee_role_change, record_employee_position_change, record_employee_group_change）のtarget_employee_id変数をinteger→uuidに更新 |
+| v20 | 2026-03-02 | shift_codesテーブルにcolor VARCHAR(20)カラムを追加。Tailwind色キー（blue, red等）を格納し、フォームからカラースウォッチUIで選択可能に。既存9コードには現行ハードコード色をマイグレーションで設定。colorがNULLの場合はSHIFT_CODE_MAPのハードコードにフォールバック |

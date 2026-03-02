@@ -72,6 +72,7 @@ export type PositionFormData = z.infer<typeof positionSchema>
 
 export const shiftCodeSchema = z.object({
   code: z.string().min(1, "シフトコードは必須です").max(20, "20文字以内で入力してください"),
+  color: z.string().max(20).nullable().optional(),
   defaultStartTime: z.string().nullable().optional(),
   defaultEndTime: z.string().nullable().optional(),
   defaultIsHoliday: z.boolean().default(false),

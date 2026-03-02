@@ -172,6 +172,7 @@ model EmployeeFunctionRoleHistory {
 model ShiftCode {
   id                 Int       @id @default(autoincrement())
   code               String    @unique @db.VarChar(20)
+  color              String?   @db.VarChar(20)
   defaultStartTime   DateTime? @map("default_start_time") @db.Time(6)
   defaultEndTime     DateTime? @map("default_end_time") @db.Time(6)
   defaultIsHoliday   Boolean   @default(false) @map("default_is_holiday")

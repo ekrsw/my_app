@@ -13,8 +13,10 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { createShiftCode, updateShiftCode, deleteShiftCode } from "@/lib/actions/shift-code-actions"
+import { COLOR_PALETTE } from "@/lib/constants"
+import { cn } from "@/lib/utils"
 import { toast } from "sonner"
-import { Plus, Pencil, Trash2 } from "lucide-react"
+import { Plus, Pencil, Trash2, X } from "lucide-react"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -31,6 +33,7 @@ type ShiftCodeFormProps = {
   shiftCode?: {
     id: number
     code: string
+    color: string | null
     defaultStartTime: Date | null
     defaultEndTime: Date | null
     defaultIsHoliday: boolean
@@ -50,11 +53,17 @@ export function ShiftCodeForm({ shiftCode }: ShiftCodeFormProps) {
   const [loading, setLoading] = useState(false)
   const [isActive, setIsActive] = useState(shiftCode?.isActive ?? true)
   const [defaultIsHoliday, setDefaultIsHoliday] = useState(shiftCode?.defaultIsHoliday ?? false)
+  const [selectedColor, setSelectedColor] = useState<string | null>(shiftCode?.color ?? null)
   const isEdit = !!shiftCode
 
   async function handleSubmit(formData: FormData) {
     formData.set("isActive", String(isActive))
     formData.set("defaultIsHoliday", String(defaultIsHoliday))
+    if (selectedColor) {
+      formData.set("color", selectedColor)
+    } else {
+      formData.delete("color")
+    }
     setLoading(true)
     const result = isEdit
       ? await updateShiftCode(shiftCode.id, formData)
@@ -128,6 +137,41 @@ export function ShiftCodeForm({ shiftCode }: ShiftCodeFormProps) {
               />
               <Label htmlFor="defaultIsHoliday">休日</Label>
             </div>
+          </div>
+          <div className="space-y-2">
+            <Label>表示色</Label>
+            <div className="flex flex-wrap gap-2">
+              {Object.entries(COLOR_PALETTE).map(([key, palette]) => (
+                <button
+                  key={key}
+                  type="button"
+                  className={cn(
+                    "h-7 w-7 rounded-full transition-all",
+                    palette.swatch,
+                    selectedColor === key
+                      ? "ring-2 ring-offset-2 ring-primary"
+                      : "hover:ring-2 hover:ring-offset-1 hover:ring-muted-foreground/50"
+                  )}
+                  title={palette.label}
+                  onClick={() => setSelectedColor(key)}
+                />
+              ))}
+              {selectedColor && (
+                <button
+                  type="button"
+                  className="flex h-7 w-7 items-center justify-center rounded-full border border-dashed border-muted-foreground/50 text-muted-foreground hover:bg-muted"
+                  title="色をクリア"
+                  onClick={() => setSelectedColor(null)}
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
+            {selectedColor && (
+              <p className="text-xs text-muted-foreground">
+                選択中: {COLOR_PALETTE[selectedColor]?.label}
+              </p>
+            )}
           </div>
           <div className="space-y-2">
             <Label htmlFor="sortOrder">表示順</Label>
