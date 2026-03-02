@@ -1,2 +1,2 @@
--- Remove label column from shift_codes
-ALTER TABLE "shift_codes" DROP COLUMN "label";
+-- Remove label column from shift_codes (IF EXISTS for idempotency)
+ALTER TABLE "shift_codes" DROP COLUMN IF EXISTS "label";

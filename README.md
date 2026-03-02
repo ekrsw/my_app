@@ -4,24 +4,42 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ### 前提条件
 
-- Node.js v20 以上
-- PostgreSQL（ローカルで起動していること）
+- [Node.js](https://nodejs.org/) v20 以上
+- [PostgreSQL](https://www.postgresql.org/download/) v14 以上（ローカルで起動していること）
+- Git
 
-### 1. パッケージインストール
+### 1. リポジトリのクローン
+
+```bash
+git clone <リポジトリURL>
+cd my_app
+```
+
+### 2. パッケージインストール
 
 ```bash
 npm install
 ```
 
-### 2. 環境変数の設定
+### 3. 環境変数の設定
 
 プロジェクトルートに `.env` ファイルを作成し、DB 接続先を設定してください。
 
 ```
-DATABASE_URL="postgresql://postgres:password@localhost:5432/my_database"
+DATABASE_URL="postgresql://postgres:password@localhost:5432/shift_database"
 ```
 
-### 3. データベースのセットアップ
+> `postgres` と `password` の部分はご自身の PostgreSQL ユーザー名・パスワードに置き換えてください。
+
+### 4. データベースの作成
+
+PostgreSQL に接続し、データベースを作成してください。
+
+```bash
+psql -U postgres -c "CREATE DATABASE shift_database;"
+```
+
+### 5. データベースのセットアップ
 
 ```bash
 # Prisma クライアント生成
@@ -31,7 +49,13 @@ npx prisma generate
 npx prisma migrate deploy
 ```
 
-### 4. 開発サーバーの起動
+> **初回セットアップやマイグレーションエラー時**: データベースを完全にリセットして最初からやり直す場合は以下を実行してください（全データが削除されます）。
+>
+> ```bash
+> npx prisma migrate reset
+> ```
+
+### 6. 開発サーバーの起動
 
 ```bash
 npm run dev
@@ -46,7 +70,7 @@ npm run dev
 プロジェクトルートに `.env.test` ファイルを作成し、テスト用 DB の接続先を設定してください。
 
 ```
-DATABASE_URL="postgresql://postgres:password@localhost:5432/my_database_test"
+DATABASE_URL="postgresql://postgres:password@localhost:5432/shift_database_test"
 ```
 
 初回またはスキーマ変更後に以下を実行してください。テスト DB の作成、スキーマ同期、トリガー適用を自動で行います。

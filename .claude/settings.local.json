@@ -80,7 +80,8 @@
       "Bash(net stop:*)",
       "Bash(net start:*)",
       "mcp__serena__search_for_pattern",
-      "Bash(awk:*)"
+      "Bash(awk:*)",
+      "Bash(PRISMA_USER_CONSENT_FOR_DANGEROUS_AI_ACTION=\"はい、リセットしてください\" npx prisma migrate reset:*)"
     ]
   }
 }
