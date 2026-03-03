@@ -1,0 +1,238 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Group {
+  id             Int                    @id @default(autoincrement())
+  name           String                 @unique @db.VarChar(50)
+  employeeGroups EmployeeGroup[]
+  groupHistory   EmployeeGroupHistory[]
+
+  @@map("groups")
+}
+
+model Employee {
+  id              String    @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  name            String    @db.VarChar(100)
+  nameKana        String?   @map("name_kana") @db.VarChar(100)
+  hireDate        DateTime? @map("hire_date") @db.Date
+  terminationDate DateTime? @map("termination_date") @db.Date
+
+  groups           EmployeeGroup[]
+  shifts           Shift[]
+  functionRoles    EmployeeFunctionRole[]
+  positions        EmployeePosition[]
+  externalAccounts EmployeeExternalAccount[]
+  groupHistory     EmployeeGroupHistory[]
+  roleHistory      EmployeeFunctionRoleHistory[]
+  positionHistory    EmployeePositionHistory[]
+  shiftChangeHistory ShiftChangeHistory[]
+
+  @@map("employees")
+}
+
+model Shift {
+  id          Int       @id @default(autoincrement())
+  employeeId  String?   @map("employee_id") @db.Uuid
+  shiftDate   DateTime  @map("shift_date") @db.Date
+  shiftCode   String?   @map("shift_code") @db.VarChar(20)
+  startTime   DateTime? @map("start_time") @db.Time(6)
+  endTime     DateTime? @map("end_time") @db.Time(6)
+  isHoliday   Boolean?  @default(false) @map("is_holiday")
+  isRemote    Boolean   @default(false) @map("is_remote")
+
+  employee Employee? @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@unique([employeeId, shiftDate])
+  @@map("shifts")
+}
+
+model FunctionRole {
+  id       Int     @id @default(autoincrement())
+  roleCode String  @unique @map("role_code") @db.VarChar(20)
+  roleName String  @map("role_name") @db.VarChar(50)
+  roleType String  @default("FUNCTION") @map("role_type") @db.VarChar(20)
+  isActive Boolean? @default(true) @map("is_active")
+
+  employeeRoles EmployeeFunctionRole[]
+
+  @@map("function_roles")
+}
+
+model EmployeeFunctionRole {
+  id             Int       @id @default(autoincrement())
+  employeeId     String?   @map("employee_id") @db.Uuid
+  functionRoleId Int?      @map("function_role_id")
+  roleType       String    @default("FUNCTION") @map("role_type") @db.VarChar(20)
+  isPrimary      Boolean?  @default(false) @map("is_primary")
+  startDate      DateTime? @map("start_date") @db.Date
+  endDate        DateTime? @map("end_date") @db.Date
+
+  employee     Employee?     @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  functionRole FunctionRole? @relation(fields: [functionRoleId], references: [id])
+
+  @@map("employee_function_roles")
+}
+
+model ShiftChangeHistory {
+  id             Int       @id @default(autoincrement())
+  shiftId        Int       @map("shift_id")
+  employeeId     String?   @map("employee_id") @db.Uuid
+  shiftDate      DateTime  @map("shift_date") @db.Date
+  shiftCode      String?   @map("shift_code") @db.VarChar(20)
+  startTime      DateTime? @map("start_time") @db.Time(6)
+  endTime        DateTime? @map("end_time") @db.Time(6)
+  isHoliday      Boolean?  @map("is_holiday")
+  isRemote       Boolean?  @map("is_remote")
+  newShiftCode   String?   @map("new_shift_code") @db.VarChar(20)
+  newStartTime   DateTime? @map("new_start_time") @db.Time(6)
+  newEndTime     DateTime? @map("new_end_time") @db.Time(6)
+  newIsHoliday   Boolean?  @map("new_is_holiday")
+  newIsRemote    Boolean?  @map("new_is_remote")
+  version        Int
+  changedAt      DateTime  @default(now()) @map("changed_at")
+  note           String?   @db.VarChar(255)
+
+  employee Employee? @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@unique([shiftId, version])
+  @@index([shiftId, changedAt])
+  @@index([employeeId, shiftDate])
+  @@map("shift_change_history")
+}
+
+model EmployeeGroupHistory {
+  id         Int       @id @default(autoincrement())
+  employeeId String    @map("employee_id") @db.Uuid
+  groupId    Int?      @map("group_id")
+  startDate  DateTime? @map("start_date") @db.Date
+  endDate    DateTime? @map("end_date") @db.Date
+  changeType String    @map("change_type") @db.VarChar(10)
+  version    Int
+  changedAt  DateTime  @default(now()) @map("changed_at")
+
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  group    Group?   @relation(fields: [groupId], references: [id], onDelete: Restrict)
+
+  @@unique([employeeId, version])
+  @@index([employeeId, changedAt])
+  @@map("employee_group_history")
+}
+
+model ExternalTool {
+  id       Int     @id @default(autoincrement())
+  toolCode String  @map("tool_code") @db.VarChar(50)
+  toolName String  @map("tool_name") @db.VarChar(100)
+  isActive Boolean? @default(true) @map("is_active")
+
+  accounts EmployeeExternalAccount[]
+
+  @@map("external_tools")
+}
+
+model EmployeeExternalAccount {
+  id             Int     @id @default(autoincrement())
+  employeeId     String? @map("employee_id") @db.Uuid
+  externalToolId Int?    @map("external_tool_id")
+  externalName   String  @map("external_name") @db.VarChar(100)
+  externalId     String? @map("external_id") @db.VarChar(100)
+  isActive       Boolean? @default(true) @map("is_active")
+
+  employee     Employee?     @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  externalTool ExternalTool? @relation(fields: [externalToolId], references: [id])
+
+  @@map("employee_external_accounts")
+}
+
+model EmployeeFunctionRoleHistory {
+  id             Int       @id @default(autoincrement())
+  employeeId     String    @map("employee_id") @db.Uuid
+  functionRoleId Int?      @map("function_role_id")
+  roleType       String?   @map("role_type") @db.VarChar(20)
+  isPrimary      Boolean?  @map("is_primary")
+  startDate      DateTime? @map("start_date") @db.Date
+  endDate        DateTime? @map("end_date") @db.Date
+  changeType     String    @map("change_type") @db.VarChar(10)
+  version        Int
+  changedAt      DateTime  @default(now()) @map("changed_at")
+
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@unique([employeeId, version])
+  @@index([employeeId, changedAt])
+  @@map("employee_function_role_history")
+}
+
+model ShiftCode {
+  id                 Int       @id @default(autoincrement())
+  code               String    @unique @db.VarChar(20)
+  color              String?   @db.VarChar(20)
+  defaultStartTime   DateTime? @map("default_start_time") @db.Time(6)
+  defaultEndTime     DateTime? @map("default_end_time") @db.Time(6)
+  defaultIsHoliday   Boolean   @default(false) @map("default_is_holiday")
+  isActive           Boolean?  @default(true) @map("is_active")
+  sortOrder          Int       @default(0) @map("sort_order")
+
+  @@map("shift_codes")
+}
+
+model Position {
+  id           Int     @id @default(autoincrement())
+  positionCode String  @unique @map("position_code") @db.VarChar(20)
+  positionName String  @map("position_name") @db.VarChar(50)
+  isActive     Boolean? @default(true) @map("is_active")
+  sortOrder    Int     @default(0) @map("sort_order")
+
+  employeePositions EmployeePosition[]
+
+  @@map("positions")
+}
+
+model EmployeePosition {
+  id         Int       @id @default(autoincrement())
+  employeeId String    @map("employee_id") @db.Uuid
+  positionId Int       @map("position_id")
+  startDate  DateTime  @map("start_date") @db.Date
+  endDate    DateTime? @map("end_date") @db.Date
+
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  position Position @relation(fields: [positionId], references: [id], onDelete: Restrict)
+
+  @@map("employee_positions")
+}
+
+model EmployeeGroup {
+  id         Int       @id @default(autoincrement())
+  employeeId String    @map("employee_id") @db.Uuid
+  groupId    Int       @map("group_id")
+  startDate  DateTime  @map("start_date") @db.Date
+  endDate    DateTime? @map("end_date") @db.Date
+
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  group    Group    @relation(fields: [groupId], references: [id], onDelete: Restrict)
+
+  @@map("employee_groups")
+}
+
+model EmployeePositionHistory {
+  id         Int       @id @default(autoincrement())
+  employeeId String    @map("employee_id") @db.Uuid
+  positionId Int?      @map("position_id")
+  startDate  DateTime? @map("start_date") @db.Date
+  endDate    DateTime? @map("end_date") @db.Date
+  changeType String    @map("change_type") @db.VarChar(10)
+  version    Int
+  changedAt  DateTime  @default(now()) @map("changed_at")
+
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@unique([employeeId, version])
+  @@index([employeeId, changedAt])
+  @@map("employee_position_history")
+}
