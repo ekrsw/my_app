@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useEffect, useRef, useCallback } from "react"
+import { useMemo, useEffect, useRef } from "react"
 import type { ShiftCalendarData } from "@/types/shifts"
 import type { ShiftCodeInfo } from "@/lib/constants"
 import { ShiftCalendarCell } from "./shift-calendar-cell"
@@ -50,7 +50,10 @@ export function ShiftCalendar({
 
   const sentinelRef = useRef<HTMLDivElement>(null)
   const onLoadMoreRef = useRef(onLoadMore)
-  onLoadMoreRef.current = onLoadMore
+
+  useEffect(() => {
+    onLoadMoreRef.current = onLoadMore
+  }, [onLoadMore])
 
   useEffect(() => {
     const sentinel = sentinelRef.current

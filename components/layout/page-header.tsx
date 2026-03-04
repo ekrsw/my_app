@@ -21,7 +21,7 @@ type PageHeaderProps = {
   actions?: React.ReactNode
 }
 
-export function PageHeader({ title, breadcrumbs, actions }: PageHeaderProps) {
+export function PageHeader({ breadcrumbs, actions }: PageHeaderProps) {
   return (
     <header className="flex h-14 shrink-0 items-center gap-2 border-b px-4">
       <SidebarTrigger className="-ml-1" />

@@ -72,12 +72,19 @@ function timeToInput(d: Date | string | null): string {
 const NONE_VALUE = "__none__"
 const CUSTOM_VALUE = "__custom__"
 
-export function ShiftForm({ open, onOpenChange, shift, employeeId, date, shiftCodes = [] }: ShiftFormProps) {
+type ShiftFormInnerProps = Omit<ShiftFormProps, "open"> & {
+  onClose: () => void
+}
+
+function ShiftFormInner({ onClose, shift, employeeId, date, shiftCodes = [] }: ShiftFormInnerProps) {
+  const initialCode = shift?.shiftCode ?? ""
+  const initialIsCustom = initialCode !== "" && !shiftCodes.some((sc) => sc.code === initialCode)
+
   const [loading, setLoading] = useState(false)
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
   const [isDeleting, startDeleteTransition] = useTransition()
-  const [code, setCode] = useState(shift?.shiftCode ?? "")
-  const [isCustom, setIsCustom] = useState(false)
+  const [code, setCode] = useState(initialCode)
+  const [isCustom, setIsCustom] = useState(initialIsCustom)
   const [isHoliday, setIsHoliday] = useState(shift?.isHoliday ?? false)
   const [isRemote, setIsRemote] = useState(shift?.isRemote ?? false)
   const [note, setNote] = useState("")
@@ -91,27 +98,14 @@ export function ShiftForm({ open, onOpenChange, shift, employeeId, date, shiftCo
     return CUSTOM_VALUE
   }
 
+  // 編集時のみ既存備考を取得
   useEffect(() => {
-    if (open) {
-      const currentCode = shift?.shiftCode ?? ""
-      setCode(currentCode)
-      setIsCustom(currentCode !== "" && !shiftCodes.some((sc) => sc.code === currentCode))
-      setIsHoliday(shift?.isHoliday ?? false)
-      setIsRemote(shift?.isRemote ?? false)
-      setNote("")
-      if (shift?.id) {
-        getLatestShiftNote(shift.id).then((n) => {
-          if (n) setNote(n)
-        })
-      }
-      if (startTimeRef.current) {
-        startTimeRef.current.value = timeToInput(shift?.startTime ?? null)
-      }
-      if (endTimeRef.current) {
-        endTimeRef.current.value = timeToInput(shift?.endTime ?? null)
-      }
+    if (shift?.id) {
+      getLatestShiftNote(shift.id).then((n) => {
+        if (n) setNote(n)
+      })
     }
-  }, [open, shift, shiftCodes])
+  }, [shift?.id])
 
   function handleSelectChange(value: string) {
     if (value === NONE_VALUE) {
@@ -150,7 +144,7 @@ export function ShiftForm({ open, onOpenChange, shift, employeeId, date, shiftCo
         toast.error(result.error)
       } else {
         toast.success("シフトを削除しました")
-        onOpenChange(false)
+        onClose()
       }
     })
   }
@@ -174,7 +168,7 @@ export function ShiftForm({ open, onOpenChange, shift, employeeId, date, shiftCo
         toast.error(result.error)
       } else {
         toast.success("シフトを更新しました")
-        onOpenChange(false)
+        onClose()
       }
     } else {
       const result = await createShift({
@@ -191,7 +185,7 @@ export function ShiftForm({ open, onOpenChange, shift, employeeId, date, shiftCo
         toast.error(result.error)
       } else {
         toast.success("シフトを作成しました")
-        onOpenChange(false)
+        onClose()
       }
     }
   }
@@ -199,128 +193,157 @@ export function ShiftForm({ open, onOpenChange, shift, employeeId, date, shiftCo
   const selectValue = getSelectValue(isCustom ? CUSTOM_VALUE : code || null)
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-sm">
-        <DialogHeader>
-          <DialogTitle>{isEdit ? "シフト編集" : "シフト作成"}</DialogTitle>
-        </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label>シフトコード</Label>
-            <Select value={selectValue} onValueChange={handleSelectChange}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="選択してください" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={NONE_VALUE}>（なし）</SelectItem>
-                <SelectSeparator />
-                {shiftCodes.map((sc) => (
-                  <SelectItem key={sc.code} value={sc.code}>
-                    {sc.code}
-                  </SelectItem>
-                ))}
-                <SelectSeparator />
-                <SelectItem value={CUSTOM_VALUE}>カスタム入力</SelectItem>
-              </SelectContent>
-            </Select>
-            {isCustom && (
-              <Input
-                value={code}
-                onChange={(e) => setCode(e.target.value)}
-                placeholder="カスタムコードを入力"
-                maxLength={20}
-              />
-            )}
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="startTime">開始時刻</Label>
-              <Input
-                ref={startTimeRef}
-                id="startTime"
-                name="startTime"
-                type="time"
-                defaultValue={timeToInput(shift?.startTime ?? null)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="endTime">終了時刻</Label>
-              <Input
-                ref={endTimeRef}
-                id="endTime"
-                name="endTime"
-                type="time"
-                defaultValue={timeToInput(shift?.endTime ?? null)}
-              />
-            </div>
-          </div>
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <Checkbox
-                id="isHoliday"
-                checked={isHoliday}
-                onCheckedChange={(v) => setIsHoliday(v === true)}
-              />
-              <Label htmlFor="isHoliday">休日</Label>
-            </div>
-            <div className="flex items-center gap-2">
-              <Checkbox
-                id="isRemote"
-                checked={isRemote}
-                onCheckedChange={(v) => setIsRemote(v === true)}
-              />
-              <Label htmlFor="isRemote">テレワーク</Label>
-            </div>
-          </div>
-          {isEdit && (
-            <div className="space-y-2">
-              <Label htmlFor="note">備考</Label>
-              <Textarea
-                id="note"
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
-                placeholder="変更理由など"
-                maxLength={255}
-                rows={2}
-              />
-            </div>
+    <>
+      <DialogHeader>
+        <DialogTitle>{isEdit ? "シフト編集" : "シフト作成"}</DialogTitle>
+      </DialogHeader>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="space-y-2">
+          <Label>シフトコード</Label>
+          <Select value={selectValue} onValueChange={handleSelectChange}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="選択してください" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={NONE_VALUE}>（なし）</SelectItem>
+              <SelectSeparator />
+              {shiftCodes.map((sc) => (
+                <SelectItem key={sc.code} value={sc.code}>
+                  {sc.code}
+                </SelectItem>
+              ))}
+              <SelectSeparator />
+              <SelectItem value={CUSTOM_VALUE}>カスタム入力</SelectItem>
+            </SelectContent>
+          </Select>
+          {isCustom && (
+            <Input
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+              placeholder="カスタムコードを入力"
+              maxLength={20}
+            />
           )}
-          <div className="flex justify-between">
-            {isEdit ? (
-              <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
-                <AlertDialogTrigger asChild>
-                  <Button type="button" variant="destructive" disabled={loading || isDeleting}>
-                    削除
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>シフトを削除しますか？</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      このシフトを削除します。この操作は取り消せません。
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>キャンセル</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleDelete} disabled={isDeleting}>
-                      削除する
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            ) : (
-              <div />
-            )}
-            <div className="flex gap-2">
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                キャンセル
-              </Button>
-              <Button type="submit" disabled={loading || isDeleting}>
-                {loading ? "保存中..." : "保存"}
-              </Button>
-            </div>
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="startTime">開始時刻</Label>
+            <Input
+              ref={startTimeRef}
+              id="startTime"
+              name="startTime"
+              type="time"
+              defaultValue={timeToInput(shift?.startTime ?? null)}
+            />
           </div>
-        </form>
+          <div className="space-y-2">
+            <Label htmlFor="endTime">終了時刻</Label>
+            <Input
+              ref={endTimeRef}
+              id="endTime"
+              name="endTime"
+              type="time"
+              defaultValue={timeToInput(shift?.endTime ?? null)}
+            />
+          </div>
+        </div>
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <Checkbox
+              id="isHoliday"
+              checked={isHoliday}
+              onCheckedChange={(v) => setIsHoliday(v === true)}
+            />
+            <Label htmlFor="isHoliday">休日</Label>
+          </div>
+          <div className="flex items-center gap-2">
+            <Checkbox
+              id="isRemote"
+              checked={isRemote}
+              onCheckedChange={(v) => setIsRemote(v === true)}
+            />
+            <Label htmlFor="isRemote">テレワーク</Label>
+          </div>
+        </div>
+        {isEdit && (
+          <div className="space-y-2">
+            <Label htmlFor="note">備考</Label>
+            <Textarea
+              id="note"
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder="変更理由など"
+              maxLength={255}
+              rows={2}
+            />
+          </div>
+        )}
+        <div className="flex justify-between">
+          {isEdit ? (
+            <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+              <AlertDialogTrigger asChild>
+                <Button type="button" variant="destructive" disabled={loading || isDeleting}>
+                  削除
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>シフトを削除しますか？</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    このシフトを削除します。この操作は取り消せません。
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>キャンセル</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleDelete} disabled={isDeleting}>
+                    削除する
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          ) : (
+            <div />
+          )}
+          <div className="flex gap-2">
+            <Button type="button" variant="outline" onClick={onClose}>
+              キャンセル
+            </Button>
+            <Button type="submit" disabled={loading || isDeleting}>
+              {loading ? "保存中..." : "保存"}
+            </Button>
+          </div>
+        </div>
+      </form>
+    </>
+  )
+}
+
+export function ShiftForm({ open, onOpenChange, shift, employeeId, date, shiftCodes = [] }: ShiftFormProps) {
+  // ダイアログを開くたびに内部コンポーネントをリマウントするためのキー
+  const [dialogKey, setDialogKey] = useState(0)
+
+  function handleOpenChange(newOpen: boolean) {
+    if (newOpen) {
+      // 開くときにキーを更新してリマウント
+      setDialogKey((k) => k + 1)
+    }
+    onOpenChange(newOpen)
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogContent className="max-w-sm">
+        {open && (
+          <ShiftFormInner
+            key={dialogKey}
+            onOpenChange={onOpenChange}
+            onClose={() => onOpenChange(false)}
+            shift={shift}
+            employeeId={employeeId}
+            date={date}
+            shiftCodes={shiftCodes}
+          />
+        )}
       </DialogContent>
     </Dialog>
   )
