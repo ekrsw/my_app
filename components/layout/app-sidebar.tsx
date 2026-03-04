@@ -1,5 +1,6 @@
 "use client"
 
+import * as React from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
@@ -52,6 +53,13 @@ export function AppSidebar() {
     pathname.startsWith(item.href)
   )
 
+  // 制御パターンでハイドレーションミスマッチを回避
+  const [settingsOpen, setSettingsOpen] = React.useState(false)
+
+  React.useEffect(() => {
+    setSettingsOpen(isSettingsActive)
+  }, [isSettingsActive])
+
   return (
     <Sidebar>
       <SidebarHeader className="border-b px-6 py-4">
@@ -82,7 +90,8 @@ export function AppSidebar() {
                 )
               })}
               <Collapsible
-                defaultOpen={isSettingsActive}
+                open={settingsOpen}
+                onOpenChange={setSettingsOpen}
                 className="group/collapsible"
               >
                 <SidebarMenuItem>

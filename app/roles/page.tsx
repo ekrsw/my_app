@@ -1,9 +1,8 @@
 import { PageHeader } from "@/components/layout/page-header"
 import { PageContainer } from "@/components/layout/page-container"
-import { RoleTable } from "@/components/roles/role-table"
 import { getFunctionRoles } from "@/lib/db/roles"
 import { RoleForm } from "@/components/roles/role-form"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { RoleTabs } from "@/components/roles/role-tabs"
 import type { SearchParams } from "@/types"
 
 export default async function RolesPage({ searchParams }: { searchParams: SearchParams }) {
@@ -32,22 +31,7 @@ export default async function RolesPage({ searchParams }: { searchParams: Search
           <h1 className="text-2xl font-bold">役割管理</h1>
           <RoleForm />
         </div>
-        <Tabs defaultValue={activeTab}>
-          <TabsList>
-            <TabsTrigger value="all">
-              <a href="/roles?tab=all">すべて</a>
-            </TabsTrigger>
-            <TabsTrigger value="function">
-              <a href="/roles?tab=function">業務</a>
-            </TabsTrigger>
-            <TabsTrigger value="authority">
-              <a href="/roles?tab=authority">監督</a>
-            </TabsTrigger>
-          </TabsList>
-          <TabsContent value={activeTab} className="mt-4">
-            <RoleTable data={roles} />
-          </TabsContent>
-        </Tabs>
+        <RoleTabs activeTab={activeTab} roles={roles} />
       </PageContainer>
     </>
   )
