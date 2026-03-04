@@ -86,7 +86,9 @@
       "Bash(grep:*)",
       "mcp__serena__find_symbol",
       "mcp__serena__get_symbols_overview",
-      "mcp__serena__find_referencing_symbols"
+      "mcp__serena__find_referencing_symbols",
+      "mcp__playwright__browser_evaluate",
+      "mcp__playwright__browser_wait_for"
     ]
   }
 }

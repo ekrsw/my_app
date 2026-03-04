@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useEffect, useRef } from "react"
+import { useMemo, useEffect, useRef, useId } from "react"
 import type { ShiftCalendarData } from "@/types/shifts"
 import type { ShiftCodeInfo } from "@/lib/constants"
 import { ShiftCalendarCell } from "./shift-calendar-cell"
@@ -14,6 +14,7 @@ import {
 } from "@/lib/date-utils"
 import { ChevronDown, ChevronRight, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { StickyHorizontalScrollbar } from "@/components/ui/sticky-horizontal-scrollbar"
 
 type ShiftCalendarProps = {
   data: ShiftCalendarData[]
@@ -48,6 +49,8 @@ export function ShiftCalendar({
   const { groupedData, selectedCells: internalSelectedCells, toggleGroup } = useShiftCalendar(data)
   const selectedCells = externalSelectedCells ?? internalSelectedCells
 
+  const scrollContainerId = useId()
+  const scrollContainerRef = useRef<HTMLDivElement>(null)
   const sentinelRef = useRef<HTMLDivElement>(null)
   const onLoadMoreRef = useRef(onLoadMore)
 
@@ -71,8 +74,12 @@ export function ShiftCalendar({
     return () => observer.disconnect()
   }, [hasMore])
 
-  return (
-    <div className="w-full overflow-auto rounded-md border">
+  const calendar = (
+    <div
+      id={scrollContainerId}
+      ref={scrollContainerRef}
+      className="hide-native-scrollbar-x w-full overflow-auto rounded-md border"
+    >
       <div className="min-w-max">
         {/* Header row */}
         <div className="flex h-10 sticky top-0 z-20 bg-background border-b">
@@ -175,5 +182,16 @@ export function ShiftCalendar({
         </div>
       )}
     </div>
+  )
+
+  return (
+    <>
+      {calendar}
+      {/* Fixed 横スクロールバー（ビューポート下部に固定） */}
+      <StickyHorizontalScrollbar
+        containerRef={scrollContainerRef}
+        containerId={scrollContainerId}
+      />
+    </>
   )
 }
