@@ -4,6 +4,7 @@ import { EmployeeTable } from "@/components/employees/employee-table"
 import { EmployeeFilters } from "@/components/employees/employee-filters"
 import { getEmployees } from "@/lib/db/employees"
 import { getGroups } from "@/lib/db/groups"
+import { getFunctionRoles } from "@/lib/db/roles"
 import { EmployeeForm } from "@/components/employees/employee-form"
 import { EmployeeImportDialog } from "@/components/employees/employee-import-dialog"
 import { EmployeeExportButton } from "@/components/employees/employee-export-button"
@@ -20,14 +21,37 @@ export default async function EmployeesPage({
   const page = Number(params.page) || 1
   const pageSize = Number(params.pageSize) || 20
   const search = params.search as string | undefined
-  const rawGroupId = params.groupId as string | undefined
-  const noGroup = rawGroupId === "none"
-  const groupId = !noGroup && rawGroupId ? Number(rawGroupId) : undefined
   const activeOnly = params.activeOnly === "true"
 
-  const [result, groups] = await Promise.all([
-    getEmployees({ search, groupId, noGroup: noGroup || undefined, activeOnly }, { page, pageSize }),
+  // グループフィルター解析（複数選択対応、旧 groupId もフォールバック）
+  const rawGroupIds = params.groupIds as string | undefined
+  const rawGroupId = params.groupId as string | undefined
+  const unassigned = params.unassigned === "true" || rawGroupId === "none"
+  let groupIds: number[] | undefined
+  if (rawGroupIds) {
+    groupIds = rawGroupIds.split(",").map(Number).filter((n) => !isNaN(n) && n > 0)
+    if (groupIds.length === 0) groupIds = undefined
+  } else if (rawGroupId && rawGroupId !== "none") {
+    const n = Number(rawGroupId)
+    if (!isNaN(n) && n > 0) groupIds = [n]
+  }
+
+  // 役割フィルター解析
+  const rawRoleIds = params.roleIds as string | undefined
+  const roleUnassigned = params.roleUnassigned === "true"
+  let roleIds: number[] | undefined
+  if (rawRoleIds) {
+    roleIds = rawRoleIds.split(",").map(Number).filter((n) => !isNaN(n) && n > 0)
+    if (roleIds.length === 0) roleIds = undefined
+  }
+
+  const [result, groups, roles] = await Promise.all([
+    getEmployees(
+      { search, groupIds, noGroup: unassigned || undefined, roleIds, roleUnassigned: roleUnassigned || undefined, activeOnly },
+      { page, pageSize }
+    ),
     getGroups(),
+    getFunctionRoles(),
   ])
 
   return (
@@ -49,7 +73,7 @@ export default async function EmployeesPage({
           </div>
         </div>
         <Suspense fallback={<Skeleton className="h-10 w-full" />}>
-          <EmployeeFilters groups={groups} />
+          <EmployeeFilters groups={groups} roles={roles} />
         </Suspense>
         <div className="mt-4">
           <p className="text-sm text-muted-foreground mb-2">

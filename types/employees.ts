@@ -44,7 +44,9 @@ export type EmployeeWithDetails = Employee & {
 
 export type EmployeeFilterParams = {
   search?: string
-  groupId?: number
+  groupIds?: number[]
   noGroup?: boolean
+  roleIds?: number[]
+  roleUnassigned?: boolean
   activeOnly?: boolean
 }

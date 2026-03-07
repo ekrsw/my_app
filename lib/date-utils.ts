@@ -80,3 +80,17 @@ export function formatDateForInput(date: Date | string | null | undefined): stri
   if (isNaN(d.getTime())) return ""
   return d.toISOString().split("T")[0]
 }
+
+/**
+ * サーバーのタイムゾーンに依存せず JST (UTC+9) で「今日」を算出し、
+ * Prisma @db.Date 比較用の UTC midnight Date を返す。
+ */
+export function getTodayJST(): Date {
+  const jstOffsetMs = 9 * 60 * 60 * 1000
+  const jstNow = new Date(Date.now() + jstOffsetMs)
+  return new Date(Date.UTC(
+    jstNow.getUTCFullYear(),
+    jstNow.getUTCMonth(),
+    jstNow.getUTCDate()
+  ))
+}

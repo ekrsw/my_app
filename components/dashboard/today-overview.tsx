@@ -21,10 +21,10 @@ export function TodayOverview({ shifts }: { shifts: TodayShift[] }) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>本日のシフト</CardTitle>
+          <CardTitle>本日の出勤者</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-muted-foreground">本日のシフトデータがありません</p>
+          <p className="text-sm text-muted-foreground">本日の出勤者はいません</p>
         </CardContent>
       </Card>
     )
@@ -41,7 +41,7 @@ export function TodayOverview({ shifts }: { shifts: TodayShift[] }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>本日のシフト ({shifts.length}名)</CardTitle>
+        <CardTitle>本日の出勤者 ({shifts.length}名)</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="rounded-md border max-h-96 overflow-auto">
@@ -82,11 +82,6 @@ export function TodayOverview({ shifts }: { shifts: TodayShift[] }) {
                           {shift.isRemote && (
                             <Badge className="bg-sky-100 text-sky-800 border-0 text-xs">
                               テレワーク
-                            </Badge>
-                          )}
-                          {shift.isHoliday && (
-                            <Badge variant="destructive" className="text-xs">
-                              休日
                             </Badge>
                           )}
                         </div>

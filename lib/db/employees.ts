@@ -23,15 +23,27 @@ export async function getEmployees(
     })
   }
 
-  if (filter.noGroup) {
-    conditions.push({
-      groups: { none: { endDate: null } },
-    })
-  } else if (filter.groupId) {
-    conditions.push({
-      groups: { some: { groupId: filter.groupId, endDate: null } },
-    })
+  // グループフィルター（OR結合）
+  const groupConditions: object[] = []
+  if (filter.groupIds?.length) {
+    groupConditions.push({ groups: { some: { groupId: { in: filter.groupIds }, endDate: null } } })
   }
+  if (filter.noGroup) {
+    groupConditions.push({ groups: { none: { endDate: null } } })
+  }
+  if (groupConditions.length === 1) conditions.push(groupConditions[0])
+  else if (groupConditions.length > 1) conditions.push({ OR: groupConditions })
+
+  // 役割フィルター（OR結合）
+  const roleConditions: object[] = []
+  if (filter.roleIds?.length) {
+    roleConditions.push({ functionRoles: { some: { functionRoleId: { in: filter.roleIds }, endDate: null } } })
+  }
+  if (filter.roleUnassigned) {
+    roleConditions.push({ functionRoles: { none: { endDate: null } } })
+  }
+  if (roleConditions.length === 1) conditions.push(roleConditions[0])
+  else if (roleConditions.length > 1) conditions.push({ OR: roleConditions })
 
   if (filter.activeOnly) {
     conditions.push({
