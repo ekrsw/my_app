@@ -15,16 +15,37 @@ export async function getShiftsForCalendar(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const employeeWhere: any = {}
 
+  const groupConditions = []
+  if (filter.groupIds && filter.groupIds.length > 0) {
+    groupConditions.push({ groups: { some: { groupId: { in: filter.groupIds }, endDate: null } } })
+  }
   if (filter.unassigned) {
-    employeeWhere.groups = { none: { endDate: null } }
-  } else if (filter.groupId) {
-    employeeWhere.groups = { some: { groupId: filter.groupId, endDate: null } }
+    groupConditions.push({ groups: { none: { endDate: null } } })
+  }
+  if (groupConditions.length > 0) {
+    employeeWhere.OR = groupConditions
+  }
+
+  const roleConditions = []
+  if (filter.roleIds && filter.roleIds.length > 0) {
+    roleConditions.push({ functionRoles: { some: { functionRoleId: { in: filter.roleIds }, endDate: null } } })
+  }
+  if (filter.roleUnassigned) {
+    roleConditions.push({ functionRoles: { none: { endDate: null } } })
+  }
+  if (roleConditions.length > 0) {
+    employeeWhere.AND = [...(employeeWhere.AND ?? []), roleConditions.length === 1 ? roleConditions[0] : { OR: roleConditions }]
   }
 
   if (filter.employeeSearch) {
-    employeeWhere.OR = [
-      { name: { contains: filter.employeeSearch, mode: "insensitive" } },
-      { nameKana: { contains: filter.employeeSearch, mode: "insensitive" } },
+    employeeWhere.AND = [
+      ...(employeeWhere.AND ?? []),
+      {
+        OR: [
+          { name: { contains: filter.employeeSearch, mode: "insensitive" } },
+          { nameKana: { contains: filter.employeeSearch, mode: "insensitive" } },
+        ],
+      },
     ]
   }
 
@@ -84,16 +105,37 @@ export async function getShiftsForCalendarPaginated(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const employeeWhere: any = {}
 
+  const groupConditions2 = []
+  if (filter.groupIds && filter.groupIds.length > 0) {
+    groupConditions2.push({ groups: { some: { groupId: { in: filter.groupIds }, endDate: null } } })
+  }
   if (filter.unassigned) {
-    employeeWhere.groups = { none: { endDate: null } }
-  } else if (filter.groupId) {
-    employeeWhere.groups = { some: { groupId: filter.groupId, endDate: null } }
+    groupConditions2.push({ groups: { none: { endDate: null } } })
+  }
+  if (groupConditions2.length > 0) {
+    employeeWhere.OR = groupConditions2
+  }
+
+  const roleConditions2 = []
+  if (filter.roleIds && filter.roleIds.length > 0) {
+    roleConditions2.push({ functionRoles: { some: { functionRoleId: { in: filter.roleIds }, endDate: null } } })
+  }
+  if (filter.roleUnassigned) {
+    roleConditions2.push({ functionRoles: { none: { endDate: null } } })
+  }
+  if (roleConditions2.length > 0) {
+    employeeWhere.AND = [...(employeeWhere.AND ?? []), roleConditions2.length === 1 ? roleConditions2[0] : { OR: roleConditions2 }]
   }
 
   if (filter.employeeSearch) {
-    employeeWhere.OR = [
-      { name: { contains: filter.employeeSearch, mode: "insensitive" } },
-      { nameKana: { contains: filter.employeeSearch, mode: "insensitive" } },
+    employeeWhere.AND = [
+      ...(employeeWhere.AND ?? []),
+      {
+        OR: [
+          { name: { contains: filter.employeeSearch, mode: "insensitive" } },
+          { nameKana: { contains: filter.employeeSearch, mode: "insensitive" } },
+        ],
+      },
     ]
   }
 
@@ -114,16 +156,46 @@ export async function getShiftsForCalendarPaginated(
     Prisma.sql`(e.termination_date IS NULL OR e.termination_date >= ${startDate})`,
   ]
 
+  const sqlGroupConditions: Prisma.Sql[] = []
+  if (filter.groupIds && filter.groupIds.length > 0) {
+    sqlGroupConditions.push(Prisma.sql`EXISTS (
+      SELECT 1 FROM employee_groups eg2
+      WHERE eg2.employee_id = e.id AND eg2.end_date IS NULL AND eg2.group_id = ANY(${filter.groupIds})
+    )`)
+  }
   if (filter.unassigned) {
-    conditions.push(Prisma.sql`NOT EXISTS (
+    sqlGroupConditions.push(Prisma.sql`NOT EXISTS (
       SELECT 1 FROM employee_groups eg2
       WHERE eg2.employee_id = e.id AND eg2.end_date IS NULL
     )`)
-  } else if (filter.groupId) {
-    conditions.push(Prisma.sql`EXISTS (
-      SELECT 1 FROM employee_groups eg2
-      WHERE eg2.employee_id = e.id AND eg2.end_date IS NULL AND eg2.group_id = ${filter.groupId}
+  }
+  if (sqlGroupConditions.length > 0) {
+    conditions.push(
+      sqlGroupConditions.length === 1
+        ? sqlGroupConditions[0]
+        : Prisma.sql`(${Prisma.join(sqlGroupConditions, " OR ")})`
+    )
+  }
+
+  const sqlRoleConditions: Prisma.Sql[] = []
+  if (filter.roleIds && filter.roleIds.length > 0) {
+    sqlRoleConditions.push(Prisma.sql`EXISTS (
+      SELECT 1 FROM employee_function_roles efr
+      WHERE efr.employee_id = e.id AND efr.end_date IS NULL AND efr.function_role_id = ANY(${filter.roleIds})
     )`)
+  }
+  if (filter.roleUnassigned) {
+    sqlRoleConditions.push(Prisma.sql`NOT EXISTS (
+      SELECT 1 FROM employee_function_roles efr
+      WHERE efr.employee_id = e.id AND efr.end_date IS NULL
+    )`)
+  }
+  if (sqlRoleConditions.length > 0) {
+    conditions.push(
+      sqlRoleConditions.length === 1
+        ? sqlRoleConditions[0]
+        : Prisma.sql`(${Prisma.join(sqlRoleConditions, " OR ")})`
+    )
   }
 
   if (filter.employeeSearch) {
@@ -210,18 +282,41 @@ export async function getShiftsTable(
     },
   }
 
+  const empGroupConditions = []
+  if (filter.groupIds && filter.groupIds.length > 0) {
+    empGroupConditions.push({ groups: { some: { groupId: { in: filter.groupIds }, endDate: null } } })
+  }
   if (filter.unassigned) {
-    where.employee = { groups: { none: { endDate: null } } }
-  } else if (filter.groupId) {
-    where.employee = { groups: { some: { groupId: filter.groupId, endDate: null } } }
+    empGroupConditions.push({ groups: { none: { endDate: null } } })
+  }
+  if (empGroupConditions.length > 0) {
+    where.employee = { OR: empGroupConditions }
+  }
+
+  const empRoleConditions = []
+  if (filter.roleIds && filter.roleIds.length > 0) {
+    empRoleConditions.push({ functionRoles: { some: { functionRoleId: { in: filter.roleIds }, endDate: null } } })
+  }
+  if (filter.roleUnassigned) {
+    empRoleConditions.push({ functionRoles: { none: { endDate: null } } })
+  }
+  if (empRoleConditions.length > 0) {
+    where.employee = {
+      ...(where.employee ?? {}),
+      AND: [...(where.employee?.AND ?? []), empRoleConditions.length === 1 ? empRoleConditions[0] : { OR: empRoleConditions }],
+    }
   }
 
   if (filter.employeeSearch) {
     where.employee = {
       ...(where.employee ?? {}),
-      OR: [
-        { name: { contains: filter.employeeSearch, mode: "insensitive" } },
-        { nameKana: { contains: filter.employeeSearch, mode: "insensitive" } },
+      AND: [
+        {
+          OR: [
+            { name: { contains: filter.employeeSearch, mode: "insensitive" } },
+            { nameKana: { contains: filter.employeeSearch, mode: "insensitive" } },
+          ],
+        },
       ],
     }
   }

@@ -6,7 +6,16 @@ export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl
   const year = Number(searchParams.get("year")) || new Date().getFullYear()
   const month = Number(searchParams.get("month")) || new Date().getMonth() + 1
-  const groupId = searchParams.get("groupId") ? Number(searchParams.get("groupId")) : undefined
+  const groupIdsParam = searchParams.get("groupIds") || searchParams.get("groupId")
+  const groupIds = groupIdsParam
+    ? groupIdsParam.split(",").map(Number).filter((n) => !isNaN(n) && n > 0)
+    : []
+  const unassigned = searchParams.get("unassigned") === "true"
+  const roleIdsParam = searchParams.get("roleIds")
+  const roleIds = roleIdsParam
+    ? roleIdsParam.split(",").map(Number).filter((n) => !isNaN(n) && n > 0)
+    : []
+  const roleUnassigned = searchParams.get("roleUnassigned") === "true"
 
   // @db.Date カラムとの比較は UTC 基準のため UTC midnight で生成
   const startDate = new Date(Date.UTC(year, month - 1, 1))
@@ -20,8 +29,29 @@ export async function GET(request: NextRequest) {
     },
   }
 
-  if (groupId) {
-    where.employee = { groups: { some: { groupId, endDate: null } } }
+  const empGroupConditions = []
+  if (groupIds.length > 0) {
+    empGroupConditions.push({ groups: { some: { groupId: { in: groupIds }, endDate: null } } })
+  }
+  if (unassigned) {
+    empGroupConditions.push({ groups: { none: { endDate: null } } })
+  }
+  if (empGroupConditions.length > 0) {
+    where.employee = { OR: empGroupConditions }
+  }
+
+  const empRoleConditions = []
+  if (roleIds.length > 0) {
+    empRoleConditions.push({ functionRoles: { some: { functionRoleId: { in: roleIds }, endDate: null } } })
+  }
+  if (roleUnassigned) {
+    empRoleConditions.push({ functionRoles: { none: { endDate: null } } })
+  }
+  if (empRoleConditions.length > 0) {
+    where.employee = {
+      ...(where.employee ?? {}),
+      AND: [...(where.employee?.AND ?? []), empRoleConditions.length === 1 ? empRoleConditions[0] : { OR: empRoleConditions }],
+    }
   }
 
   const shifts = await prisma.shift.findMany({

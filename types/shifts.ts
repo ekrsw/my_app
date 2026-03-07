@@ -15,8 +15,10 @@ export type ShiftCalendarData = {
 export type ShiftFilterParams = {
   year: number
   month: number
-  groupId?: number
+  groupIds?: number[]
   unassigned?: boolean
+  roleIds?: number[]
+  roleUnassigned?: boolean
   employeeSearch?: string
 }
 

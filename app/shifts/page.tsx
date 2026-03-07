@@ -8,6 +8,7 @@ import { TabsContent } from "@/components/ui/tabs"
 import { getShiftsForCalendarPaginated, getShiftsTable, getShiftIdsWithHistory, getLatestShiftHistoryEntries } from "@/lib/db/shifts"
 import { getShiftHistory } from "@/lib/db/history"
 import { getGroups } from "@/lib/db/groups"
+import { getFunctionRoles } from "@/lib/db/roles"
 import { getActiveShiftCodes } from "@/lib/db/shift-codes"
 import type { SearchParams } from "@/types"
 
@@ -20,8 +21,16 @@ export default async function ShiftsPage({
   const now = new Date()
   const year = Number(params.year) || now.getFullYear()
   const month = Number(params.month) || now.getMonth() + 1
-  const groupId = params.groupId ? Number(params.groupId) : undefined
+  const groupIds = params.groupIds
+    ? String(params.groupIds).split(",").map(Number).filter((n) => !isNaN(n) && n > 0)
+    : params.groupId
+      ? [Number(params.groupId)].filter((n) => !isNaN(n) && n > 0)
+      : undefined
   const unassigned = params.unassigned === "true"
+  const roleIds = params.roleIds
+    ? String(params.roleIds).split(",").map(Number).filter((n) => !isNaN(n) && n > 0)
+    : undefined
+  const roleUnassigned = params.roleUnassigned === "true"
   const search = params.search as string | undefined
   const page = Number(params.page) || 1
   const activeTab = (params.tab as string) ?? "management"
@@ -30,9 +39,9 @@ export default async function ShiftsPage({
   const historyEmployee = params.historyEmployee as string | undefined
   const isHistory = activeTab === "history"
 
-  const filter = { year, month, groupId, unassigned, employeeSearch: search }
+  const filter = { year, month, groupIds: groupIds && groupIds.length > 0 ? groupIds : undefined, unassigned, roleIds: roleIds && roleIds.length > 0 ? roleIds : undefined, roleUnassigned, employeeSearch: search }
 
-  const [calendarResult, tableResult, groups, shiftCodes, historyResult, shiftIdsWithHistorySet, latestNotes] =
+  const [calendarResult, tableResult, groups, roles, shiftCodes, historyResult, shiftIdsWithHistorySet, latestNotes] =
     await Promise.all([
       isHistory
         ? Promise.resolve({ data: [], total: 0, hasMore: false, nextCursor: null })
@@ -41,6 +50,7 @@ export default async function ShiftsPage({
         ? Promise.resolve({ data: [], totalPages: 0 })
         : getShiftsTable(filter, { page, pageSize: 20 }),
       getGroups(),
+      getFunctionRoles(),
       isHistory
         ? Promise.resolve([])
         : getActiveShiftCodes(),
@@ -81,6 +91,7 @@ export default async function ShiftsPage({
               tablePageCount={tableResult.totalPages}
               tablePage={page}
               groups={groups}
+              roles={roles}
               year={year}
               month={month}
               shiftCodes={shiftCodes}

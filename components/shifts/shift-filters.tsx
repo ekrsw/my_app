@@ -14,6 +14,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { GroupMultiSelect } from "@/components/shifts/group-multi-select"
+import { RoleMultiSelect } from "@/components/shifts/role-multi-select"
 import { CalendarIcon, ChevronLeft, ChevronRight } from "lucide-react"
 import { useQueryParams } from "@/hooks/use-query-params"
 import { useDebounce } from "@/hooks/use-debounce"
@@ -21,11 +23,18 @@ import { formatMonth } from "@/lib/date-utils"
 import { useState, useEffect, useRef, useMemo } from "react"
 
 type Group = { id: number; name: string }
+type Role = { id: number; roleName: string }
 
 type ShiftFiltersProps = {
   groups: Group[]
+  roles: Role[]
   year: number
   month: number
+}
+
+function parseGroupIds(value: string): number[] {
+  if (!value) return []
+  return value.split(",").map(Number).filter((n) => !isNaN(n) && n > 0)
 }
 
 function parseMonthInput(input: string): { year: number; month: number } | null {
@@ -50,7 +59,12 @@ function parseMonthInput(input: string): { year: number; month: number } | null 
   return null
 }
 
-export function ShiftFilters({ groups, year, month }: ShiftFiltersProps) {
+function parseRoleIds(value: string): number[] {
+  if (!value) return []
+  return value.split(",").map(Number).filter((n) => !isNaN(n) && n > 0)
+}
+
+export function ShiftFilters({ groups, roles, year, month }: ShiftFiltersProps) {
   const { setParams, getParam } = useQueryParams()
   const [search, setSearch] = useState(getParam("search"))
   const debouncedSearch = useDebounce(search)
@@ -165,33 +179,30 @@ export function ShiftFilters({ groups, year, month }: ShiftFiltersProps) {
         </Button>
       </div>
 
-      <Select
-        value={
-          getParam("unassigned") === "true"
-            ? "unassigned"
-            : getParam("groupId", "0")
-        }
-        onValueChange={(v) => {
-          if (v === "unassigned") {
-            setParams({ groupId: null, unassigned: "true" })
-          } else {
-            setParams({ groupId: v === "0" ? null : v, unassigned: null })
-          }
+      <GroupMultiSelect
+        groups={groups}
+        selectedIds={parseGroupIds(getParam("groupIds", ""))}
+        unassigned={getParam("unassigned") === "true"}
+        onChange={(ids, unassigned) => {
+          setParams({
+            groupIds: ids.length > 0 ? ids.join(",") : null,
+            unassigned: unassigned ? "true" : null,
+            groupId: null,
+          })
         }}
-      >
-        <SelectTrigger className="w-48">
-          <SelectValue placeholder="グループ" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="0">すべてのグループ</SelectItem>
-          <SelectItem value="unassigned">未所属</SelectItem>
-          {groups.map((g) => (
-            <SelectItem key={g.id} value={g.id.toString()}>
-              {g.name}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      />
+
+      <RoleMultiSelect
+        roles={roles}
+        selectedIds={parseRoleIds(getParam("roleIds", ""))}
+        unassigned={getParam("roleUnassigned") === "true"}
+        onChange={(ids, roleUnassigned) => {
+          setParams({
+            roleIds: ids.length > 0 ? ids.join(",") : null,
+            roleUnassigned: roleUnassigned ? "true" : null,
+          })
+        }}
+      />
 
       <Input
         placeholder="従業員検索..."

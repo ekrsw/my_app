@@ -99,17 +99,43 @@ describe("getShiftsForCalendarPaginated - グループ名順ソート", () => {
     expect(page2.data[0].employeeId).toBe(emp3.id) // B開発部 鈴木一郎
   })
 
-  it("groupIdフィルターで特定グループのみ返ること", async () => {
+  it("groupIdsフィルターで特定グループのみ返ること", async () => {
     const { groupA, emp2, emp4 } = await createGroupedEmployees()
 
     const result = await getShiftsForCalendarPaginated(
-      { year, month, groupId: groupA.id },
+      { year, month, groupIds: [groupA.id] },
       { pageSize: 50 }
     )
 
     expect(result.data).toHaveLength(2)
     expect(result.data.map((d) => d.employeeId)).toEqual([emp2.id, emp4.id])
     expect(result.total).toBe(2)
+  })
+
+  it("複数groupIdsフィルターで複数グループの従業員が返ること", async () => {
+    const { groupA, groupB, emp2, emp3, emp4 } = await createGroupedEmployees()
+
+    const result = await getShiftsForCalendarPaginated(
+      { year, month, groupIds: [groupA.id, groupB.id] },
+      { pageSize: 50 }
+    )
+
+    expect(result.data).toHaveLength(3)
+    expect(result.data.map((d) => d.employeeId)).toEqual([emp2.id, emp4.id, emp3.id])
+    expect(result.total).toBe(3)
+  })
+
+  it("groupIdsとunassignedの同時指定でOR結合されること", async () => {
+    const { groupA, emp2, emp4, emp5 } = await createGroupedEmployees()
+
+    const result = await getShiftsForCalendarPaginated(
+      { year, month, groupIds: [groupA.id], unassigned: true },
+      { pageSize: 50 }
+    )
+
+    expect(result.data).toHaveLength(3)
+    expect(result.data.map((d) => d.employeeId)).toEqual([emp2.id, emp4.id, emp5.id])
+    expect(result.total).toBe(3)
   })
 
   it("unassignedフィルターで未所属のみ返ること", async () => {

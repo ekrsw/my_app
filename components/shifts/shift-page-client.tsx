@@ -18,6 +18,7 @@ import type { Shift } from "@/app/generated/prisma/client"
 import { loadMoreCalendarData } from "@/lib/actions/shift-actions"
 
 type Group = { id: number; name: string }
+type Role = { id: number; roleName: string }
 
 type ActiveShiftCode = {
   id: number
@@ -40,6 +41,7 @@ type ShiftPageClientProps = {
   tablePageCount: number
   tablePage: number
   groups: Group[]
+  roles: Role[]
   year: number
   month: number
   shiftCodes: ActiveShiftCode[]
@@ -57,6 +59,7 @@ export function ShiftPageClient({
   tablePageCount,
   tablePage,
   groups,
+  roles,
   year,
   month,
   shiftCodes,
@@ -183,13 +186,25 @@ export function ShiftPageClient({
       year: year.toString(),
       month: month.toString(),
     })
+    if (calendarFilter.groupIds && calendarFilter.groupIds.length > 0) {
+      params.set("groupIds", calendarFilter.groupIds.join(","))
+    }
+    if (calendarFilter.unassigned) {
+      params.set("unassigned", "true")
+    }
+    if (calendarFilter.roleIds && calendarFilter.roleIds.length > 0) {
+      params.set("roleIds", calendarFilter.roleIds.join(","))
+    }
+    if (calendarFilter.roleUnassigned) {
+      params.set("roleUnassigned", "true")
+    }
     window.open(`/api/shifts/export?${params}`, "_blank")
   }
 
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <ShiftFilters groups={groups} year={year} month={month} />
+        <ShiftFilters groups={groups} roles={roles} year={year} month={month} />
         <div className="flex items-center gap-2">
           {selectedCells.size > 0 && (
             <Button
