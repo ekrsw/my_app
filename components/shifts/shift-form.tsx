@@ -278,8 +278,14 @@ function ShiftFormInner({ onClose, shift, employeeId, date, shiftCodes = [] }: S
             />
           </div>
         )}
-        <div className="flex justify-between">
-          {isEdit ? (
+        <div className="flex justify-end gap-2">
+          <Button type="submit" disabled={loading || isDeleting}>
+            {loading ? "保存中..." : "保存"}
+          </Button>
+          <Button type="button" variant="outline" onClick={onClose}>
+            キャンセル
+          </Button>
+          {isEdit && (
             <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
               <AlertDialogTrigger asChild>
                 <Button type="button" variant="destructive" disabled={loading || isDeleting}>
@@ -301,17 +307,7 @@ function ShiftFormInner({ onClose, shift, employeeId, date, shiftCodes = [] }: S
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
-          ) : (
-            <div />
           )}
-          <div className="flex gap-2">
-            <Button type="button" variant="outline" onClick={onClose}>
-              キャンセル
-            </Button>
-            <Button type="submit" disabled={loading || isDeleting}>
-              {loading ? "保存中..." : "保存"}
-            </Button>
-          </div>
         </div>
       </form>
     </>
