@@ -67,6 +67,11 @@ Form (Client Component) → lib/actions/ (Server Actions) → Zod validation →
 - `components/ui/` は手動編集禁止（`npx shadcn add` を使用）
 - セマンティックカラートークン（`bg-primary`, `text-muted-foreground` 等）を優先し、Tailwind カラー直接指定はシフトコード配色など特定用途に限定
 
+### 日付・時刻の扱い
+- サーバーのタイムゾーンに依存せず、JST (UTC+9) 基準で日付比較を行うこと
+- 「今日」の算出には `lib/date-utils.ts` の `getTodayJST()` を使用する（`new Date()` のローカル日付を直接使わない）
+- `getTodayJST()` は Prisma `@db.Date` カラム比較用の UTC midnight Date を返す
+
 ### Database Design
 - **Junction tables** for many-to-many: `employee_groups`, `employee_function_roles`, `employee_positions`
 - **History tables** auto-populated by PostgreSQL triggers (PL/pgSQL in migration SQL files): `employee_group_history`, `shift_change_history`, etc.
