@@ -1,9 +1,9 @@
 import type { Metadata } from "next"
 import { Geist, Geist_Mono } from "next/font/google"
+import { cookies } from "next/headers"
 import "./globals.css"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 import { AppSidebar } from "@/components/layout/app-sidebar"
-import { TooltipProvider } from "@/components/ui/tooltip"
 import { Toaster } from "@/components/ui/sonner"
 
 const geistSans = Geist({
@@ -21,22 +21,24 @@ export const metadata: Metadata = {
   description: "従業員シフト管理システム",
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode
 }>) {
+  const cookieStore = await cookies()
+  const sidebarState = cookieStore.get("sidebar_state")?.value
+  const defaultOpen = sidebarState !== "false"
+
   return (
     <html lang="ja">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <TooltipProvider>
-          <SidebarProvider>
-            <AppSidebar />
-            <SidebarInset>{children}</SidebarInset>
-          </SidebarProvider>
-        </TooltipProvider>
+        <SidebarProvider defaultOpen={defaultOpen}>
+          <AppSidebar />
+          <SidebarInset>{children}</SidebarInset>
+        </SidebarProvider>
         <Toaster />
       </body>
     </html>

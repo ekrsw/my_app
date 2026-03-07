@@ -205,7 +205,7 @@ export function EmployeeEditDialog({
         roleName: role.roleName,
         roleType: role.roleType,
         isPrimary: false,
-        startDate: new Date().toISOString().split("T")[0],
+        startDate: "",
         endDate: "",
         status: "added",
       },
@@ -260,7 +260,7 @@ export function EmployeeEditDialog({
       {
         positionId: pos.id,
         positionName: pos.positionName,
-        startDate: new Date().toISOString().split("T")[0],
+        startDate: "",
         endDate: "",
         status: "added",
       },
@@ -315,7 +315,7 @@ export function EmployeeEditDialog({
       {
         groupId: grp.id,
         groupName: grp.name,
-        startDate: new Date().toISOString().split("T")[0],
+        startDate: "",
         endDate: "",
         status: "added",
       },

@@ -68,7 +68,9 @@ export default async function EmployeesPage({
           <h1 className="text-2xl font-bold">従業員一覧</h1>
           <div className="flex items-center gap-2">
             <EmployeeImportDialog />
-            <EmployeeExportButton />
+            <Suspense fallback={null}>
+              <EmployeeExportButton />
+            </Suspense>
             <EmployeeForm groups={groups} />
           </div>
         </div>
