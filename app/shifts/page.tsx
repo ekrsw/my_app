@@ -5,7 +5,7 @@ import { ShiftTabs } from "@/components/shifts/shift-tabs"
 import { ShiftHistoryTable } from "@/components/shifts/shift-history-table"
 import { ShiftHistoryFilters } from "@/components/shifts/shift-history-filters"
 import { TabsContent } from "@/components/ui/tabs"
-import { getShiftsForCalendarPaginated, getShiftsTable, getShiftIdsWithHistory, getLatestShiftHistoryEntries } from "@/lib/db/shifts"
+import { getShiftsForCalendarPaginated, getShiftIdsWithHistory, getLatestShiftHistoryEntries } from "@/lib/db/shifts"
 import { getShiftHistory } from "@/lib/db/history"
 import { getGroups } from "@/lib/db/groups"
 import { getFunctionRoles } from "@/lib/db/roles"
@@ -41,14 +41,11 @@ export default async function ShiftsPage({
 
   const filter = { year, month, groupIds: groupIds && groupIds.length > 0 ? groupIds : undefined, unassigned, roleIds: roleIds && roleIds.length > 0 ? roleIds : undefined, roleUnassigned, employeeSearch: search }
 
-  const [calendarResult, tableResult, groups, roles, shiftCodes, historyResult, shiftIdsWithHistorySet, latestNotes] =
+  const [calendarResult, groups, roles, shiftCodes, historyResult, shiftIdsWithHistorySet, latestNotes] =
     await Promise.all([
       isHistory
         ? Promise.resolve({ data: [], total: 0, hasMore: false, nextCursor: null })
         : getShiftsForCalendarPaginated(filter, { cursor: 0, pageSize: 50 }),
-      isHistory
-        ? Promise.resolve({ data: [], totalPages: 0 })
-        : getShiftsTable(filter, { page, pageSize: 20 }),
       getGroups(),
       getFunctionRoles(),
       isHistory
@@ -87,9 +84,6 @@ export default async function ShiftsPage({
               calendarHasMore={calendarResult.hasMore}
               calendarNextCursor={calendarResult.nextCursor}
               calendarFilter={filter}
-              tableData={tableResult.data}
-              tablePageCount={tableResult.totalPages}
-              tablePage={page}
               groups={groups}
               roles={roles}
               year={year}

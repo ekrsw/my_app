@@ -3,16 +3,14 @@
 import { useState, useCallback, useMemo, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { ShiftCalendar } from "./shift-calendar"
-import { ShiftTable } from "./shift-table"
 import { ShiftFilters } from "./shift-filters"
-import { ShiftViewToggle } from "./shift-view-toggle"
 import { ShiftForm } from "./shift-form"
 import { ShiftDetailDialog } from "./shift-detail-dialog"
 import { ShiftBulkEditor } from "./shift-bulk-editor"
 import { Upload, Pencil } from "lucide-react"
 import { ShiftImportDialog } from "./shift-import-dialog"
 import { SHIFT_CODE_MAP, getColorClasses, type ShiftCodeInfo } from "@/lib/constants"
-import type { ShiftCalendarData, ShiftWithEmployee, ShiftFilterParams } from "@/types/shifts"
+import type { ShiftCalendarData, ShiftFilterParams } from "@/types/shifts"
 import type { LatestShiftHistory } from "@/lib/db/shifts"
 import type { Shift } from "@/app/generated/prisma/client"
 import { loadMoreCalendarData } from "@/lib/actions/shift-actions"
@@ -37,9 +35,6 @@ type ShiftPageClientProps = {
   calendarHasMore: boolean
   calendarNextCursor: number | null
   calendarFilter: ShiftFilterParams
-  tableData: ShiftWithEmployee[]
-  tablePageCount: number
-  tablePage: number
   groups: Group[]
   roles: Role[]
   year: number
@@ -55,9 +50,6 @@ export function ShiftPageClient({
   calendarHasMore: initialHasMore,
   calendarNextCursor: initialNextCursor,
   calendarFilter,
-  tableData,
-  tablePageCount,
-  tablePage,
   groups,
   roles,
   year,
@@ -92,7 +84,6 @@ export function ShiftPageClient({
     }
   }, [hasMore, nextCursor, isLoadingMore, calendarFilter])
 
-  const [view, setView] = useState<"calendar" | "table">("calendar")
   const [editOpen, setEditOpen] = useState(false)
   const [detailOpen, setDetailOpen] = useState(false)
   const [editShift, setEditShift] = useState<Shift | undefined>()
@@ -221,33 +212,23 @@ export function ShiftPageClient({
             <Upload className="h-4 w-4 mr-1" />
             CSV
           </Button>
-          <ShiftViewToggle view={view} onChange={setView} />
         </div>
       </div>
 
-      {view === "calendar" ? (
-        <ShiftCalendar
-          data={calendarData}
-          year={year}
-          month={month}
-          onCellClick={handleCellClick}
-          selectedCells={selectedCells}
-          onCellSelect={handleCellSelect}
-          shiftCodeMap={shiftCodeMap}
-          shiftIdsWithHistory={shiftIdsWithHistorySet}
-          hasMore={hasMore}
-          isLoadingMore={isLoadingMore}
-          onLoadMore={handleLoadMore}
-          total={calendarTotal}
-        />
-      ) : (
-        <>
-          <p className="text-sm text-muted-foreground">
-            {tableData.length}件表示中
-          </p>
-          <ShiftTable data={tableData} pageCount={tablePageCount} page={tablePage} />
-        </>
-      )}
+      <ShiftCalendar
+        data={calendarData}
+        year={year}
+        month={month}
+        onCellClick={handleCellClick}
+        selectedCells={selectedCells}
+        onCellSelect={handleCellSelect}
+        shiftCodeMap={shiftCodeMap}
+        shiftIdsWithHistory={shiftIdsWithHistorySet}
+        hasMore={hasMore}
+        isLoadingMore={isLoadingMore}
+        onLoadMore={handleLoadMore}
+        total={calendarTotal}
+      />
 
       {editShift && editDate && (
         <ShiftDetailDialog
