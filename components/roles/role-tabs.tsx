@@ -3,11 +3,18 @@
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { useQueryParams } from "@/hooks/use-query-params"
 import { RoleTable } from "@/components/roles/role-table"
-import type { FunctionRoleWithEmployeeCount } from "@/types"
+type FunctionRoleWithCount = {
+  id: number
+  roleCode: string
+  roleName: string
+  roleType: string
+  isActive: boolean | null
+  _count: { employeeRoles: number }
+}
 
 interface RoleTabsProps {
   activeTab: string
-  roles: FunctionRoleWithEmployeeCount[]
+  roles: FunctionRoleWithCount[]
 }
 
 export function RoleTabs({ activeTab, roles }: RoleTabsProps) {
