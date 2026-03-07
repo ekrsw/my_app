@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useEffect, useRef, useId } from "react"
+import { useMemo, useEffect, useRef, useId, useState } from "react"
 import type { ShiftCalendarData } from "@/types/shifts"
 import type { ShiftCodeInfo } from "@/lib/constants"
 import { ShiftCalendarCell } from "./shift-calendar-cell"
@@ -53,13 +53,36 @@ export function ShiftCalendar({
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const sentinelRef = useRef<HTMLDivElement>(null)
   const onLoadMoreRef = useRef(onLoadMore)
+  const [maxHeight, setMaxHeight] = useState<number | undefined>(undefined)
 
   useEffect(() => {
     onLoadMoreRef.current = onLoadMore
   }, [onLoadMore])
 
   useEffect(() => {
+    const container = scrollContainerRef.current
+    if (!container) return
+
+    const updateHeight = () => {
+      const rect = container.getBoundingClientRect()
+      const available = window.innerHeight - rect.top - 24
+      setMaxHeight(Math.max(300, available))
+    }
+
+    updateHeight()
+    window.addEventListener("resize", updateHeight)
+    const observer = new ResizeObserver(updateHeight)
+    observer.observe(document.documentElement)
+
+    return () => {
+      window.removeEventListener("resize", updateHeight)
+      observer.disconnect()
+    }
+  }, [])
+
+  useEffect(() => {
     const sentinel = sentinelRef.current
+    const container = scrollContainerRef.current
     if (!sentinel || !hasMore) return
 
     const observer = new IntersectionObserver(
@@ -68,7 +91,7 @@ export function ShiftCalendar({
           onLoadMoreRef.current?.()
         }
       },
-      { rootMargin: "200px" }
+      { root: container, rootMargin: "200px" }
     )
     observer.observe(sentinel)
     return () => observer.disconnect()
@@ -78,7 +101,8 @@ export function ShiftCalendar({
     <div
       id={scrollContainerId}
       ref={scrollContainerRef}
-      className="hide-native-scrollbar-x w-full overflow-auto rounded-md border"
+      className="w-full overflow-auto rounded-md border"
+      style={{ maxHeight }}
     >
       <div className="min-w-max">
         {/* Header row */}
@@ -110,10 +134,10 @@ export function ShiftCalendar({
           <div key={group.groupId ?? "ungrouped"}>
             {/* Group header */}
             <div
-              className="flex sticky top-10 z-10 bg-muted/50 border-b cursor-pointer hover:bg-muted/80"
+              className="flex sticky top-10 z-[15] bg-muted border-b cursor-pointer hover:bg-muted/80"
               onClick={() => toggleGroup(group.groupId)}
             >
-              <div className="sticky left-0 z-20 flex w-48 min-w-48 items-center gap-1 border-r bg-muted/50 px-3 py-1.5 text-sm font-medium">
+              <div className="sticky left-0 z-20 flex w-48 min-w-48 items-center gap-1 border-r bg-muted px-3 py-1.5 text-sm font-medium">
                 {group.collapsed ? (
                   <ChevronRight className="h-3.5 w-3.5" />
                 ) : (

@@ -124,12 +124,3 @@
     @apply bg-background text-foreground;
   }
 }
-
-/* 横スクロールバーのみ非表示（縦スクロールバーは残す） */
-.hide-native-scrollbar-x {
-  scrollbar-width: none; /* Firefox */
-}
-.hide-native-scrollbar-x::-webkit-scrollbar {
-  width: 0;
-  height: 0;
-}
