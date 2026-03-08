@@ -17,7 +17,6 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { ChevronDown } from "lucide-react"
 import { formatDate } from "@/lib/date-utils"
-import { ROLE_TYPE_LABELS } from "@/lib/constants"
 import type { EmployeeFunctionRoleHistoryEntry } from "@/types/employees"
 
 const CHANGE_TYPE_LABELS: Record<string, string> = {
@@ -42,7 +41,7 @@ export function EmployeeRoleHistorySection({ roleHistory }: Props) {
   return (
     <Collapsible open={open} onOpenChange={setOpen}>
       <CollapsibleTrigger className="flex w-full items-center justify-between rounded-lg border px-4 py-3 font-semibold hover:bg-muted/50 transition-colors">
-        <span>役割履歴 ({roleHistory.length})</span>
+        <span>ロール履歴 ({roleHistory.length})</span>
         <ChevronDown
           className={`h-4 w-4 transition-transform ${open ? "rotate-180" : ""}`}
         />
@@ -50,7 +49,7 @@ export function EmployeeRoleHistorySection({ roleHistory }: Props) {
       <CollapsibleContent className="mt-2">
         {roleHistory.length === 0 ? (
           <p className="text-sm text-muted-foreground py-4 px-4">
-            役割の変更履歴がありません
+            ロールの変更履歴がありません
           </p>
         ) : (
           <div className="rounded-md border">
@@ -59,7 +58,7 @@ export function EmployeeRoleHistorySection({ roleHistory }: Props) {
                 <TableRow>
                   <TableHead>変更日時</TableHead>
                   <TableHead>変更種別</TableHead>
-                  <TableHead>分類</TableHead>
+                  <TableHead>ロールタイプ</TableHead>
                   <TableHead>主担当</TableHead>
                   <TableHead>開始日</TableHead>
                   <TableHead>終了日</TableHead>
@@ -80,7 +79,7 @@ export function EmployeeRoleHistorySection({ roleHistory }: Props) {
                     <TableCell>
                       {h.roleType ? (
                         <Badge variant="outline">
-                          {ROLE_TYPE_LABELS[h.roleType] ?? h.roleType}
+                          {h.roleType}
                         </Badge>
                       ) : (
                         "-"

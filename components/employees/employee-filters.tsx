@@ -34,7 +34,7 @@ export function EmployeeFilters({
     : []
   const groupUnassigned = getParam("unassigned") === "true"
 
-  // 役割フィルター状態をURLパラメータから復元
+  // ロールフィルター状態をURLパラメータから復元
   const roleIdsParam = getParam("roleIds")
   const selectedRoleIds = roleIdsParam
     ? roleIdsParam.split(",").map(Number).filter((n) => !isNaN(n) && n > 0)

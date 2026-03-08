@@ -22,9 +22,9 @@ export async function createFunctionRole(formData: FormData) {
     return { success: true }
   } catch (e: unknown) {
     if (e && typeof e === "object" && "code" in e && e.code === "P2002") {
-      return { error: "この役割コードは既に使用されています" }
+      return { error: "このロールコードは既に使用されています" }
     }
-    return { error: "役割の作成に失敗しました" }
+    return { error: "ロールの作成に失敗しました" }
   }
 }
 
@@ -49,9 +49,9 @@ export async function updateFunctionRole(id: number, formData: FormData) {
     return { success: true }
   } catch (e: unknown) {
     if (e && typeof e === "object" && "code" in e && e.code === "P2002") {
-      return { error: "この役割コードは既に使用されています" }
+      return { error: "このロールコードは既に使用されています" }
     }
-    return { error: "役割の更新に失敗しました" }
+    return { error: "ロールの更新に失敗しました" }
   }
 }
 
@@ -61,7 +61,7 @@ export async function deleteFunctionRole(id: number) {
     revalidatePath("/roles")
     return { success: true }
   } catch {
-    return { error: "役割の削除に失敗しました。割当中の従業員がいる場合は削除できません。" }
+    return { error: "ロールの削除に失敗しました。割当中の従業員がいる場合は削除できません。" }
   }
 }
 
@@ -94,10 +94,10 @@ export async function assignRole(data: {
   } catch (e: unknown) {
     if (e && typeof e === "object" && "code" in e && e.code === "P2002") {
       return {
-        error: "この従業員には同じカテゴリの役割が既に割り当てられています。同一カテゴリ（業務役割/監督権限/役職）の役割は1つしか持てません。",
+        error: "この従業員には同じカテゴリのロールが既に割り当てられています。同一カテゴリのロールは1つしか持てません。",
       }
     }
-    return { error: "役割の割当に失敗しました" }
+    return { error: "ロールの割当に失敗しました" }
   }
 }
 
@@ -140,10 +140,10 @@ export async function updateEmployeeRole(
   } catch (e: unknown) {
     if (e && typeof e === "object" && "code" in e && e.code === "P2002") {
       return {
-        error: "この設定では制約違反が発生します。同一カテゴリの役割は1つしか持てません。",
+        error: "この設定では制約違反が発生します。同一カテゴリのロールは1つしか持てません。",
       }
     }
-    return { error: "役割の更新に失敗しました" }
+    return { error: "ロールの更新に失敗しました" }
   }
 }
 
@@ -157,6 +157,6 @@ export async function unassignRole(id: number) {
     revalidatePath("/employees")
     return { success: true }
   } catch {
-    return { error: "役割の解除に失敗しました" }
+    return { error: "ロールの解除に失敗しました" }
   }
 }

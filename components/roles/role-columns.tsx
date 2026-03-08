@@ -2,12 +2,6 @@
 
 import { ColumnDef } from "@tanstack/react-table"
 import { Badge } from "@/components/ui/badge"
-import { ROLE_TYPE_LABELS } from "@/lib/constants"
-
-const ROLE_TYPE_VARIANTS: Record<string, "default" | "secondary" | "outline"> = {
-  FUNCTION: "default",
-  AUTHORITY: "secondary",
-}
 
 type FunctionRoleWithCount = {
   id: number
@@ -32,16 +26,16 @@ export const roleColumns: ColumnDef<FunctionRoleWithCount>[] = [
   },
   {
     accessorKey: "roleName",
-    header: "役割名",
+    header: "ロール名",
   },
   {
     accessorKey: "roleType",
-    header: "分類",
+    header: "ロールタイプ",
     cell: ({ getValue }) => {
       const type = getValue<string>()
       return (
-        <Badge variant={ROLE_TYPE_VARIANTS[type] ?? "default"}>
-          {ROLE_TYPE_LABELS[type] ?? type}
+        <Badge variant="outline">
+          {type}
         </Badge>
       )
     },

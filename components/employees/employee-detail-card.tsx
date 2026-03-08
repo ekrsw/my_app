@@ -1,7 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { formatDate } from "@/lib/date-utils"
-import { ROLE_TYPE_LABELS } from "@/lib/constants"
 import type { EmployeeWithDetails } from "@/types/employees"
 
 export function EmployeeDetailCard({ employee }: { employee: EmployeeWithDetails }) {
@@ -71,7 +70,7 @@ export function EmployeeDetailCard({ employee }: { employee: EmployeeWithDetails
             </dd>
           </div>
           <div className="col-span-2">
-            <dt className="text-muted-foreground mb-1">現在の役割</dt>
+            <dt className="text-muted-foreground mb-1">現在のロール</dt>
             <dd className="font-medium">
               {currentRoles.length === 0 ? (
                 <span className="text-muted-foreground">-</span>
@@ -84,7 +83,7 @@ export function EmployeeDetailCard({ employee }: { employee: EmployeeWithDetails
                         <span className="ml-1 text-xs text-primary">(主)</span>
                       )}
                       <span className="ml-1 text-xs text-muted-foreground">
-                        {ROLE_TYPE_LABELS[r.roleType] ?? r.roleType}
+                        {r.roleType}
                       </span>
                     </Badge>
                   ))}

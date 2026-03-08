@@ -43,7 +43,7 @@ export function RoleMultiSelect({
   }
 
   const label = () => {
-    if (!hasSelection) return "すべての役割"
+    if (!hasSelection) return "すべてのロール"
     const parts: string[] = []
     if (unassigned) parts.push("未設定")
     if (selectedIds.length <= 2) {
@@ -53,7 +53,7 @@ export function RoleMultiSelect({
         )
       )
     } else {
-      parts.push(`${selectedIds.length}役割`)
+      parts.push(`${selectedIds.length}ロール`)
     }
     return parts.filter(Boolean).join(", ")
   }

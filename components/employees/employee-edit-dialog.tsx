@@ -27,7 +27,6 @@ import {
   type PositionChangeItem,
   type GroupChangeItem,
 } from "@/lib/actions/employee-actions"
-import { ROLE_TYPE_LABELS } from "@/lib/constants"
 import { formatDateForInput } from "@/lib/date-utils"
 import { toast } from "sonner"
 import { Pencil, Plus, Trash2 } from "lucide-react"
@@ -648,7 +647,7 @@ export function EmployeeEditDialog({
 
           {/* Section 3: Role Management */}
           <div className="space-y-4">
-            <h3 className="text-sm font-semibold text-muted-foreground">役割管理</h3>
+            <h3 className="text-sm font-semibold text-muted-foreground">ロール管理</h3>
 
             {/* Current roles */}
             {visibleRoles.length > 0 && (
@@ -670,7 +669,7 @@ export function EmployeeEditDialog({
                             {role.roleName}
                           </span>
                           <Badge variant="outline" className="text-xs">
-                            {ROLE_TYPE_LABELS[role.roleType] ?? role.roleType}
+                            {role.roleType}
                           </Badge>
                           {role.status === "added" && (
                             <Badge variant="default" className="text-xs">新規</Badge>
@@ -746,17 +745,17 @@ export function EmployeeEditDialog({
             {/* Add new role */}
             <div className="flex items-end gap-2">
               <div className="flex-1 space-y-1">
-                <Label className="text-xs">役割を追加</Label>
+                <Label className="text-xs">ロールを追加</Label>
                 <Select value={newRoleId} onValueChange={setNewRoleId}>
                   <SelectTrigger className="h-9">
-                    <SelectValue placeholder="役割を選択" />
+                    <SelectValue placeholder="ロールを選択" />
                   </SelectTrigger>
                   <SelectContent>
                     {availableRoles.map((r) => (
                       <SelectItem key={r.id} value={r.id.toString()}>
                         {r.roleName}
                         <span className="ml-1 text-xs text-muted-foreground">
-                          ({ROLE_TYPE_LABELS[r.roleType] ?? r.roleType})
+                          ({r.roleType})
                         </span>
                       </SelectItem>
                     ))}

@@ -11,16 +11,8 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
 import { createFunctionRole, updateFunctionRole, deleteFunctionRole } from "@/lib/actions/role-actions"
-import { ROLE_TYPE_LABELS } from "@/lib/constants"
 import { toast } from "sonner"
 import { Plus } from "lucide-react"
 import {
@@ -55,16 +47,16 @@ export function RoleForm({ role, open: controlledOpen, onOpenChange }: RoleFormP
 
   const [loading, setLoading] = useState(false)
   const [deleteLoading, setDeleteLoading] = useState(false)
-  const [roleType, setRoleType] = useState(role?.roleType ?? "FUNCTION")
+  const [roleType, setRoleType] = useState(role?.roleType ?? "")
   const [isActive, setIsActive] = useState(role?.isActive ?? true)
   const isEdit = !!role
 
   useEffect(() => {
     if (open) {
-      setRoleType(role?.roleType ?? "FUNCTION")
+      setRoleType(role?.roleType ?? "")
       setIsActive(role?.isActive ?? true)
     }
-  }, [open, role])
+  }, [open, role?.id])
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -79,7 +71,7 @@ export function RoleForm({ role, open: controlledOpen, onOpenChange }: RoleFormP
       if (result.error) {
         toast.error(result.error)
       } else {
-        toast.success(isEdit ? "役割を更新しました" : "役割を作成しました")
+        toast.success(isEdit ? "ロールを更新しました" : "ロールを作成しました")
         setOpen(false)
       }
     } catch {
@@ -98,7 +90,7 @@ export function RoleForm({ role, open: controlledOpen, onOpenChange }: RoleFormP
     if (result.error) {
       toast.error(result.error)
     } else {
-      toast.success("役割を削除しました")
+      toast.success("ロールを削除しました")
       setOpen(false)
     }
   }
@@ -115,11 +107,11 @@ export function RoleForm({ role, open: controlledOpen, onOpenChange }: RoleFormP
       )}
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>{isEdit ? "役割編集" : "役割作成"}</DialogTitle>
+          <DialogTitle>{isEdit ? "ロール編集" : "ロール作成"}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="roleCode">役割コード *</Label>
+            <Label htmlFor="roleCode">ロールコード *</Label>
             <Input
               id="roleCode"
               name="roleCode"
@@ -131,7 +123,7 @@ export function RoleForm({ role, open: controlledOpen, onOpenChange }: RoleFormP
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="roleName">役割名 *</Label>
+            <Label htmlFor="roleName">ロール名 *</Label>
             <Input
               id="roleName"
               name="roleName"
@@ -143,19 +135,16 @@ export function RoleForm({ role, open: controlledOpen, onOpenChange }: RoleFormP
             />
           </div>
           <div className="space-y-2">
-            <Label>分類 *</Label>
-            <Select value={roleType} onValueChange={setRoleType}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {Object.entries(ROLE_TYPE_LABELS).map(([k, v]) => (
-                  <SelectItem key={k} value={k}>
-                    {v}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Label htmlFor="roleType">ロールタイプ *</Label>
+            <Input
+              id="roleType"
+              name="roleType"
+              value={roleType}
+              onChange={(e) => setRoleType(e.target.value)}
+              required
+              maxLength={20}
+              placeholder="例: 業務"
+            />
           </div>
           <div className="flex items-center gap-2">
             <Checkbox
@@ -181,9 +170,9 @@ export function RoleForm({ role, open: controlledOpen, onOpenChange }: RoleFormP
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
-                    <AlertDialogTitle>役割の削除</AlertDialogTitle>
+                    <AlertDialogTitle>ロールの削除</AlertDialogTitle>
                     <AlertDialogDescription>
-                      この役割を削除してもよろしいですか？
+                      このロールを削除してもよろしいですか？
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>

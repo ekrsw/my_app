@@ -61,7 +61,7 @@ export function RoleAssignmentDialog({
     if (result.error) {
       toast.error(result.error)
     } else {
-      toast.success("役割を割り当てました")
+      toast.success("ロールを割り当てました")
       setOpen(false)
       setEmployeeId("")
       setIsPrimary(false)

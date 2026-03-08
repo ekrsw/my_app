@@ -36,7 +36,7 @@ export default async function EmployeesPage({
     if (!isNaN(n) && n > 0) groupIds = [n]
   }
 
-  // 役割フィルター解析
+  // ロールフィルター解析
   const rawRoleIds = params.roleIds as string | undefined
   const roleUnassigned = params.roleUnassigned === "true"
   let roleIds: number[] | undefined

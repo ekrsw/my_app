@@ -191,17 +191,17 @@ describe("Zod Validation Schemas", () => {
       expect(result.success).toBe(true)
     })
 
-    it("should reject invalid roleType", () => {
+    it("should reject empty roleType", () => {
       const result = functionRoleSchema.safeParse({
         roleCode: "MANAGER",
         roleName: "マネージャー",
-        roleType: "INVALID",
+        roleType: "",
       })
       expect(result.success).toBe(false)
     })
 
-    it("should accept all valid roleType values", () => {
-      for (const roleType of ["FUNCTION", "AUTHORITY"]) {
+    it("should accept any non-empty roleType string", () => {
+      for (const roleType of ["FUNCTION", "AUTHORITY", "業務", "カスタム"]) {
         const result = functionRoleSchema.safeParse({
           roleCode: "MANAGER",
           roleName: "マネージャー",
@@ -209,6 +209,15 @@ describe("Zod Validation Schemas", () => {
         })
         expect(result.success).toBe(true)
       }
+    })
+
+    it("should reject roleType over 20 characters", () => {
+      const result = functionRoleSchema.safeParse({
+        roleCode: "MANAGER",
+        roleName: "マネージャー",
+        roleType: "あ".repeat(21),
+      })
+      expect(result.success).toBe(false)
     })
 
     it("should default isActive to true", () => {

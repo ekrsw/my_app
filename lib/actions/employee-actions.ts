@@ -175,7 +175,7 @@ export async function updateEmployeeWithRoles(
         },
       })
 
-      // 2. 役割変更を処理（各操作はDBトリガーで履歴化）
+      // 2. ロール変更を処理（各操作はDBトリガーで履歴化）
       for (const change of roleChanges) {
         if (change.status === "added" && change.functionRoleId) {
           await tx.employeeFunctionRole.create({

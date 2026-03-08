@@ -60,12 +60,6 @@ export function getColorClasses(colorKey: string | null): { text: string; bg: st
   return { text: palette.text, bg: palette.bg }
 }
 
-// 役割タイプのラベル
-export const ROLE_TYPE_LABELS: Record<string, string> = {
-  FUNCTION: "業務",
-  AUTHORITY: "監督",
-}
-
 // ページサイズ
 export const PAGE_SIZES = [10, 20, 50, 100] as const
 export const DEFAULT_PAGE_SIZE = 20
@@ -77,7 +71,7 @@ export const NAV_ITEMS = [
   { label: "シフト履歴", href: "/shifts/history", icon: "History" },
   { label: "従業員", href: "/employees", icon: "Users" },
   { label: "グループ", href: "/groups", icon: "FolderOpen" },
-  { label: "役割", href: "/roles", icon: "Shield" },
+  { label: "ロール", href: "/roles", icon: "Shield" },
   { label: "役職", href: "/positions", icon: "Award" },
   { label: "シフトコード", href: "/shift-codes", icon: "Tag" },
 ] as const

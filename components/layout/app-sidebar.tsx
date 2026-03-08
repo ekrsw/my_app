@@ -41,7 +41,7 @@ const navItems = [
 
 const settingsSubItems = [
   { label: "グループ", href: "/groups", icon: UsersRound },
-  { label: "役割", href: "/roles", icon: Shield },
+  { label: "ロール", href: "/roles", icon: Shield },
   { label: "役職", href: "/positions", icon: Award },
   { label: "シフトコード", href: "/shift-codes", icon: Tag },
 ]

@@ -2,7 +2,7 @@
 
 ## 概要
 
-シフト管理システム用のPostgreSQLデータベース。従業員、グループ、シフト情報に加え、機能役割・役職・外部ツール連携を管理する。従業員とグループ・役職・機能役割の関係は中間テーブルで管理し、複数所属・履歴管理に対応する。各種変更時の履歴をトリガーで自動記録し、変更前後の比較・復元を可能にする。
+シフト管理システム用のPostgreSQLデータベース。従業員、グループ、シフト情報に加え、ロール・役職・外部ツール連携を管理する。従業員とグループ・役職・ロールの関係は中間テーブルで管理し、複数所属・履歴管理に対応する。各種変更時の履歴をトリガーで自動記録し、変更前後の比較・復元を可能にする。
 
 ## ER図
 
@@ -186,15 +186,15 @@ erDiagram
 | employees | 従業員マスタ | マスタ |
 | employee_groups | 従業員グループ（中間テーブル） | 中間 |
 | shifts | シフトデータ | データ |
-| function_roles | 機能役割マスタ（役職含む） | マスタ |
-| employee_function_roles | 従業員機能役割（中間テーブル） | 中間 |
+| function_roles | ロールマスタ（役職含む） | マスタ |
+| employee_function_roles | 従業員ロール（中間テーブル） | 中間 |
 | positions | 役職マスタ | マスタ |
 | employee_positions | 従業員役職（中間テーブル） | 中間 |
 | external_tools | 外部ツールマスタ | マスタ |
 | employee_external_accounts | 従業員外部アカウント | 中間 |
 | shift_change_history | シフト変更履歴 | 履歴 |
 | employee_group_history | 従業員グループ変更履歴 | 履歴 |
-| employee_function_role_history | 従業員機能役割変更履歴 | 履歴 |
+| employee_function_role_history | 従業員ロール変更履歴 | 履歴 |
 | employee_position_history | 従業員役職変更履歴 | 履歴 |
 | shift_codes | シフトコードマスタ | マスタ |
 
@@ -306,16 +306,16 @@ ORDER BY g.id, e.id;
 
 ---
 
-### 5. function_roles（機能役割マスタ）
+### 5. function_roles（ロールマスタ）
 
-機能役割（受付、二次対応、SVなど）および役職（副部長、課長など）を統合管理する。`role_type` により業務上の機能役割、監督権限、役職を分類する。
+ロール（受付、二次対応、SVなど）および役職（副部長、課長など）を統合管理する。`role_type` により業務ロール、監督権限、役職を分類する。
 
 | カラム名 | データ型 | NULL | デフォルト | 説明 |
 |---------|---------|------|-----------|------|
 | id | SERIAL | NO | auto_increment | 主キー |
-| role_code | VARCHAR(20) | NO | - | 役割コード（UKETSUKE / SV / KACHO等） |
-| role_name | VARCHAR(50) | NO | - | 役割名（受付 / SV / 課長等） |
-| role_type | VARCHAR(20) | NO | 'FUNCTION' | 役割分類（FUNCTION: 業務役割 / AUTHORITY: 監督権限 / POSITION: 役職） |
+| role_code | VARCHAR(20) | NO | - | ロールコード（UKETSUKE / SV / KACHO等） |
+| role_name | VARCHAR(50) | NO | - | ロール名（受付 / SV / 課長等） |
+| role_type | VARCHAR(20) | NO | 'FUNCTION' | ロールタイプ（FUNCTION: 業務ロール / AUTHORITY: 監督権限 / POSITION: 役職） |
 | is_active | BOOLEAN | YES | true | 有効フラグ |
 
 **制約**: PK(id), UNIQUE(role_code)
@@ -324,11 +324,11 @@ ORDER BY g.id, e.id;
 
 | role_type | 説明 | 対象 |
 |-----------|------|------|
-| FUNCTION | 業務上の機能役割 | 受付、二次対応 |
+| FUNCTION | 業務ロール | 受付、二次対応 |
 | AUTHORITY | 監督権限 | SV |
 | POSITION | 役職 | 副部長、課長 |
 
-**制約の効果**: `employee_function_roles` 側のカテゴリ重複防止制約と連携し、同一カテゴリ（同一 `role_type`）の役割を同時に保持できないようにする。これにより「受付 + 二次対応」の同時保持は不可だが、「受付 + SV」や「受付 + 課長」の組み合わせは許可される。役職も同様に、同時に複数の役職を持つことはできない。
+**制約の効果**: `employee_function_roles` 側のカテゴリ重複防止制約と連携し、同一カテゴリ（同一 `role_type`）のロールを同時に保持できないようにする。これにより「受付 + 二次対応」の同時保持は不可だが、「受付 + SV」や「受付 + 課長」の組み合わせは許可される。役職も同様に、同時に複数の役職を持つことはできない。
 
 **現在のデータ**:
 | id | role_code | role_name | role_type |
@@ -341,16 +341,16 @@ ORDER BY g.id, e.id;
 
 ---
 
-### 6. employee_function_roles（従業員機能役割）
+### 6. employee_function_roles（従業員ロール）
 
-従業員と機能役割・役職の紐付けを管理する。履歴管理対応。`role_type` は `function_roles` からトリガーで自動設定される非正規化カラム。
+従業員とロール・役職の紐付けを管理する。履歴管理対応。`role_type` は `function_roles` からトリガーで自動設定される非正規化カラム。
 
 | カラム名 | データ型 | NULL | デフォルト | 説明 |
 |---------|---------|------|-----------|------|
 | id | SERIAL | NO | auto_increment | 主キー |
 | employee_id | UUID | YES | - | 従業員ID |
-| function_role_id | INTEGER | YES | - | 機能役割ID |
-| role_type | VARCHAR(20) | NO | 'FUNCTION' | 役割分類（function_rolesから自動設定） |
+| function_role_id | INTEGER | YES | - | ロールID |
+| role_type | VARCHAR(20) | NO | 'FUNCTION' | ロールタイプ（function_rolesから自動設定） |
 | is_primary | BOOLEAN | YES | false | 主担当フラグ |
 | start_date | DATE | YES | - | 開始日 |
 | end_date | DATE | YES | - | 終了日 |
@@ -359,7 +359,7 @@ ORDER BY g.id, e.id;
 - PK(id)
 - FK(employee_id → employees.id) ON DELETE CASCADE
 - FK(function_role_id → function_roles.id) ON DELETE SET NULL
-- **部分ユニークインデックス①**: `(employee_id, function_role_id) WHERE end_date IS NULL` — 同一従業員で同一役割の現行レコードは1件のみ
+- **部分ユニークインデックス①**: `(employee_id, function_role_id) WHERE end_date IS NULL` — 同一従業員で同一ロールの現行レコードは1件のみ
 - **部分ユニークインデックス②（カテゴリ重複防止）**: `(employee_id, role_type) WHERE end_date IS NULL` — 同一従業員で同一カテゴリ（role_type）の現行レコードは1件のみ
 
 **カテゴリ重複防止制約の効果**:
@@ -712,7 +712,7 @@ EXECUTE FUNCTION record_employee_group_change();
 
 ---
 
-### 14. employee_function_role_history（従業員機能役割変更履歴）
+### 14. employee_function_role_history（従業員ロール変更履歴）
 
 `employee_function_roles` テーブルへの INSERT / UPDATE / DELETE 時にトリガーで自動記録される。
 
@@ -720,8 +720,8 @@ EXECUTE FUNCTION record_employee_group_change();
 |---------|---------|------|-----------|------|
 | id | SERIAL | NO | auto_increment | 主キー |
 | employee_id | UUID | NO | - | 従業員ID |
-| function_role_id | INTEGER | YES | - | 機能役割ID（スナップショット） |
-| role_type | VARCHAR(20) | YES | - | 役割分類（スナップショット） |
+| function_role_id | INTEGER | YES | - | ロールID（スナップショット） |
+| role_type | VARCHAR(20) | YES | - | ロールタイプ（スナップショット） |
 | is_primary | BOOLEAN | YES | - | 主担当フラグ（スナップショット） |
 | start_date | DATE | YES | - | 開始日（スナップショット） |
 | end_date | DATE | YES | - | 終了日（スナップショット） |
@@ -735,7 +735,7 @@ EXECUTE FUNCTION record_employee_group_change();
 - UNIQUE(employee_id, version)
 - INDEX(employee_id, changed_at)
 
-**トリガー: 機能役割変更履歴の自動記録**:
+**トリガー: ロール変更履歴の自動記録**:
 
 ```sql
 CREATE OR REPLACE FUNCTION record_employee_role_change()
@@ -865,7 +865,7 @@ EXECUTE FUNCTION record_employee_position_change();
 | 1 | trg_efr_set_role_type | employee_function_roles | BEFORE INSERT OR UPDATE OF function_role_id | set_efr_role_type() | role_type自動設定 |
 | 2 | trg_shift_change_history | shifts | BEFORE UPDATE OR DELETE | record_shift_change() | シフト変更履歴の自動記録（UPDATE時は変更検知、DELETE時は常時） |
 | 3 | trg_employee_group_change | employee_groups | AFTER INSERT OR UPDATE OR DELETE | record_employee_group_change() | グループ変更履歴の自動記録 |
-| 4 | trg_employee_role_change | employee_function_roles | AFTER INSERT OR UPDATE OR DELETE | record_employee_role_change() | 機能役割変更履歴の自動記録 |
+| 4 | trg_employee_role_change | employee_function_roles | AFTER INSERT OR UPDATE OR DELETE | record_employee_role_change() | ロール変更履歴の自動記録 |
 | 5 | trg_employee_position_change | employee_positions | AFTER INSERT OR UPDATE OR DELETE | record_employee_position_change() | 役職変更履歴の自動記録 |
 
 ---

@@ -34,7 +34,7 @@ export async function getEmployees(
   if (groupConditions.length === 1) conditions.push(groupConditions[0])
   else if (groupConditions.length > 1) conditions.push({ OR: groupConditions })
 
-  // 役割フィルター（OR結合）
+  // ロールフィルター（OR結合）
   const roleConditions: object[] = []
   if (filter.roleIds?.length) {
     roleConditions.push({ functionRoles: { some: { functionRoleId: { in: filter.roleIds }, endDate: null } } })

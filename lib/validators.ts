@@ -34,19 +34,17 @@ export const shiftBulkSchema = z.object({
 export const functionRoleSchema = z.object({
   roleCode: z
     .string()
-    .min(1, "役割コードは必須です")
+    .min(1, "ロールコードは必須です")
     .max(20, "20文字以内で入力してください")
     .regex(/^[A-Z_]+$/, "大文字英字とアンダースコアのみ使用できます"),
-  roleName: z.string().min(1, "役割名は必須です").max(50, "50文字以内で入力してください"),
-  roleType: z.enum(["FUNCTION", "AUTHORITY"], {
-    message: "役割タイプを選択してください",
-  }),
+  roleName: z.string().min(1, "ロール名は必須です").max(50, "50文字以内で入力してください"),
+  roleType: z.string().min(1, "ロールタイプは必須です").max(20, "20文字以内で入力してください"),
   isActive: z.boolean().default(true),
 })
 
 export const roleAssignmentSchema = z.object({
   employeeId: z.string().uuid("従業員を選択してください"),
-  functionRoleId: z.coerce.number().int().positive("役割を選択してください"),
+  functionRoleId: z.coerce.number().int().positive("ロールを選択してください"),
   isPrimary: z.boolean().default(false),
   startDate: z.string().nullable().optional(),
   endDate: z.string().nullable().optional(),
