@@ -43,10 +43,12 @@ export function RecentChanges({ changes }: { changes: RecentChange[] }) {
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <span>{formatDate(change.shiftDate)}</span>
                   <ShiftBadge code={change.shiftCode} />
-                  {change.newShiftCode !== null && change.shiftCode !== change.newShiftCode && (
+                  {change.isRemote && <span className="text-xs text-sky-600 font-medium">TW</span>}
+                  {change.newShiftCode !== null && (change.shiftCode !== change.newShiftCode || change.isRemote !== change.newIsRemote) && (
                     <>
                       <ArrowRight className="h-3 w-3" />
                       <ShiftBadge code={change.newShiftCode} />
+                      {change.newIsRemote && <span className="text-xs text-sky-600 font-medium">TW</span>}
                     </>
                   )}
                   {change.newShiftCode === null && (

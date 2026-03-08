@@ -27,11 +27,15 @@ const columns: ColumnDef<ShiftHistoryEntry>[] = [
       return (
         <div className="flex items-center gap-1.5">
           <ShiftBadge code={entry.shiftCode} />
+          {entry.isRemote && <span className="text-xs text-sky-600 font-medium">TW</span>}
           <span className="text-muted-foreground">→</span>
           {entry.newShiftCode === null ? (
             <span className="text-xs text-muted-foreground">削除</span>
           ) : (
-            <ShiftBadge code={entry.newShiftCode} />
+            <>
+              <ShiftBadge code={entry.newShiftCode} />
+              {entry.newIsRemote && <span className="text-xs text-sky-600 font-medium">TW</span>}
+            </>
           )}
         </div>
       )

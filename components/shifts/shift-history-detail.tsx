@@ -181,11 +181,15 @@ export function ShiftHistoryDetail({ entry, versions }: ShiftHistoryDetailProps)
                 <span className="text-muted-foreground">シフトコード: </span>
                 <div className="flex items-center gap-1.5 mt-1">
                   <ShiftBadge code={entry.shiftCode} />
+                  {entry.isRemote && <span className="text-xs text-sky-600 font-medium">TW</span>}
                   <ArrowRight className="h-3 w-3 text-muted-foreground shrink-0" />
                   {isDeleted ? (
                     <span className="text-xs text-muted-foreground">削除</span>
                   ) : (
-                    <ShiftBadge code={entry.newShiftCode} />
+                    <>
+                      <ShiftBadge code={entry.newShiftCode} />
+                      {entry.newIsRemote && <span className="text-xs text-sky-600 font-medium">TW</span>}
+                    </>
                   )}
                 </div>
               </div>
@@ -308,11 +312,15 @@ export function ShiftHistoryDetail({ entry, versions }: ShiftHistoryDetailProps)
                   </div>
                   <div className="flex items-center gap-1.5 text-sm">
                     <ShiftBadge code={v.shiftCode} />
+                    {v.isRemote && <span className="text-xs text-sky-600 font-medium">TW</span>}
                     <ArrowRight className="h-3 w-3 text-muted-foreground" />
                     {v.newShiftCode === null ? (
                       <span className="text-xs text-muted-foreground">削除</span>
                     ) : (
-                      <ShiftBadge code={v.newShiftCode} />
+                      <>
+                        <ShiftBadge code={v.newShiftCode} />
+                        {v.newIsRemote && <span className="text-xs text-sky-600 font-medium">TW</span>}
+                      </>
                     )}
                   </div>
                   {v.note && (

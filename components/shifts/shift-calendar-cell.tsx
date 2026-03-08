@@ -9,6 +9,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
+import { Home } from "lucide-react"
 
 type ShiftCalendarCellProps = {
   shift?: Shift
@@ -62,6 +63,9 @@ export function ShiftCalendarCell({
           )}
         >
           {code ?? ""}
+          {shift?.isRemote && (
+            <Home className="absolute top-0 right-0 h-2.5 w-2.5 text-sky-600" />
+          )}
         </button>
       </TooltipTrigger>
       {shift && (

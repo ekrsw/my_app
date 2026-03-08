@@ -290,6 +290,8 @@ export type LatestShiftHistory = {
   shiftCode: string | null
   newShiftCode: string | null
   note: string | null
+  isRemote: boolean | null
+  newIsRemote: boolean | null
 }
 
 export async function getLatestShiftHistoryEntries(
@@ -300,9 +302,9 @@ export async function getLatestShiftHistoryEntries(
   const endDate = new Date(Date.UTC(year, month, 0))
 
   const records = await prisma.$queryRaw<
-    { shift_id: number; shift_code: string | null; new_shift_code: string | null; note: string | null }[]
+    { shift_id: number; shift_code: string | null; new_shift_code: string | null; note: string | null; is_remote: boolean | null; new_is_remote: boolean | null }[]
   >`
-    SELECT DISTINCT ON (shift_id) shift_id, shift_code, new_shift_code, note
+    SELECT DISTINCT ON (shift_id) shift_id, shift_code, new_shift_code, note, is_remote, new_is_remote
     FROM shift_change_history
     WHERE shift_date >= ${startDate} AND shift_date <= ${endDate}
     ORDER BY shift_id, version DESC
@@ -314,6 +316,8 @@ export async function getLatestShiftHistoryEntries(
       shiftCode: r.shift_code,
       newShiftCode: r.new_shift_code,
       note: r.note,
+      isRemote: r.is_remote,
+      newIsRemote: r.new_is_remote,
     }
   }
   return result

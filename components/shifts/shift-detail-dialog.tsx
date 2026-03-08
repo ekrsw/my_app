@@ -120,7 +120,7 @@ export function ShiftDetailDialog({
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">変更履歴</span>
                 <span className="text-sm font-medium">
-                  {latestHistory.shiftCode ?? "-"} → {latestHistory.newShiftCode ?? "-"}
+                  {latestHistory.shiftCode ?? "-"}{latestHistory.isRemote ? " TW" : ""} → {latestHistory.newShiftCode ?? "-"}{latestHistory.newIsRemote ? " TW" : ""}
                 </span>
               </div>
               {latestHistory.note && (
