@@ -162,6 +162,93 @@ import { cn } from "@/lib/utils"
 
 カスタムコンポーネントでは必ず `cn()` を使ってクラスを結合すること。
 
+## CSV エクスポート・インポートボタン
+
+シフト管理画面・従業員管理画面で共通して使用する CSV 操作ボタンの仕様。
+
+### ボタン外観（共通）
+
+| 項目 | 値 |
+|------|----|
+| variant | `outline` |
+| size | `sm` |
+| アイコンライブラリ | Lucide React |
+| アイコンサイズ | `h-4 w-4` |
+| アイコン間隔 | `mr-1` |
+| ラベルテキスト | `CSV` |
+
+エクスポートとインポートはアイコンで区別する。
+
+| 操作 | アイコン |
+|------|---------|
+| エクスポート | `Upload` |
+| インポート | `Download` |
+
+```tsx
+// エクスポート
+<Button variant="outline" size="sm" onClick={handleExport}>
+  <Upload className="h-4 w-4 mr-1" />
+  CSV
+</Button>
+
+// インポート（DialogTrigger）
+<DialogTrigger asChild>
+  <Button variant="outline" size="sm">
+    <Download className="mr-1 h-4 w-4" />
+    CSV
+  </Button>
+</DialogTrigger>
+```
+
+### ツールバー配置
+
+フィルター群を左、アクションボタン群を右に配置する。
+
+```tsx
+<div className="flex flex-wrap items-center justify-between gap-4">
+  {/* 左: フィルター群 */}
+  <ShiftFilters ... />
+  {/* 右: アクションボタン群 */}
+  <div className="flex items-center gap-2">
+    <ImportDialog />
+    <ExportButton />
+  </div>
+</div>
+```
+
+- 左右分離: `flex justify-between`
+- レスポンシブ折り返し: `flex-wrap`
+- セクション間: `gap-4`
+- ボタン間: `gap-2`
+
+### エクスポートの挙動
+
+- 現在のフィルター条件をクエリパラメータとして `/api/{resource}/export` を `window.open` で新規タブに開く
+- レスポンスは UTF-8 BOM 付き CSV（`Content-Type: text/csv; charset=utf-8`）
+- ファイル名: シフト = `shifts_YYYYMM.csv`、従業員 = `employees_YYYYMMDD.csv`
+
+### インポートの挙動
+
+ボタンクリックで `Dialog` を開き、4 ステップで処理する。
+
+| ステップ | 状態 | 内容 |
+|----------|------|------|
+| 1. `select` | ファイル選択 | `CsvFileInput` でファイルを読み込み、ヘッダーをバリデーション |
+| 2. `preview` | プレビュー | `CsvPreviewTable` で行ごとのバリデーション結果を表示 |
+| 3. `importing` | インポート実行 | 処理中テキスト表示。シフトは `Progress` バー付き（チャンク処理） |
+| 4. `result` | 結果表示 | 作成件数・更新件数・エラー一覧を表示 |
+
+ダイアログ幅はシフト `max-w-3xl`、従業員 `max-w-2xl`。
+
+#### 共通コンポーネント
+
+- **`CsvFileInput`** (`components/csv-import/csv-file-input.tsx`): 非表示 `<input type="file" accept=".csv">` + `outline` ボタン（ラベル「CSVファイルを選択」）で構成。UTF-8 で読み込み、BOM を除去する。
+- **`CsvPreviewTable`** (`components/csv-import/csv-preview-table.tsx`): ヘッダーと行データを受け取り、有効件数（`text-green-600`）・エラー件数（`text-red-600`）を表示。テーブルは `max-h-[300px]` でスクロール、エラー詳細は `max-h-[100px]` で表示。
+
+### 従業員管理画面との共通パターン
+
+従業員管理画面（`app/employees/page.tsx`）でも同一の UI 仕様を使用する。ボタン外観・ツールバー配置・インポートダイアログの 4 ステップ構成・共通コンポーネント（`CsvFileInput`, `CsvPreviewTable`）はすべて共通。差異はダイアログ幅と CSV ヘッダー項目のみ。
+
 ## フォームのボタン配置
 
 ### 配置ルール

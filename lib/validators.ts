@@ -107,5 +107,16 @@ export const shiftCsvRowSchema = z.object({
   isRemote: z.boolean(),
 })
 
+export const shiftCodeCsvRowSchema = z.object({
+  code: z.string().min(1, "シフトコードは必須です").max(20, "20文字以内で入力してください"),
+  color: z.string().max(20).nullable(),
+  defaultStartTime: z.string().nullable(),
+  defaultEndTime: z.string().nullable(),
+  defaultIsHoliday: z.boolean(),
+  isActive: z.boolean(),
+  sortOrder: z.coerce.number().int().min(0, "0以上の数値を入力してください"),
+})
+
 export type EmployeeCsvRow = z.infer<typeof employeeCsvRowSchema>
 export type ShiftCsvRow = z.infer<typeof shiftCsvRowSchema>
+export type ShiftCodeCsvRow = z.infer<typeof shiftCodeCsvRowSchema>
