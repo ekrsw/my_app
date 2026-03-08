@@ -14,6 +14,7 @@ import {
 } from "@/lib/date-utils"
 import { ChevronDown, ChevronRight, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import Link from "next/link"
 import { StickyHorizontalScrollbar } from "@/components/ui/sticky-horizontal-scrollbar"
 
 type ShiftCalendarProps = {
@@ -156,7 +157,9 @@ export function ShiftCalendar({
               group.employees.map((emp) => (
                 <div key={emp.employeeId} className="flex border-b hover:bg-muted/20">
                   <div className="sticky left-0 z-10 flex w-48 min-w-48 items-center border-r bg-background px-3 py-0 text-sm truncate">
-                    {emp.employeeName}
+                    <Link href={`/employees/${emp.employeeId}`} className="hover:underline hover:text-primary">
+                      {emp.employeeName}
+                    </Link>
                   </div>
                   {days.map((day) => {
                     const dateStr = toDateString(day)
