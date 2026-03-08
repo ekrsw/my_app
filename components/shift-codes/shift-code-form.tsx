@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -63,13 +63,15 @@ export function ShiftCodeForm({ shiftCode, open: controlledOpen, onOpenChange }:
   const [selectedColor, setSelectedColor] = useState<string | null>(shiftCode?.color ?? null)
   const isEdit = !!shiftCode
 
-  useEffect(() => {
+  const [prevOpen, setPrevOpen] = useState(false)
+  if (open !== prevOpen) {
+    setPrevOpen(open)
     if (open) {
       setIsActive(shiftCode?.isActive ?? true)
       setDefaultIsHoliday(shiftCode?.defaultIsHoliday ?? false)
       setSelectedColor(shiftCode?.color ?? null)
     }
-  }, [open, shiftCode])
+  }
 
   async function handleSubmit(formData: FormData) {
     formData.set("isActive", String(isActive))

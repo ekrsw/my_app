@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -50,11 +50,13 @@ export function PositionForm({ position, open: controlledOpen, onOpenChange }: P
   const [isActive, setIsActive] = useState(position?.isActive ?? true)
   const isEdit = !!position
 
-  useEffect(() => {
+  const [prevOpen, setPrevOpen] = useState(false)
+  if (open !== prevOpen) {
+    setPrevOpen(open)
     if (open) {
       setIsActive(position?.isActive ?? true)
     }
-  }, [open, position])
+  }
 
   async function handleSubmit(formData: FormData) {
     formData.set("isActive", String(isActive))

@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma"
 import { Prisma } from "@/app/generated/prisma/client"
-import type { ShiftFilterParams, PaginationParams, PaginatedResult } from "@/types"
-import type { ShiftWithEmployee, ShiftCalendarData, ShiftCalendarPaginatedResult } from "@/types/shifts"
+import type { ShiftFilterParams } from "@/types"
+import type { ShiftCalendarData, ShiftCalendarPaginatedResult } from "@/types/shifts"
 import { toDateString } from "@/lib/date-utils"
 
 export async function getShiftsForCalendar(
