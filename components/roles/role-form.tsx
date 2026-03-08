@@ -66,20 +66,26 @@ export function RoleForm({ role, open: controlledOpen, onOpenChange }: RoleFormP
     }
   }, [open, role])
 
-  async function handleSubmit(formData: FormData) {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    const formData = new FormData(e.currentTarget)
     formData.set("roleType", roleType)
     formData.set("isActive", String(isActive))
     setLoading(true)
-    const result = isEdit
-      ? await updateFunctionRole(role.id, formData)
-      : await createFunctionRole(formData)
-    setLoading(false)
-
-    if (result.error) {
-      toast.error(result.error)
-    } else {
-      toast.success(isEdit ? "役割を更新しました" : "役割を作成しました")
-      setOpen(false)
+    try {
+      const result = isEdit
+        ? await updateFunctionRole(role.id, formData)
+        : await createFunctionRole(formData)
+      if (result.error) {
+        toast.error(result.error)
+      } else {
+        toast.success(isEdit ? "役割を更新しました" : "役割を作成しました")
+        setOpen(false)
+      }
+    } catch {
+      toast.error("エラーが発生しました")
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -111,7 +117,7 @@ export function RoleForm({ role, open: controlledOpen, onOpenChange }: RoleFormP
         <DialogHeader>
           <DialogTitle>{isEdit ? "役割編集" : "役割作成"}</DialogTitle>
         </DialogHeader>
-        <form action={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="roleCode">役割コード *</Label>
             <Input
