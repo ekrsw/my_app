@@ -83,7 +83,7 @@ describe("Employee DB Queries", () => {
         ],
       })
 
-      const result = await getEmployees({ groupId: group1.id })
+      const result = await getEmployees({ groupIds: [group1.id] })
 
       expect(result.data).toHaveLength(2)
       expect(result.data.every((e) =>
