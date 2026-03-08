@@ -2,7 +2,7 @@
 
 import { ColumnDef } from "@tanstack/react-table"
 import { Badge } from "@/components/ui/badge"
-import { ShiftCodeForm, ShiftCodeDeleteButton } from "./shift-code-form"
+
 import { COLOR_PALETTE } from "@/lib/constants"
 import { cn } from "@/lib/utils"
 
@@ -84,16 +84,6 @@ export const shiftCodeColumns: ColumnDef<ShiftCodeRow>[] = [
       <Badge variant={getValue<boolean>() ? "default" : "secondary"}>
         {getValue<boolean>() ? "有効" : "無効"}
       </Badge>
-    ),
-  },
-  {
-    id: "actions",
-    header: "",
-    cell: ({ row }) => (
-      <div className="flex items-center gap-1">
-        <ShiftCodeForm shiftCode={row.original} />
-        <ShiftCodeDeleteButton id={row.original.id} />
-      </div>
     ),
   },
 ]

@@ -2,7 +2,6 @@
 
 import { ColumnDef } from "@tanstack/react-table"
 import { Badge } from "@/components/ui/badge"
-import { PositionForm, PositionDeleteButton } from "./position-form"
 
 type PositionWithCount = {
   id: number
@@ -47,15 +46,5 @@ export const positionColumns: ColumnDef<PositionWithCount>[] = [
     id: "assignedCount",
     header: "割当数",
     cell: ({ getValue }) => `${getValue<number>()}名`,
-  },
-  {
-    id: "actions",
-    header: "",
-    cell: ({ row }) => (
-      <div className="flex items-center gap-1">
-        <PositionForm position={row.original} />
-        <PositionDeleteButton id={row.original.id} />
-      </div>
-    ),
   },
 ]

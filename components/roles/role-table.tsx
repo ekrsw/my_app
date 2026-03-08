@@ -1,7 +1,9 @@
 "use client"
 
+import { useState } from "react"
 import { DataTable } from "@/components/data-table"
 import { roleColumns } from "./role-columns"
+import { RoleForm } from "./role-form"
 
 type FunctionRoleWithCount = {
   id: number
@@ -13,5 +15,29 @@ type FunctionRoleWithCount = {
 }
 
 export function RoleTable({ data }: { data: FunctionRoleWithCount[] }) {
-  return <DataTable columns={roleColumns} data={data} clientPagination pageSize={10} />
+  const [selectedRole, setSelectedRole] = useState<FunctionRoleWithCount | null>(null)
+  const [dialogOpen, setDialogOpen] = useState(false)
+
+  return (
+    <>
+      <DataTable
+        columns={roleColumns}
+        data={data}
+        clientPagination
+        pageSize={10}
+        onRowClick={(row) => {
+          setSelectedRole(row)
+          setDialogOpen(true)
+        }}
+      />
+      <RoleForm
+        role={selectedRole ?? undefined}
+        open={dialogOpen}
+        onOpenChange={(open) => {
+          setDialogOpen(open)
+          if (!open) setSelectedRole(null)
+        }}
+      />
+    </>
+  )
 }

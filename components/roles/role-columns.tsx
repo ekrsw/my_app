@@ -2,7 +2,6 @@
 
 import { ColumnDef } from "@tanstack/react-table"
 import { Badge } from "@/components/ui/badge"
-import { RoleForm, RoleDeleteButton } from "./role-form"
 import { ROLE_TYPE_LABELS } from "@/lib/constants"
 
 const ROLE_TYPE_VARIANTS: Record<string, "default" | "secondary" | "outline"> = {
@@ -61,15 +60,5 @@ export const roleColumns: ColumnDef<FunctionRoleWithCount>[] = [
     id: "assignedCount",
     header: "割当数",
     cell: ({ getValue }) => `${getValue<number>()}名`,
-  },
-  {
-    id: "actions",
-    header: "",
-    cell: ({ row }) => (
-      <div className="flex items-center gap-1">
-        <RoleForm role={row.original} />
-        <RoleDeleteButton id={row.original.id} />
-      </div>
-    ),
   },
 ]

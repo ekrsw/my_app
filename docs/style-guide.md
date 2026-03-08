@@ -249,6 +249,108 @@ import { cn } from "@/lib/utils"
 
 従業員管理画面（`app/employees/page.tsx`）でも同一の UI 仕様を使用する。ボタン外観・ツールバー配置・インポートダイアログの 4 ステップ構成・共通コンポーネント（`CsvFileInput`, `CsvPreviewTable`）はすべて共通。差異はダイアログ幅と CSV ヘッダー項目のみ。
 
+## テーブル行クリックによる編集ダイアログ
+
+データテーブルの行をクリックして編集ダイアログを開くパターン。各行にアクションボタン（Pencil / Trash アイコン）を配置する代わりに、行全体をクリック可能にする。
+
+### 実装パターン
+
+#### 1. テーブルコンポーネント（状態管理）
+
+テーブルコンポーネントで選択行とダイアログの開閉状態を管理し、`DataTable` の `onRowClick` prop と フォームコンポーネントの制御モードを組み合わせる。
+
+```tsx
+"use client"
+
+import { useState } from "react"
+import { DataTable } from "@/components/data-table"
+import { columns } from "./columns"
+import { EditForm } from "./edit-form"
+
+export function MyTable({ data }: { data: MyRow[] }) {
+  const [selected, setSelected] = useState<MyRow | null>(null)
+  const [dialogOpen, setDialogOpen] = useState(false)
+
+  return (
+    <>
+      <DataTable
+        columns={columns}
+        data={data}
+        onRowClick={(row) => {
+          setSelected(row)
+          setDialogOpen(true)
+        }}
+      />
+      <EditForm
+        item={selected ?? undefined}
+        open={dialogOpen}
+        onOpenChange={(open) => {
+          setDialogOpen(open)
+          if (!open) setSelected(null)
+        }}
+      />
+    </>
+  )
+}
+```
+
+- `onRowClick` により `DataTable` が自動で `cursor-pointer` を行に適用する
+- ダイアログ閉時に選択行を `null` にリセットする
+
+#### 2. フォームコンポーネント（制御モード対応）
+
+フォームコンポーネントは `open` / `onOpenChange` props の有無で制御モードと非制御モードを切り替える。
+
+- **制御モード**（`open`/`onOpenChange` あり）: テーブルからの行クリック編集用。`DialogTrigger` を非表示にする
+- **非制御モード**（`open`/`onOpenChange` なし）: 新規作成ボタン用。内部 state で開閉を管理する
+
+```tsx
+type FormProps = {
+  item?: ItemData
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
+}
+
+export function EditForm({ item, open: controlledOpen, onOpenChange }: FormProps) {
+  const isControlled = controlledOpen !== undefined
+  const [internalOpen, setInternalOpen] = useState(false)
+  const open = isControlled ? controlledOpen : internalOpen
+  const setOpen = isControlled ? (v: boolean) => onOpenChange?.(v) : setInternalOpen
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      {!isControlled && (
+        <DialogTrigger asChild>
+          <Button><Plus className="mr-1 h-4 w-4" />新規作成</Button>
+        </DialogTrigger>
+      )}
+      <DialogContent>
+        {/* フォーム内容 */}
+      </DialogContent>
+    </Dialog>
+  )
+}
+```
+
+#### 3. 行切り替え時のフォームリセット
+
+制御モードでは異なる行のデータを同じフォームで表示するため、`useEffect` で state をリセットする。`defaultValue` を使う `Input` には `key` prop を設定して再マウントさせる。
+
+```tsx
+useEffect(() => {
+  if (open) {
+    setIsActive(item?.isActive ?? true)
+    // ... 他の state もリセット
+  }
+}, [open, item])
+
+<Input defaultValue={item?.name ?? ""} key={item?.id ?? "new"} />
+```
+
+#### 4. カラム定義
+
+制御モードを使用する場合、カラム定義から `actions` 列を削除する。削除機能は編集ダイアログ内に統合する。
+
 ## フォームのボタン配置
 
 ### 配置ルール

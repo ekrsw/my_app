@@ -2,7 +2,6 @@
 
 import { ColumnDef } from "@tanstack/react-table"
 import { Badge } from "@/components/ui/badge"
-import { GroupForm, GroupDeleteButton } from "./group-form"
 
 type GroupWithCount = {
   id: number
@@ -25,16 +24,6 @@ export const groupColumns: ColumnDef<GroupWithCount>[] = [
     header: "従業員数",
     cell: ({ getValue }) => (
       <Badge variant="secondary">{getValue<number>()}名</Badge>
-    ),
-  },
-  {
-    id: "actions",
-    header: "",
-    cell: ({ row }) => (
-      <div className="flex items-center gap-1">
-        <GroupForm group={row.original} />
-        <GroupDeleteButton id={row.original.id} />
-      </div>
     ),
   },
 ]

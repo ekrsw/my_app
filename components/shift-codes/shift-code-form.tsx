@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -16,7 +16,7 @@ import { createShiftCode, updateShiftCode, deleteShiftCode } from "@/lib/actions
 import { COLOR_PALETTE } from "@/lib/constants"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
-import { Plus, Pencil, Trash2, X } from "lucide-react"
+import { Plus, X } from "lucide-react"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -40,6 +40,8 @@ type ShiftCodeFormProps = {
     isActive: boolean | null
     sortOrder: number
   }
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
 }
 
 function timeToInput(d: Date | string | null): string {
@@ -48,13 +50,26 @@ function timeToInput(d: Date | string | null): string {
   return iso.substring(11, 16)
 }
 
-export function ShiftCodeForm({ shiftCode }: ShiftCodeFormProps) {
-  const [open, setOpen] = useState(false)
+export function ShiftCodeForm({ shiftCode, open: controlledOpen, onOpenChange }: ShiftCodeFormProps) {
+  const isControlled = controlledOpen !== undefined
+  const [internalOpen, setInternalOpen] = useState(false)
+  const open = isControlled ? controlledOpen : internalOpen
+  const setOpen = isControlled ? (v: boolean) => onOpenChange?.(v) : setInternalOpen
+
   const [loading, setLoading] = useState(false)
+  const [deleteLoading, setDeleteLoading] = useState(false)
   const [isActive, setIsActive] = useState(shiftCode?.isActive ?? true)
   const [defaultIsHoliday, setDefaultIsHoliday] = useState(shiftCode?.defaultIsHoliday ?? false)
   const [selectedColor, setSelectedColor] = useState<string | null>(shiftCode?.color ?? null)
   const isEdit = !!shiftCode
+
+  useEffect(() => {
+    if (open) {
+      setIsActive(shiftCode?.isActive ?? true)
+      setDefaultIsHoliday(shiftCode?.defaultIsHoliday ?? false)
+      setSelectedColor(shiftCode?.color ?? null)
+    }
+  }, [open, shiftCode])
 
   async function handleSubmit(formData: FormData) {
     formData.set("isActive", String(isActive))
@@ -78,20 +93,30 @@ export function ShiftCodeForm({ shiftCode }: ShiftCodeFormProps) {
     }
   }
 
+  async function handleDelete() {
+    if (!shiftCode) return
+    setDeleteLoading(true)
+    const result = await deleteShiftCode(shiftCode.id)
+    setDeleteLoading(false)
+
+    if (result.error) {
+      toast.error(result.error)
+    } else {
+      toast.success("シフトコードを削除しました")
+      setOpen(false)
+    }
+  }
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        {isEdit ? (
-          <Button variant="ghost" size="icon">
-            <Pencil className="h-4 w-4" />
-          </Button>
-        ) : (
+      {!isControlled && (
+        <DialogTrigger asChild>
           <Button>
             <Plus className="mr-1 h-4 w-4" />
             新規作成
           </Button>
-        )}
-      </DialogTrigger>
+        </DialogTrigger>
+      )}
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>{isEdit ? "シフトコード編集" : "シフトコード作成"}</DialogTitle>
@@ -103,6 +128,7 @@ export function ShiftCodeForm({ shiftCode }: ShiftCodeFormProps) {
               id="code"
               name="code"
               defaultValue={shiftCode?.code ?? ""}
+              key={shiftCode?.id ?? "new"}
               required
               maxLength={20}
               placeholder="例: 9_1730, 19_20, 13_22"
@@ -116,6 +142,7 @@ export function ShiftCodeForm({ shiftCode }: ShiftCodeFormProps) {
                 name="defaultStartTime"
                 type="time"
                 defaultValue={timeToInput(shiftCode?.defaultStartTime ?? null)}
+                key={`start-${shiftCode?.id ?? "new"}`}
               />
             </div>
             <div className="space-y-2">
@@ -125,6 +152,7 @@ export function ShiftCodeForm({ shiftCode }: ShiftCodeFormProps) {
                 name="defaultEndTime"
                 type="time"
                 defaultValue={timeToInput(shiftCode?.defaultEndTime ?? null)}
+                key={`end-${shiftCode?.id ?? "new"}`}
               />
             </div>
           </div>
@@ -180,6 +208,7 @@ export function ShiftCodeForm({ shiftCode }: ShiftCodeFormProps) {
               name="sortOrder"
               type="number"
               defaultValue={shiftCode?.sortOrder ?? 0}
+              key={`sort-${shiftCode?.id ?? "new"}`}
               min={0}
             />
           </div>
@@ -192,55 +221,38 @@ export function ShiftCodeForm({ shiftCode }: ShiftCodeFormProps) {
             <Label htmlFor="isActive">有効</Label>
           </div>
           <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
-              キャンセル
-            </Button>
             <Button type="submit" disabled={loading}>
               {loading ? "保存中..." : "保存"}
             </Button>
+            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+              キャンセル
+            </Button>
+            {isEdit && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button type="button" variant="destructive" disabled={deleteLoading}>
+                    {deleteLoading ? "削除中..." : "削除"}
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>シフトコードの削除</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      このシフトコードを削除してもよろしいですか？
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>キャンセル</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleDelete} disabled={deleteLoading}>
+                      {deleteLoading ? "削除中..." : "削除"}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
           </div>
         </form>
       </DialogContent>
     </Dialog>
-  )
-}
-
-export function ShiftCodeDeleteButton({ id }: { id: number }) {
-  const [loading, setLoading] = useState(false)
-
-  async function handleDelete() {
-    setLoading(true)
-    const result = await deleteShiftCode(id)
-    setLoading(false)
-
-    if (result.error) {
-      toast.error(result.error)
-    } else {
-      toast.success("シフトコードを削除しました")
-    }
-  }
-
-  return (
-    <AlertDialog>
-      <AlertDialogTrigger asChild>
-        <Button variant="ghost" size="icon">
-          <Trash2 className="h-4 w-4 text-destructive" />
-        </Button>
-      </AlertDialogTrigger>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>シフトコードの削除</AlertDialogTitle>
-          <AlertDialogDescription>
-            このシフトコードを削除してもよろしいですか？
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>キャンセル</AlertDialogCancel>
-          <AlertDialogAction onClick={handleDelete} disabled={loading}>
-            {loading ? "削除中..." : "削除"}
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
   )
 }
