@@ -1,11 +1,6 @@
 import { PageHeader } from "@/components/layout/page-header"
 import { PageContainer } from "@/components/layout/page-container"
-import { EmployeeDetailCard } from "@/components/employees/employee-detail-card"
-import { EmployeeEditDialog } from "@/components/employees/employee-edit-dialog"
-import { EmployeeDeleteButton } from "@/components/employees/employee-form"
-import { EmployeeGroupHistorySection } from "@/components/employees/employee-group-history-section"
-import { EmployeeRoleHistorySection } from "@/components/employees/employee-role-history-section"
-import { EmployeePositionHistorySection } from "@/components/employees/employee-position-history-section"
+import { EmployeeDetailTabs } from "@/components/employees/employee-detail-tabs"
 import { getEmployeeById } from "@/lib/db/employees"
 import { getGroups } from "@/lib/db/groups"
 import { getFunctionRoles } from "@/lib/db/roles"
@@ -40,22 +35,12 @@ export default async function EmployeeDetailPage({
         ]}
       />
       <PageContainer>
-        <div className="flex items-center gap-2 mb-4">
-          <EmployeeEditDialog
-            employee={employee}
-            groups={groups}
-            allRoles={allRoles}
-            allPositions={allPositions}
-          />
-          <EmployeeDeleteButton id={employee.id} />
-        </div>
-        <EmployeeDetailCard employee={employee} />
-
-        <div className="mt-6 space-y-3">
-          <EmployeeGroupHistorySection groupHistory={employee.groupHistory} />
-          <EmployeeRoleHistorySection roleHistory={employee.roleHistory} />
-          <EmployeePositionHistorySection positionHistory={employee.positionHistory} />
-        </div>
+        <EmployeeDetailTabs
+          employee={employee}
+          groups={groups}
+          allRoles={allRoles}
+          allPositions={allPositions}
+        />
       </PageContainer>
     </>
   )

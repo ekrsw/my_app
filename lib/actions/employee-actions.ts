@@ -1,7 +1,7 @@
 "use server"
 
 import { prisma } from "@/lib/prisma"
-import { employeeSchema } from "@/lib/validators"
+import { employeeSchema, groupAssignmentSchema, positionAssignmentSchema } from "@/lib/validators"
 import { revalidatePath } from "next/cache"
 
 export type RoleChangeItem = {
@@ -267,6 +267,162 @@ export async function updateEmployeeWithRoles(
       return { error: "指定期間は既存の役職期間と重複しています" }
     }
     return { error: "従業員情報の更新に失敗しました" }
+  }
+}
+
+// --- Individual Group Actions ---
+
+export async function addEmployeeGroup(data: {
+  employeeId: string
+  groupId: number
+  startDate?: string | null
+  endDate?: string | null
+}) {
+  const parsed = groupAssignmentSchema.safeParse(data)
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0].message }
+  }
+
+  try {
+    await prisma.employeeGroup.create({
+      data: {
+        employeeId: parsed.data.employeeId,
+        groupId: parsed.data.groupId,
+        startDate: parsed.data.startDate ? new Date(parsed.data.startDate) : new Date(),
+        endDate: parsed.data.endDate ? new Date(parsed.data.endDate) : null,
+      },
+    })
+    revalidatePath(`/employees/${parsed.data.employeeId}`)
+    revalidatePath("/employees")
+    return { success: true }
+  } catch {
+    return { error: "グループの追加に失敗しました" }
+  }
+}
+
+export async function updateEmployeeGroup(
+  id: number,
+  data: {
+    startDate?: string | null
+    endDate?: string | null
+  }
+) {
+  try {
+    const updateData: { startDate?: Date; endDate?: Date | null } = {}
+    if (data.startDate !== undefined && data.startDate) {
+      updateData.startDate = new Date(data.startDate)
+    }
+    if (data.endDate !== undefined) {
+      updateData.endDate = data.endDate ? new Date(data.endDate) : null
+    }
+
+    const updated = await prisma.employeeGroup.update({
+      where: { id },
+      data: updateData,
+      select: { employeeId: true },
+    })
+
+    revalidatePath(`/employees/${updated.employeeId}`)
+    revalidatePath("/employees")
+    return { success: true }
+  } catch {
+    return { error: "グループの更新に失敗しました" }
+  }
+}
+
+export async function removeEmployeeGroup(id: number) {
+  try {
+    const updated = await prisma.employeeGroup.update({
+      where: { id },
+      data: { endDate: new Date() },
+      select: { employeeId: true },
+    })
+    revalidatePath(`/employees/${updated.employeeId}`)
+    revalidatePath("/employees")
+    return { success: true }
+  } catch {
+    return { error: "グループの解除に失敗しました" }
+  }
+}
+
+// --- Individual Position Actions ---
+
+export async function addEmployeePosition(data: {
+  employeeId: string
+  positionId: number
+  startDate?: string | null
+  endDate?: string | null
+}) {
+  const parsed = positionAssignmentSchema.safeParse(data)
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0].message }
+  }
+
+  try {
+    await prisma.employeePosition.create({
+      data: {
+        employeeId: parsed.data.employeeId,
+        positionId: parsed.data.positionId,
+        startDate: parsed.data.startDate ? new Date(parsed.data.startDate) : new Date(),
+        endDate: parsed.data.endDate ? new Date(parsed.data.endDate) : null,
+      },
+    })
+    revalidatePath(`/employees/${parsed.data.employeeId}`)
+    revalidatePath("/employees")
+    return { success: true }
+  } catch (e: unknown) {
+    if (e && typeof e === "object" && "message" in e && typeof e.message === "string" && e.message.includes("employee_positions_no_overlap")) {
+      return { error: "指定期間は既存の役職期間と重複しています" }
+    }
+    return { error: "役職の追加に失敗しました" }
+  }
+}
+
+export async function updateEmployeePosition(
+  id: number,
+  data: {
+    startDate?: string | null
+    endDate?: string | null
+  }
+) {
+  try {
+    const updateData: { startDate?: Date; endDate?: Date | null } = {}
+    if (data.startDate !== undefined && data.startDate) {
+      updateData.startDate = new Date(data.startDate)
+    }
+    if (data.endDate !== undefined) {
+      updateData.endDate = data.endDate ? new Date(data.endDate) : null
+    }
+
+    const updated = await prisma.employeePosition.update({
+      where: { id },
+      data: updateData,
+      select: { employeeId: true },
+    })
+
+    revalidatePath(`/employees/${updated.employeeId}`)
+    revalidatePath("/employees")
+    return { success: true }
+  } catch (e: unknown) {
+    if (e && typeof e === "object" && "message" in e && typeof e.message === "string" && e.message.includes("employee_positions_no_overlap")) {
+      return { error: "指定期間は既存の役職期間と重複しています" }
+    }
+    return { error: "役職の更新に失敗しました" }
+  }
+}
+
+export async function removeEmployeePosition(id: number) {
+  try {
+    const updated = await prisma.employeePosition.update({
+      where: { id },
+      data: { endDate: new Date() },
+      select: { employeeId: true },
+    })
+    revalidatePath(`/employees/${updated.employeeId}`)
+    revalidatePath("/employees")
+    return { success: true }
+  } catch {
+    return { error: "役職の解除に失敗しました" }
   }
 }
 

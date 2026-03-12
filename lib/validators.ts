@@ -69,6 +69,23 @@ export type FunctionRoleFormData = z.infer<typeof functionRoleSchema>
 export type RoleAssignmentFormData = z.infer<typeof roleAssignmentSchema>
 export type PositionFormData = z.infer<typeof positionSchema>
 
+export const groupAssignmentSchema = z.object({
+  employeeId: z.string().uuid("従業員を選択してください"),
+  groupId: z.coerce.number().int().positive("グループを選択してください"),
+  startDate: z.string().nullable().optional(),
+  endDate: z.string().nullable().optional(),
+})
+
+export const positionAssignmentSchema = z.object({
+  employeeId: z.string().uuid("従業員を選択してください"),
+  positionId: z.coerce.number().int().positive("役職を選択してください"),
+  startDate: z.string().nullable().optional(),
+  endDate: z.string().nullable().optional(),
+})
+
+export type GroupAssignmentFormData = z.infer<typeof groupAssignmentSchema>
+export type PositionAssignmentFormData = z.infer<typeof positionAssignmentSchema>
+
 export const shiftHistoryNoteSchema = z.object({
   note: z.string().max(255, "255文字以内で入力してください").default(""),
 })
