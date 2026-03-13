@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma"
 import { Prisma } from "@/app/generated/prisma/client"
-import type { ShiftFilterParams } from "@/types"
+import type { ShiftFilterParams, ShiftDailyFilterParams, ShiftDailyRow, PaginatedResult } from "@/types"
 import type { ShiftCalendarData, ShiftCalendarPaginatedResult } from "@/types/shifts"
 import { toDateString } from "@/lib/date-utils"
 
@@ -262,6 +262,138 @@ export async function getShiftsForCalendarPaginated(
     total,
     hasMore,
     nextCursor: hasMore ? cursor + pageSize : null,
+  }
+}
+
+const DEFAULT_DAILY_PAGE_SIZE = 30
+
+export async function getShiftsForDaily(
+  filter: ShiftDailyFilterParams,
+  pagination: { page?: number; pageSize?: number } = {}
+): Promise<PaginatedResult<ShiftDailyRow>> {
+  const page = pagination.page ?? 1
+  const pageSize = pagination.pageSize ?? DEFAULT_DAILY_PAGE_SIZE
+
+  // @db.Date カラム比較用 UTC midnight
+  const [y, m, d] = filter.date.split("-").map(Number)
+  const targetDate = new Date(Date.UTC(y, m - 1, d))
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const employeeWhere: any = {}
+
+  // グループフィルター
+  const groupConditions = []
+  if (filter.groupIds && filter.groupIds.length > 0) {
+    groupConditions.push({ groups: { some: { groupId: { in: filter.groupIds }, endDate: null } } })
+  }
+  if (filter.unassigned) {
+    groupConditions.push({ groups: { none: { endDate: null } } })
+  }
+  if (groupConditions.length > 0) {
+    employeeWhere.OR = groupConditions
+  }
+
+  // 従業員名検索
+  if (filter.employeeSearch) {
+    employeeWhere.AND = [
+      ...(employeeWhere.AND ?? []),
+      {
+        OR: [
+          { name: { contains: filter.employeeSearch, mode: "insensitive" } },
+          { nameKana: { contains: filter.employeeSearch, mode: "insensitive" } },
+        ],
+      },
+    ]
+  }
+
+  // シフト条件
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const shiftWhere: any = { shiftDate: targetDate }
+
+  if (filter.shiftCodes && filter.shiftCodes.length > 0) {
+    shiftWhere.shiftCode = { in: filter.shiftCodes }
+  }
+
+  if (filter.startTimeFrom) {
+    const [hh, mm] = filter.startTimeFrom.split(":").map(Number)
+    const fromTime = new Date(Date.UTC(1970, 0, 1, hh, mm))
+    shiftWhere.startTime = { ...shiftWhere.startTime, gte: fromTime }
+  }
+
+  if (filter.endTimeTo) {
+    const [hh, mm] = filter.endTimeTo.split(":").map(Number)
+    const toTime = new Date(Date.UTC(1970, 0, 1, hh, mm))
+    shiftWhere.endTime = { ...shiftWhere.endTime, lte: toTime }
+  }
+
+  // シフトコード・時刻フィルターが指定されている場合、シフトが存在する従業員のみ
+  const hasShiftFilter = !!(
+    (filter.shiftCodes && filter.shiftCodes.length > 0) ||
+    filter.startTimeFrom ||
+    filter.endTimeTo
+  )
+
+  if (hasShiftFilter) {
+    employeeWhere.AND = [
+      ...(employeeWhere.AND ?? []),
+      { shifts: { some: shiftWhere } },
+    ]
+  }
+
+  const where = {
+    ...employeeWhere,
+    OR: employeeWhere.OR ?? undefined,
+    AND: [
+      ...(employeeWhere.AND ?? []),
+      {
+        OR: [
+          { terminationDate: null },
+          { terminationDate: { gte: targetDate } },
+        ],
+      },
+    ],
+  }
+
+  const [employees, total] = await Promise.all([
+    prisma.employee.findMany({
+      where,
+      include: {
+        groups: {
+          include: { group: true },
+          where: { endDate: null },
+        },
+        shifts: {
+          where: { shiftDate: targetDate },
+        },
+      },
+      orderBy: [{ name: "asc" }],
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+    }),
+    prisma.employee.count({ where }),
+  ])
+
+  const data: ShiftDailyRow[] = employees.map((emp) => {
+    const shift = emp.shifts[0] ?? null
+    return {
+      employeeId: emp.id,
+      employeeName: emp.name,
+      groupName: emp.groups[0]?.group.name ?? null,
+      shiftId: shift?.id ?? null,
+      shiftCode: shift?.shiftCode ?? "",
+      startTime: shift?.startTime ?? null,
+      endTime: shift?.endTime ?? null,
+      isHoliday: shift?.isHoliday ?? false,
+      isRemote: shift?.isRemote ?? false,
+    }
+  })
+
+  return {
+    data,
+    total,
+    page,
+    pageSize,
+    totalPages: Math.ceil(total / pageSize),
   }
 }
 

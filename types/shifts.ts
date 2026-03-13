@@ -29,6 +29,28 @@ export type ShiftCalendarPaginatedResult = {
   nextCursor: number | null
 }
 
+export type ShiftDailyRow = {
+  employeeId: string
+  employeeName: string
+  groupName: string | null
+  shiftId: number | null
+  shiftCode: string
+  startTime: Date | null
+  endTime: Date | null
+  isHoliday: boolean
+  isRemote: boolean
+}
+
+export type ShiftDailyFilterParams = {
+  date: string              // "yyyy-MM-dd"
+  groupIds?: number[]
+  unassigned?: boolean
+  shiftCodes?: string[]
+  employeeSearch?: string
+  startTimeFrom?: string    // "HH:mm"
+  endTimeTo?: string        // "HH:mm"
+}
+
 export type ShiftHistoryEntry = ShiftChangeHistory & {
   employee: (Employee & { groups: (EmployeeGroup & { group: Group })[] }) | null
 }

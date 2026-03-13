@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/select"
 import { GroupMultiSelect } from "@/components/shifts/group-multi-select"
 import { RoleMultiSelect } from "@/components/shifts/role-multi-select"
+import { ViewModeSelect } from "@/components/shifts/view-mode-select"
 import { CalendarIcon, ChevronLeft, ChevronRight } from "lucide-react"
 import { useQueryParams } from "@/hooks/use-query-params"
 import { useDebounce } from "@/hooks/use-debounce"
@@ -174,6 +175,7 @@ export function ShiftFilters({ groups, roles, year, month }: ShiftFiltersProps) 
             </div>
           </PopoverContent>
         </Popover>
+        <ViewModeSelect value="monthly" />
         <Button variant="outline" size="icon" onClick={() => navigateMonth(1)}>
           <ChevronRight className="h-4 w-4" />
         </Button>

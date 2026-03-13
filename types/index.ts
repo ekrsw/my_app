@@ -1,4 +1,4 @@
-export type { ShiftWithEmployee, ShiftCalendarData, ShiftCalendarPaginatedResult, ShiftFilterParams, ShiftHistoryEntry } from "./shifts"
+export type { ShiftWithEmployee, ShiftCalendarData, ShiftCalendarPaginatedResult, ShiftFilterParams, ShiftDailyRow, ShiftDailyFilterParams, ShiftHistoryEntry } from "./shifts"
 export type { EmployeeWithGroups, EmployeeWithDetails, EmployeeFilterParams, EmployeeGroupHistoryEntry } from "./employees"
 
 // 共通型

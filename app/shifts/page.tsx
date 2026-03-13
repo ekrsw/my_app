@@ -5,11 +5,12 @@ import { ShiftTabs } from "@/components/shifts/shift-tabs"
 import { ShiftHistoryTable } from "@/components/shifts/shift-history-table"
 import { ShiftHistoryFilters } from "@/components/shifts/shift-history-filters"
 import { TabsContent } from "@/components/ui/tabs"
-import { getShiftsForCalendarPaginated, getShiftIdsWithHistory, getLatestShiftHistoryEntries } from "@/lib/db/shifts"
+import { getShiftsForCalendarPaginated, getShiftIdsWithHistory, getLatestShiftHistoryEntries, getShiftsForDaily } from "@/lib/db/shifts"
 import { getShiftHistory } from "@/lib/db/history"
 import { getGroups } from "@/lib/db/groups"
 import { getFunctionRoles } from "@/lib/db/roles"
 import { getActiveShiftCodes } from "@/lib/db/shift-codes"
+import { toDateString, getTodayJST } from "@/lib/date-utils"
 import type { SearchParams } from "@/types"
 
 export default async function ShiftsPage({
@@ -39,11 +40,32 @@ export default async function ShiftsPage({
   const historyEmployee = params.historyEmployee as string | undefined
   const isHistory = activeTab === "history"
 
+  // 日次/月次ビュー
+  const viewMode = params.view === "daily" ? "daily" : "monthly"
+  const isDaily = viewMode === "daily" && !isHistory
+  const dailyDate = (params.dailyDate as string) || toDateString(getTodayJST())
+  const dailyPage = Number(params.dailyPage) || 1
+  const shiftCodesFilter = params.shiftCodes
+    ? String(params.shiftCodes).split(",").filter(Boolean)
+    : undefined
+  const startTimeFrom = (params.startTimeFrom as string) || undefined
+  const endTimeTo = (params.endTimeTo as string) || undefined
+
   const filter = { year, month, groupIds: groupIds && groupIds.length > 0 ? groupIds : undefined, unassigned, roleIds: roleIds && roleIds.length > 0 ? roleIds : undefined, roleUnassigned, employeeSearch: search }
 
-  const [calendarResult, groups, roles, shiftCodes, historyResult, shiftIdsWithHistorySet, latestNotes] =
+  const dailyFilter = {
+    date: dailyDate,
+    groupIds: groupIds && groupIds.length > 0 ? groupIds : undefined,
+    unassigned: unassigned || undefined,
+    shiftCodes: shiftCodesFilter,
+    employeeSearch: search,
+    startTimeFrom,
+    endTimeTo,
+  }
+
+  const [calendarResult, groups, roles, shiftCodes, historyResult, shiftIdsWithHistorySet, latestNotes, dailyResult] =
     await Promise.all([
-      isHistory
+      isHistory || isDaily
         ? Promise.resolve({ data: [], total: 0, hasMore: false, nextCursor: null })
         : getShiftsForCalendarPaginated(filter, { cursor: 0, pageSize: 50 }),
       getGroups(),
@@ -57,12 +79,15 @@ export default async function ShiftsPage({
             ...(historyEmployee && { employeeName: historyEmployee }),
           })
         : Promise.resolve({ data: [], total: 0, page: 1, pageSize: 20, totalPages: 0 }),
-      isHistory
+      isHistory || isDaily
         ? Promise.resolve(new Set<number>())
         : getShiftIdsWithHistory(year, month),
-      isHistory
+      isHistory || isDaily
         ? Promise.resolve({})
         : getLatestShiftHistoryEntries(year, month),
+      isDaily
+        ? getShiftsForDaily(dailyFilter, { page: dailyPage })
+        : Promise.resolve({ data: [], total: 0, page: 1, pageSize: 30, totalPages: 0 }),
     ])
 
   return (
@@ -79,6 +104,7 @@ export default async function ShiftsPage({
         <ShiftTabs activeTab={activeTab}>
           <TabsContent value="management" className="mt-4">
             <ShiftPageClient
+              viewMode={viewMode}
               initialCalendarData={calendarResult.data}
               calendarTotal={calendarResult.total}
               calendarHasMore={calendarResult.hasMore}
@@ -91,6 +117,17 @@ export default async function ShiftsPage({
               shiftCodes={shiftCodes}
               shiftIdsWithHistory={[...shiftIdsWithHistorySet]}
               shiftLatestHistory={latestNotes}
+              dailyData={dailyResult.data}
+              dailyTotal={dailyResult.total}
+              dailyPage={dailyResult.page}
+              dailyTotalPages={dailyResult.totalPages}
+              dailyDate={dailyDate}
+              dailyGroupIds={groupIds ?? []}
+              dailyUnassigned={unassigned}
+              dailySelectedShiftCodes={shiftCodesFilter ?? []}
+              dailySearch={search ?? ""}
+              dailyStartTimeFrom={startTimeFrom ?? ""}
+              dailyEndTimeTo={endTimeTo ?? ""}
             />
           </TabsContent>
           <TabsContent value="history" className="mt-4">

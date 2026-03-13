@@ -7,10 +7,11 @@ import { ShiftFilters } from "./shift-filters"
 import { ShiftForm } from "./shift-form"
 import { ShiftDetailDialog } from "./shift-detail-dialog"
 import { ShiftBulkEditor } from "./shift-bulk-editor"
+import { ShiftDailyView } from "./shift-daily-view"
 import { Upload, Pencil } from "lucide-react"
 import { ShiftImportDialog } from "./shift-import-dialog"
 import { SHIFT_CODE_MAP, getColorClasses, type ShiftCodeInfo } from "@/lib/constants"
-import type { ShiftCalendarData, ShiftFilterParams } from "@/types/shifts"
+import type { ShiftCalendarData, ShiftFilterParams, ShiftDailyRow } from "@/types/shifts"
 import type { LatestShiftHistory } from "@/lib/db/shifts"
 import type { Shift } from "@/app/generated/prisma/client"
 import { loadMoreCalendarData } from "@/lib/actions/shift-actions"
@@ -30,6 +31,7 @@ type ActiveShiftCode = {
 }
 
 type ShiftPageClientProps = {
+  viewMode: "monthly" | "daily"
   initialCalendarData: ShiftCalendarData[]
   calendarTotal: number
   calendarHasMore: boolean
@@ -42,9 +44,21 @@ type ShiftPageClientProps = {
   shiftCodes: ActiveShiftCode[]
   shiftIdsWithHistory: number[]
   shiftLatestHistory: Record<number, LatestShiftHistory>
+  dailyData: ShiftDailyRow[]
+  dailyTotal: number
+  dailyPage: number
+  dailyTotalPages: number
+  dailyDate: string
+  dailyGroupIds: number[]
+  dailyUnassigned: boolean
+  dailySelectedShiftCodes: string[]
+  dailySearch: string
+  dailyStartTimeFrom: string
+  dailyEndTimeTo: string
 }
 
 export function ShiftPageClient({
+  viewMode,
   initialCalendarData,
   calendarTotal,
   calendarHasMore: initialHasMore,
@@ -57,6 +71,17 @@ export function ShiftPageClient({
   shiftCodes,
   shiftIdsWithHistory,
   shiftLatestHistory,
+  dailyData,
+  dailyTotal,
+  dailyPage,
+  dailyTotalPages,
+  dailyDate,
+  dailyGroupIds,
+  dailyUnassigned,
+  dailySelectedShiftCodes,
+  dailySearch,
+  dailyStartTimeFrom,
+  dailyEndTimeTo,
 }: ShiftPageClientProps) {
   const [calendarData, setCalendarData] = useState(initialCalendarData)
   const [hasMore, setHasMore] = useState(initialHasMore)
@@ -190,6 +215,26 @@ export function ShiftPageClient({
       params.set("roleUnassigned", "true")
     }
     window.open(`/api/shifts/export?${params}`, "_blank")
+  }
+
+  if (viewMode === "daily") {
+    return (
+      <ShiftDailyView
+        data={dailyData}
+        total={dailyTotal}
+        page={dailyPage}
+        totalPages={dailyTotalPages}
+        dailyDate={dailyDate}
+        groups={groups}
+        shiftCodes={shiftCodes}
+        groupIds={dailyGroupIds}
+        unassigned={dailyUnassigned}
+        selectedShiftCodes={dailySelectedShiftCodes}
+        search={dailySearch}
+        startTimeFrom={dailyStartTimeFrom}
+        endTimeTo={dailyEndTimeTo}
+      />
+    )
   }
 
   return (
