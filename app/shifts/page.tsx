@@ -54,6 +54,12 @@ export default async function ShiftsPage({
   const employeeIds = params.employeeIds
     ? String(params.employeeIds).split(",").filter(Boolean)
     : undefined
+  const supervisorRoleNames = params.supervisorRoleNames
+    ? String(params.supervisorRoleNames).split(",").filter(Boolean)
+    : undefined
+  const businessRoleNames = params.businessRoleNames
+    ? String(params.businessRoleNames).split(",").filter(Boolean)
+    : undefined
 
   const filter = { year, month, groupIds: groupIds && groupIds.length > 0 ? groupIds : undefined, unassigned, roleIds: roleIds && roleIds.length > 0 ? roleIds : undefined, roleUnassigned, employeeSearch: search }
 
@@ -69,6 +75,8 @@ export default async function ShiftsPage({
     shiftCodes: shiftCodesFilter,
     employeeIds,
     isRemote: dailyIsRemote,
+    supervisorRoleNames,
+    businessRoleNames,
     sortBy: dailySortByValidated,
     sortOrder: dailySortByValidated ? dailySortOrder : undefined,
   }
@@ -100,7 +108,7 @@ export default async function ShiftsPage({
         : Promise.resolve({ data: [], total: 0, page: 1, pageSize: 30, totalPages: 0 }),
       isDaily
         ? getDailyFilterOptions(dailyFilter)
-        : Promise.resolve({ employees: [], groups: [], shiftCodes: [], hasUnassigned: false }),
+        : Promise.resolve({ employees: [], groups: [], shiftCodes: [], hasUnassigned: false, supervisorRoleNames: [], businessRoleNames: [] }),
     ])
 
   return (
@@ -146,6 +154,10 @@ export default async function ShiftsPage({
               dailyShiftCodeOptions={dailyFilterOptions.shiftCodes}
               dailyGroupOptions={dailyFilterOptions.groups}
               dailyHasUnassigned={dailyFilterOptions.hasUnassigned}
+              dailySupervisorRoleNames={supervisorRoleNames ?? []}
+              dailyBusinessRoleNames={businessRoleNames ?? []}
+              dailySupervisorRoleOptions={dailyFilterOptions.supervisorRoleNames}
+              dailyBusinessRoleOptions={dailyFilterOptions.businessRoleNames}
             />
           </TabsContent>
           <TabsContent value="history" className="mt-4">

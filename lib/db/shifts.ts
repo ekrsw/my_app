@@ -290,7 +290,8 @@ function getDailySortExpression(sortBy: ShiftDailySortField, roleTypes: [string,
 function buildDailyFilterConditions(
   filter: ShiftDailyFilterParams,
   dateStr: string,
-  exclude?: "employeeIds" | "groupIds" | "shiftCodes"
+  exclude?: "employeeIds" | "groupIds" | "shiftCodes" | "supervisorRoleNames" | "businessRoleNames",
+  roleTypes?: [string, string]
 ): {
   conditions: Prisma.Sql[]
   shiftFilterConditions: Prisma.Sql[]
@@ -336,6 +337,28 @@ function buildDailyFilterConditions(
   // 従業員IDフィルター
   if (exclude !== "employeeIds" && filter.employeeIds && filter.employeeIds.length > 0) {
     conditions.push(Prisma.sql`e.id = ANY(${filter.employeeIds}::uuid[])`)
+  }
+
+  // 監督ロール名フィルター
+  if (exclude !== "supervisorRoleNames" && filter.supervisorRoleNames && filter.supervisorRoleNames.length > 0 && roleTypes) {
+    conditions.push(Prisma.sql`EXISTS (
+      SELECT 1 FROM employee_function_roles efr
+      JOIN function_roles fr ON efr.function_role_id = fr.id
+      WHERE efr.employee_id = e.id AND efr.end_date IS NULL
+        AND fr.role_type = ${roleTypes[0]}
+        AND fr.role_name = ANY(${filter.supervisorRoleNames})
+    )`)
+  }
+
+  // 業務ロール名フィルター
+  if (exclude !== "businessRoleNames" && filter.businessRoleNames && filter.businessRoleNames.length > 0 && roleTypes) {
+    conditions.push(Prisma.sql`EXISTS (
+      SELECT 1 FROM employee_function_roles efr
+      JOIN function_roles fr ON efr.function_role_id = fr.id
+      WHERE efr.employee_id = e.id AND efr.end_date IS NULL
+        AND fr.role_type = ${roleTypes[1]}
+        AND fr.role_name = ANY(${filter.businessRoleNames})
+    )`)
   }
 
   // シフト関連フィルター（シフトコード、時刻、isHoliday、isRemote）
@@ -390,7 +413,7 @@ export async function getShiftsForDaily(
   const sortOrder: SortOrder = filter.sortOrder ?? "asc"
 
   // --- Step 1: Raw SQLで動的 ORDER BY + OFFSET/LIMIT で従業員IDリスト取得 ---
-  const { conditions, shiftJoin } = buildDailyFilterConditions(filter, dateStr)
+  const { conditions, shiftJoin } = buildDailyFilterConditions(filter, dateStr, undefined, roleTypes)
 
   const whereClause = Prisma.sql`WHERE ${Prisma.join(conditions, " AND ")}`
 
@@ -545,11 +568,22 @@ export async function getDailyFilterOptions(
 ): Promise<DailyFilterOptions> {
   const dateStr = filter.date
 
-  // 3クエリを並列実行
-  const [employeeRows, groupRows, unassignedRows, shiftCodeRows] = await Promise.all([
+  // roleTypes を取得
+  const distinctTypes = await prisma.functionRole.findMany({
+    select: { roleType: true },
+    distinct: ["roleType"],
+    orderBy: { roleType: "desc" },
+  })
+  const roleTypes: [string, string] = [
+    distinctTypes[0]?.roleType ?? "監督",
+    distinctTypes[1]?.roleType ?? "業務",
+  ]
+
+  // クエリを並列実行
+  const [employeeRows, groupRows, unassignedRows, shiftCodeRows, supervisorRoleRows, businessRoleRows] = await Promise.all([
     // 従業員オプション: employeeIds 条件を除外
     (() => {
-      const { conditions, shiftJoin } = buildDailyFilterConditions(filter, dateStr, "employeeIds")
+      const { conditions, shiftJoin } = buildDailyFilterConditions(filter, dateStr, "employeeIds", roleTypes)
       const whereClause = Prisma.sql`WHERE ${Prisma.join(conditions, " AND ")}`
       return prisma.$queryRaw<{ id: string; name: string }[]>(Prisma.sql`
         SELECT DISTINCT e.id, e.name
@@ -563,7 +597,7 @@ export async function getDailyFilterOptions(
     })(),
     // グループオプション: groupIds 条件を除外
     (() => {
-      const { conditions, shiftJoin } = buildDailyFilterConditions(filter, dateStr, "groupIds")
+      const { conditions, shiftJoin } = buildDailyFilterConditions(filter, dateStr, "groupIds", roleTypes)
       const whereClause = Prisma.sql`WHERE ${Prisma.join(conditions, " AND ")}`
       return prisma.$queryRaw<{ id: number; name: string }[]>(Prisma.sql`
         SELECT DISTINCT g.id, g.name
@@ -578,7 +612,7 @@ export async function getDailyFilterOptions(
     })(),
     // 未所属の従業員が存在するかチェック（groupIds 条件を除外）
     (() => {
-      const { conditions, shiftJoin } = buildDailyFilterConditions(filter, dateStr, "groupIds")
+      const { conditions, shiftJoin } = buildDailyFilterConditions(filter, dateStr, "groupIds", roleTypes)
       const whereClause = Prisma.sql`WHERE ${Prisma.join(conditions, " AND ")}`
       return prisma.$queryRaw<{ exists: boolean }[]>(Prisma.sql`
         SELECT EXISTS (
@@ -593,7 +627,7 @@ export async function getDailyFilterOptions(
     })(),
     // シフトコードオプション: shiftCodes 条件を除外
     (() => {
-      const { conditions, shiftJoin } = buildDailyFilterConditions(filter, dateStr, "shiftCodes")
+      const { conditions, shiftJoin } = buildDailyFilterConditions(filter, dateStr, "shiftCodes", roleTypes)
       const whereClause = Prisma.sql`WHERE ${Prisma.join(conditions, " AND ")}`
       return prisma.$queryRaw<{ shift_code: string }[]>(Prisma.sql`
         SELECT DISTINCT s2.shift_code
@@ -606,6 +640,36 @@ export async function getDailyFilterOptions(
         ORDER BY s2.shift_code
       `)
     })(),
+    // 監督ロール名オプション: supervisorRoleNames 条件を除外
+    (() => {
+      const { conditions, shiftJoin } = buildDailyFilterConditions(filter, dateStr, "supervisorRoleNames", roleTypes)
+      const whereClause = Prisma.sql`WHERE ${Prisma.join(conditions, " AND ")}`
+      return prisma.$queryRaw<{ role_name: string }[]>(Prisma.sql`
+        SELECT DISTINCT fr.role_name
+        FROM employees e
+        LEFT JOIN employee_groups eg ON e.id = eg.employee_id AND eg.end_date IS NULL
+        ${shiftJoin}
+        INNER JOIN employee_function_roles efr ON efr.employee_id = e.id AND efr.end_date IS NULL
+        INNER JOIN function_roles fr ON efr.function_role_id = fr.id AND fr.role_type = ${roleTypes[0]}
+        ${whereClause}
+        ORDER BY fr.role_name
+      `)
+    })(),
+    // 業務ロール名オプション: businessRoleNames 条件を除外
+    (() => {
+      const { conditions, shiftJoin } = buildDailyFilterConditions(filter, dateStr, "businessRoleNames", roleTypes)
+      const whereClause = Prisma.sql`WHERE ${Prisma.join(conditions, " AND ")}`
+      return prisma.$queryRaw<{ role_name: string }[]>(Prisma.sql`
+        SELECT DISTINCT fr.role_name
+        FROM employees e
+        LEFT JOIN employee_groups eg ON e.id = eg.employee_id AND eg.end_date IS NULL
+        ${shiftJoin}
+        INNER JOIN employee_function_roles efr ON efr.employee_id = e.id AND efr.end_date IS NULL
+        INNER JOIN function_roles fr ON efr.function_role_id = fr.id AND fr.role_type = ${roleTypes[1]}
+        ${whereClause}
+        ORDER BY fr.role_name
+      `)
+    })(),
   ])
 
   return {
@@ -613,6 +677,8 @@ export async function getDailyFilterOptions(
     groups: groupRows.map((r) => ({ id: Number(r.id), name: r.name })),
     shiftCodes: shiftCodeRows.map((r) => r.shift_code),
     hasUnassigned: unassignedRows[0]?.exists ?? false,
+    supervisorRoleNames: supervisorRoleRows.map((r) => r.role_name),
+    businessRoleNames: businessRoleRows.map((r) => r.role_name),
   }
 }
 

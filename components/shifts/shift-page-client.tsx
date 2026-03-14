@@ -60,6 +60,10 @@ type ShiftPageClientProps = {
   dailyShiftCodeOptions: string[]
   dailyGroupOptions: { id: number; name: string }[]
   dailyHasUnassigned: boolean
+  dailySupervisorRoleNames: string[]
+  dailyBusinessRoleNames: string[]
+  dailySupervisorRoleOptions: string[]
+  dailyBusinessRoleOptions: string[]
 }
 
 export function ShiftPageClient({
@@ -92,6 +96,10 @@ export function ShiftPageClient({
   dailyShiftCodeOptions,
   dailyGroupOptions,
   dailyHasUnassigned,
+  dailySupervisorRoleNames,
+  dailyBusinessRoleNames,
+  dailySupervisorRoleOptions,
+  dailyBusinessRoleOptions,
 }: ShiftPageClientProps) {
   const [calendarData, setCalendarData] = useState(initialCalendarData)
   const [hasMore, setHasMore] = useState(initialHasMore)
@@ -248,6 +256,10 @@ export function ShiftPageClient({
         dailyShiftCodeOptions={dailyShiftCodeOptions}
         hasUnassigned={dailyHasUnassigned}
         roles={roles}
+        selectedSupervisorRoleNames={dailySupervisorRoleNames}
+        selectedBusinessRoleNames={dailyBusinessRoleNames}
+        supervisorRoleNameOptions={dailySupervisorRoleOptions}
+        businessRoleNameOptions={dailyBusinessRoleOptions}
       />
     )
   }

@@ -48,6 +48,10 @@ type ShiftDailyViewProps = {
   dailyShiftCodeOptions: string[]
   hasUnassigned: boolean
   roles: { id: number; roleName: string; roleType: string }[]
+  selectedSupervisorRoleNames: string[]
+  selectedBusinessRoleNames: string[]
+  supervisorRoleNameOptions: string[]
+  businessRoleNameOptions: string[]
 }
 
 export function ShiftDailyView({
@@ -69,6 +73,10 @@ export function ShiftDailyView({
   dailyShiftCodeOptions,
   hasUnassigned,
   roles,
+  selectedSupervisorRoleNames,
+  selectedBusinessRoleNames,
+  supervisorRoleNameOptions,
+  businessRoleNameOptions,
 }: ShiftDailyViewProps) {
   const { setParams } = useQueryParams()
   const [editOpen, setEditOpen] = useState(false)
@@ -76,6 +84,8 @@ export function ShiftDailyView({
   const [employeePopoverOpen, setEmployeePopoverOpen] = useState(false)
   const [groupPopoverOpen, setGroupPopoverOpen] = useState(false)
   const [shiftCodePopoverOpen, setShiftCodePopoverOpen] = useState(false)
+  const [supervisorPopoverOpen, setSupervisorPopoverOpen] = useState(false)
+  const [businessPopoverOpen, setBusinessPopoverOpen] = useState(false)
 
   const handleRowClick = (row: ShiftDailyRow) => {
     setEditRow(row)
@@ -145,6 +155,33 @@ export function ShiftDailyView({
     setParams({ dailyIsRemote: checked ? "true" : null, dailyPage: null })
   }, [setParams])
 
+  const handleSupervisorRoleConfirm = useCallback((names: string[]) => {
+    setParams({ supervisorRoleNames: names.length > 0 ? names.join(",") : null, dailyPage: null })
+    setSupervisorPopoverOpen(false)
+  }, [setParams])
+
+  const handleSupervisorRoleClear = useCallback(() => {
+    setParams({ supervisorRoleNames: null, dailyPage: null })
+    setSupervisorPopoverOpen(false)
+  }, [setParams])
+
+  const handleBusinessRoleConfirm = useCallback((names: string[]) => {
+    setParams({ businessRoleNames: names.length > 0 ? names.join(",") : null, dailyPage: null })
+    setBusinessPopoverOpen(false)
+  }, [setParams])
+
+  const handleBusinessRoleClear = useCallback(() => {
+    setParams({ businessRoleNames: null, dailyPage: null })
+    setBusinessPopoverOpen(false)
+  }, [setParams])
+
+  // --- Distinct role types for dynamic column headers ---
+  // getShiftsForDaily と同じ desc 順でカラムマッピングを一致させる
+  const distinctRoleTypes = useMemo(() => {
+    const types = [...new Set(roles.map((r) => r.roleType))].sort().reverse()
+    return [types[0] ?? "監督", types[1] ?? "業務"] as const
+  }, [roles])
+
   // --- Filter tags ---
   const filterTags = useMemo<FilterTag[]>(() => {
     const tags: FilterTag[] = []
@@ -196,6 +233,30 @@ export function ShiftDailyView({
       })
     }
 
+    if (selectedSupervisorRoleNames.length > 0) {
+      const label =
+        selectedSupervisorRoleNames.length <= 2
+          ? selectedSupervisorRoleNames.join(", ")
+          : `${selectedSupervisorRoleNames.length}件選択`
+      tags.push({
+        key: "supervisorRoleNames",
+        label: `${distinctRoleTypes[0]}: ${label}`,
+        onRemove: () => setParams({ supervisorRoleNames: null, dailyPage: null }),
+      })
+    }
+
+    if (selectedBusinessRoleNames.length > 0) {
+      const label =
+        selectedBusinessRoleNames.length <= 2
+          ? selectedBusinessRoleNames.join(", ")
+          : `${selectedBusinessRoleNames.length}件選択`
+      tags.push({
+        key: "businessRoleNames",
+        label: `${distinctRoleTypes[1]}: ${label}`,
+        onRemove: () => setParams({ businessRoleNames: null, dailyPage: null }),
+      })
+    }
+
     if (isRemoteFilter) {
       tags.push({
         key: "isRemote",
@@ -205,7 +266,7 @@ export function ShiftDailyView({
     }
 
     return tags
-  }, [selectedEmployeeIds, employees, unassigned, groupIds, groups, selectedShiftCodes, isRemoteFilter, setParams])
+  }, [selectedEmployeeIds, employees, unassigned, groupIds, groups, selectedShiftCodes, selectedSupervisorRoleNames, selectedBusinessRoleNames, distinctRoleTypes, isRemoteFilter, setParams])
 
   const clearAllFilters = useCallback(() => {
     setParams({
@@ -213,17 +274,12 @@ export function ShiftDailyView({
       groupIds: null,
       unassigned: null,
       shiftCodes: null,
+      supervisorRoleNames: null,
+      businessRoleNames: null,
       dailyIsRemote: null,
       dailyPage: null,
     })
   }, [setParams])
-
-  // --- Distinct role types for dynamic column headers ---
-  // getShiftsForDaily と同じ desc 順でカラムマッピングを一致させる
-  const distinctRoleTypes = useMemo(() => {
-    const types = [...new Set(roles.map((r) => r.roleType))].sort().reverse()
-    return [types[0] ?? "監督", types[1] ?? "業務"] as const
-  }, [roles])
 
   // --- Group options for checkbox filter ---
   const groupOptions = useMemo(
@@ -244,6 +300,16 @@ export function ShiftDailyView({
         searchText: code,
       })),
     [dailyShiftCodeOptions]
+  )
+
+  // --- Role name options for checkbox filter ---
+  const supervisorRoleOptions = useMemo(
+    () => supervisorRoleNameOptions.map((name) => ({ value: name, label: name })),
+    [supervisorRoleNameOptions]
+  )
+  const businessRoleOptions = useMemo(
+    () => businessRoleNameOptions.map((name) => ({ value: name, label: name })),
+    [businessRoleNameOptions]
   )
 
   // --- Column definitions ---
@@ -297,12 +363,46 @@ export function ShiftDailyView({
     },
     {
       accessorKey: "supervisorRoleName",
-      header: distinctRoleTypes[0],
+      header: () => (
+        <ColumnFilterPopover
+          label={distinctRoleTypes[0]}
+          isActive={selectedSupervisorRoleNames.length > 0}
+          activeCount={selectedSupervisorRoleNames.length}
+          open={supervisorPopoverOpen}
+          onOpenChange={setSupervisorPopoverOpen}
+        >
+          <CheckboxListFilter
+            options={supervisorRoleOptions}
+            selectedValues={selectedSupervisorRoleNames}
+            onConfirm={handleSupervisorRoleConfirm}
+            onClear={handleSupervisorRoleClear}
+            popoverOpen={supervisorPopoverOpen}
+            searchPlaceholder={`${distinctRoleTypes[0]}で検索...`}
+          />
+        </ColumnFilterPopover>
+      ),
       cell: ({ row }) => row.original.supervisorRoleName ?? "-",
     },
     {
       accessorKey: "businessRoleName",
-      header: distinctRoleTypes[1],
+      header: () => (
+        <ColumnFilterPopover
+          label={distinctRoleTypes[1]}
+          isActive={selectedBusinessRoleNames.length > 0}
+          activeCount={selectedBusinessRoleNames.length}
+          open={businessPopoverOpen}
+          onOpenChange={setBusinessPopoverOpen}
+        >
+          <CheckboxListFilter
+            options={businessRoleOptions}
+            selectedValues={selectedBusinessRoleNames}
+            onConfirm={handleBusinessRoleConfirm}
+            onClear={handleBusinessRoleClear}
+            popoverOpen={businessPopoverOpen}
+            searchPlaceholder={`${distinctRoleTypes[1]}で検索...`}
+          />
+        </ColumnFilterPopover>
+      ),
       cell: ({ row }) => row.original.businessRoleName ?? "-",
     },
     {
@@ -350,10 +450,16 @@ export function ShiftDailyView({
   ], [
     selectedEmployeeIds, employees, employeePopoverOpen,
     groupIds, unassigned, selectedShiftCodes,
+    selectedSupervisorRoleNames, selectedBusinessRoleNames,
     isRemoteFilter, groupOptions, selectedGroupValues, shiftCodeOptions,
-    groupPopoverOpen, shiftCodePopoverOpen, setParams, hasUnassigned, distinctRoleTypes,
+    supervisorRoleOptions, businessRoleOptions,
+    groupPopoverOpen, shiftCodePopoverOpen,
+    supervisorPopoverOpen, businessPopoverOpen,
+    setParams, hasUnassigned, distinctRoleTypes,
     handleEmployeeIdsConfirm, handleEmployeeIdsClear,
     handleGroupConfirm, handleGroupClear, handleShiftCodesConfirm, handleShiftCodesClear,
+    handleSupervisorRoleConfirm, handleSupervisorRoleClear,
+    handleBusinessRoleConfirm, handleBusinessRoleClear,
     handleRemoteChange,
   ])
 

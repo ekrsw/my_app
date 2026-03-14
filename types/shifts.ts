@@ -54,6 +54,8 @@ export type ShiftDailyFilterParams = {
   employeeSearch?: string
   employeeIds?: string[]
   isRemote?: boolean
+  supervisorRoleNames?: string[]
+  businessRoleNames?: string[]
   sortBy?: ShiftDailySortField
   sortOrder?: SortOrder
 }
@@ -63,6 +65,8 @@ export type DailyFilterOptions = {
   groups: { id: number; name: string }[]
   shiftCodes: string[]
   hasUnassigned: boolean
+  supervisorRoleNames: string[]
+  businessRoleNames: string[]
 }
 
 export type ShiftHistoryEntry = ShiftChangeHistory & {
