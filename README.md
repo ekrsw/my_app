@@ -20,8 +20,6 @@ cd my_app
 ### 2. パッケージインストール
 
 ```bash
-npm config set proxy http://eisuke_koresawa:koresawaeisuke@mjsproxy.mjs.co.jp:80
-npm config set https-proxy http://eisuke_koresawa:koresawaeisuke@mjsproxy.mjs.co.jp:80
 npm install
 ```
 
