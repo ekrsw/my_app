@@ -14,6 +14,8 @@ type ColumnFilterPopoverProps = {
   activeCount?: number
   children: ReactNode
   label: string
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
 }
 
 export function ColumnFilterPopover({
@@ -21,11 +23,13 @@ export function ColumnFilterPopover({
   activeCount,
   children,
   label,
+  open,
+  onOpenChange,
 }: ColumnFilterPopoverProps) {
   return (
     <div className="flex items-center gap-1">
       <span>{label}</span>
-      <Popover>
+      <Popover open={open} onOpenChange={onOpenChange}>
         <PopoverTrigger asChild>
           <button
             type="button"

@@ -53,6 +53,7 @@ export type ShiftDailyFilterParams = {
   unassigned?: boolean
   shiftCodes?: string[]
   employeeSearch?: string
+  employeeIds?: string[]
   startTimeFrom?: string    // "HH:mm"
   endTimeTo?: string        // "HH:mm"
   isHoliday?: boolean

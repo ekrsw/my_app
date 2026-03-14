@@ -332,6 +332,11 @@ export async function getShiftsForDaily(
     )
   }
 
+  // 従業員IDフィルター
+  if (filter.employeeIds && filter.employeeIds.length > 0) {
+    conditions.push(Prisma.sql`e.id = ANY(${filter.employeeIds}::uuid[])`)
+  }
+
   // シフト関連フィルター（シフトコード、時刻、isHoliday、isRemote）
   const shiftFilterConditions: Prisma.Sql[] = []
   if (filter.shiftCodes && filter.shiftCodes.length > 0) {
@@ -502,6 +507,41 @@ export async function getLatestShiftHistoryEntries(
     }
   }
   return result
+}
+
+export async function getEmployeesForDailyFilter(date: string) {
+  const [y, m, d] = date.split("-").map(Number)
+  const targetDate = new Date(Date.UTC(y, m - 1, d))
+
+  return prisma.employee.findMany({
+    where: {
+      OR: [
+        { terminationDate: null },
+        { terminationDate: { gte: targetDate } },
+      ],
+    },
+    select: {
+      id: true,
+      name: true,
+    },
+    orderBy: { name: "asc" },
+  })
+}
+
+export async function getDistinctShiftCodesForDate(date: string): Promise<string[]> {
+  const [y, m, d] = date.split("-").map(Number)
+  const targetDate = new Date(Date.UTC(y, m - 1, d))
+
+  const result = await prisma.shift.findMany({
+    where: {
+      shiftDate: targetDate,
+      shiftCode: { not: null },
+    },
+    select: { shiftCode: true },
+    distinct: ["shiftCode"],
+    orderBy: { shiftCode: "asc" },
+  })
+  return result.map((r) => r.shiftCode!).filter(Boolean)
 }
 
 export async function getShiftById(id: number) {

@@ -52,13 +52,15 @@ type ShiftPageClientProps = {
   dailyGroupIds: number[]
   dailyUnassigned: boolean
   dailySelectedShiftCodes: string[]
-  dailySearch: string
+  dailyEmployeeIds: string[]
+  dailyEmployees: { id: string; name: string }[]
   dailyStartTimeFrom: string
   dailyEndTimeTo: string
   dailySortBy: ShiftDailySortField
   dailySortOrder: SortOrder
   dailyIsHoliday: boolean
   dailyIsRemote: boolean
+  dailyShiftCodeOptions: string[]
 }
 
 export function ShiftPageClient({
@@ -83,13 +85,15 @@ export function ShiftPageClient({
   dailyGroupIds,
   dailyUnassigned,
   dailySelectedShiftCodes,
-  dailySearch,
+  dailyEmployeeIds,
+  dailyEmployees,
   dailyStartTimeFrom,
   dailyEndTimeTo,
   dailySortBy,
   dailySortOrder,
   dailyIsHoliday,
   dailyIsRemote,
+  dailyShiftCodeOptions,
 }: ShiftPageClientProps) {
   const [calendarData, setCalendarData] = useState(initialCalendarData)
   const [hasMore, setHasMore] = useState(initialHasMore)
@@ -238,13 +242,15 @@ export function ShiftPageClient({
         groupIds={dailyGroupIds}
         unassigned={dailyUnassigned}
         selectedShiftCodes={dailySelectedShiftCodes}
-        search={dailySearch}
+        selectedEmployeeIds={dailyEmployeeIds}
+        employees={dailyEmployees}
         startTimeFrom={dailyStartTimeFrom}
         endTimeTo={dailyEndTimeTo}
         sortBy={dailySortBy}
         sortOrder={dailySortOrder}
         isHolidayFilter={dailyIsHoliday}
         isRemoteFilter={dailyIsRemote}
+        dailyShiftCodeOptions={dailyShiftCodeOptions}
       />
     )
   }

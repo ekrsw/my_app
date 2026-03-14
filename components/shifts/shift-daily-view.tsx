@@ -6,7 +6,7 @@ import { DataTable } from "@/components/data-table"
 import { ShiftBadge } from "@/components/shifts/shift-badge"
 import { ShiftForm } from "@/components/shifts/shift-form"
 import { ColumnFilterPopover } from "@/components/shifts/column-filter-popover"
-import { TextSearchFilter } from "@/components/shifts/column-filters/text-search-filter"
+import { EmployeeCheckboxFilter } from "@/components/shifts/column-filters/employee-checkbox-filter"
 import { CheckboxListFilter } from "@/components/shifts/column-filters/checkbox-list-filter"
 import { TimeRangeFilter } from "@/components/shifts/column-filters/time-range-filter"
 import { ToggleFilter } from "@/components/shifts/column-filters/toggle-filter"
@@ -42,13 +42,15 @@ type ShiftDailyViewProps = {
   groupIds: number[]
   unassigned: boolean
   selectedShiftCodes: string[]
-  search: string
+  selectedEmployeeIds: string[]
+  employees: { id: string; name: string }[]
   startTimeFrom: string
   endTimeTo: string
   sortBy: ShiftDailySortField
   sortOrder: SortOrder
   isHolidayFilter: boolean
   isRemoteFilter: boolean
+  dailyShiftCodeOptions: string[]
 }
 
 export function ShiftDailyView({
@@ -62,17 +64,22 @@ export function ShiftDailyView({
   groupIds,
   unassigned,
   selectedShiftCodes,
-  search,
+  selectedEmployeeIds,
+  employees,
   startTimeFrom,
   endTimeTo,
   sortBy,
   sortOrder,
   isHolidayFilter,
   isRemoteFilter,
+  dailyShiftCodeOptions,
 }: ShiftDailyViewProps) {
   const { setParams } = useQueryParams()
   const [editOpen, setEditOpen] = useState(false)
   const [editRow, setEditRow] = useState<ShiftDailyRow | null>(null)
+  const [employeePopoverOpen, setEmployeePopoverOpen] = useState(false)
+  const [groupPopoverOpen, setGroupPopoverOpen] = useState(false)
+  const [shiftCodePopoverOpen, setShiftCodePopoverOpen] = useState(false)
 
   const handleRowClick = (row: ShiftDailyRow) => {
     setEditRow(row)
@@ -101,26 +108,40 @@ export function ShiftDailyView({
   }
 
   // --- Filter handlers ---
-  const handleSearchChange = useCallback((value: string) => {
-    setParams({ search: value || null, dailyPage: null })
+  const handleEmployeeIdsConfirm = useCallback((ids: string[]) => {
+    setParams({ employeeIds: ids.length > 0 ? ids.join(",") : null, dailyPage: null })
+    setEmployeePopoverOpen(false)
   }, [setParams])
 
-  const handleGroupChange = useCallback((ids: string[]) => {
+  const handleEmployeeIdsClear = useCallback(() => {
+    setParams({ employeeIds: null, dailyPage: null })
+    setEmployeePopoverOpen(false)
+  }, [setParams])
+
+  const handleGroupConfirm = useCallback((ids: string[]) => {
     setParams({
       groupIds: ids.length > 0 ? ids.join(",") : null,
       dailyPage: null,
     })
+    setGroupPopoverOpen(false)
   }, [setParams])
 
-  const handleUnassignedChange = useCallback((checked: boolean) => {
-    setParams({ unassigned: checked ? "true" : null, dailyPage: null })
+  const handleGroupClear = useCallback(() => {
+    setParams({ groupIds: null, unassigned: null, dailyPage: null })
+    setGroupPopoverOpen(false)
   }, [setParams])
 
-  const handleShiftCodesChange = useCallback((codes: string[]) => {
+  const handleShiftCodesConfirm = useCallback((codes: string[]) => {
     setParams({
       shiftCodes: codes.length > 0 ? codes.join(",") : null,
       dailyPage: null,
     })
+    setShiftCodePopoverOpen(false)
+  }, [setParams])
+
+  const handleShiftCodesClear = useCallback(() => {
+    setParams({ shiftCodes: null, dailyPage: null })
+    setShiftCodePopoverOpen(false)
   }, [setParams])
 
   const handleStartTimeChange = useCallback((value: string) => {
@@ -143,11 +164,18 @@ export function ShiftDailyView({
   const filterTags = useMemo<FilterTag[]>(() => {
     const tags: FilterTag[] = []
 
-    if (search) {
+    if (selectedEmployeeIds.length > 0) {
+      const label =
+        selectedEmployeeIds.length <= 2
+          ? selectedEmployeeIds
+              .map((id) => employees.find((e) => e.id === id)?.name ?? "")
+              .filter(Boolean)
+              .join(", ")
+          : `${selectedEmployeeIds.length}名選択`
       tags.push({
-        key: "search",
-        label: `従業員名: ${search}`,
-        onRemove: () => setParams({ search: null, dailyPage: null }),
+        key: "employeeIds",
+        label: `従業員: ${label}`,
+        onRemove: () => setParams({ employeeIds: null, dailyPage: null }),
       })
     }
 
@@ -216,11 +244,11 @@ export function ShiftDailyView({
     }
 
     return tags
-  }, [search, unassigned, groupIds, groups, selectedShiftCodes, startTimeFrom, endTimeTo, isHolidayFilter, isRemoteFilter, setParams])
+  }, [selectedEmployeeIds, employees, unassigned, groupIds, groups, selectedShiftCodes, startTimeFrom, endTimeTo, isHolidayFilter, isRemoteFilter, setParams])
 
   const clearAllFilters = useCallback(() => {
     setParams({
-      search: null,
+      employeeIds: null,
       groupIds: null,
       unassigned: null,
       shiftCodes: null,
@@ -242,14 +270,15 @@ export function ShiftDailyView({
     [groupIds]
   )
 
-  // --- Shift code options for checkbox filter ---
+  // --- Shift code options for checkbox filter (当日存在分のみ) ---
   const shiftCodeOptions = useMemo(
     () =>
-      shiftCodes.map((sc) => ({
-        value: sc.code,
-        label: <ShiftBadge code={sc.code} />,
+      dailyShiftCodeOptions.map((code) => ({
+        value: code,
+        label: <ShiftBadge code={code} />,
+        searchText: code,
       })),
-    [shiftCodes]
+    [dailyShiftCodeOptions]
   )
 
   // --- Column definitions ---
@@ -259,12 +288,17 @@ export function ShiftDailyView({
       header: () => (
         <ColumnFilterPopover
           label="従業員名"
-          isActive={!!search}
+          isActive={selectedEmployeeIds.length > 0}
+          activeCount={selectedEmployeeIds.length}
+          open={employeePopoverOpen}
+          onOpenChange={setEmployeePopoverOpen}
         >
-          <TextSearchFilter
-            value={search}
-            onChange={handleSearchChange}
-            placeholder="従業員名で検索..."
+          <EmployeeCheckboxFilter
+            employees={employees}
+            selectedIds={selectedEmployeeIds}
+            onConfirm={handleEmployeeIdsConfirm}
+            onClear={handleEmployeeIdsClear}
+            popoverOpen={employeePopoverOpen}
           />
         </ColumnFilterPopover>
       ),
@@ -276,17 +310,22 @@ export function ShiftDailyView({
           label="グループ"
           isActive={groupIds.length > 0 || unassigned}
           activeCount={groupIds.length + (unassigned ? 1 : 0)}
+          open={groupPopoverOpen}
+          onOpenChange={setGroupPopoverOpen}
         >
           <CheckboxListFilter
             options={groupOptions}
             selectedValues={selectedGroupValues}
-            onChange={(values) => handleGroupChange(values)}
+            onConfirm={handleGroupConfirm}
+            onClear={handleGroupClear}
+            popoverOpen={groupPopoverOpen}
             specialOption={{
               value: "unassigned",
               label: "未所属",
               checked: unassigned,
-              onChange: handleUnassignedChange,
+              onChange: (checked) => setParams({ unassigned: checked ? "true" : null, dailyPage: null }),
             }}
+            searchPlaceholder="グループ名で検索..."
           />
         </ColumnFilterPopover>
       ),
@@ -299,11 +338,16 @@ export function ShiftDailyView({
           label="シフトコード"
           isActive={selectedShiftCodes.length > 0}
           activeCount={selectedShiftCodes.length}
+          open={shiftCodePopoverOpen}
+          onOpenChange={setShiftCodePopoverOpen}
         >
           <CheckboxListFilter
             options={shiftCodeOptions}
             selectedValues={selectedShiftCodes}
-            onChange={handleShiftCodesChange}
+            onConfirm={handleShiftCodesConfirm}
+            onClear={handleShiftCodesClear}
+            popoverOpen={shiftCodePopoverOpen}
+            searchPlaceholder="シフトコードで検索..."
           />
         </ColumnFilterPopover>
       ),
@@ -382,9 +426,12 @@ export function ShiftDailyView({
       enableSorting: true,
     },
   ], [
-    search, groupIds, unassigned, selectedShiftCodes, startTimeFrom, endTimeTo,
+    selectedEmployeeIds, employees, employeePopoverOpen,
+    groupIds, unassigned, selectedShiftCodes, startTimeFrom, endTimeTo,
     isHolidayFilter, isRemoteFilter, groupOptions, selectedGroupValues, shiftCodeOptions,
-    handleSearchChange, handleGroupChange, handleUnassignedChange, handleShiftCodesChange,
+    groupPopoverOpen, shiftCodePopoverOpen, setParams,
+    handleEmployeeIdsConfirm, handleEmployeeIdsClear,
+    handleGroupConfirm, handleGroupClear, handleShiftCodesConfirm, handleShiftCodesClear,
     handleStartTimeChange, handleEndTimeChange, handleHolidayChange, handleRemoteChange,
   ])
 
