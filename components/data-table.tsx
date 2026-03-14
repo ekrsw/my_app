@@ -18,8 +18,9 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
-import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react"
-import { useState } from "react"
+import { ArrowUp, ArrowDown, ArrowUpDown, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react"
+import { useState, useCallback } from "react"
+import { cn } from "@/lib/utils"
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[]
@@ -33,6 +34,12 @@ interface DataTableProps<TData, TValue> {
   pageSize?: number
   // Row click handler
   onRowClick?: (row: TData) => void
+  // Server-side sorting
+  serverSort?: {
+    sortBy: string
+    sortOrder: "asc" | "desc"
+    onSortChange: (sortBy: string, sortOrder: "asc" | "desc") => void
+  }
 }
 
 export function DataTable<TData, TValue>({
@@ -44,14 +51,37 @@ export function DataTable<TData, TValue>({
   clientPagination = false,
   pageSize = 20,
   onRowClick,
+  serverSort,
 }: DataTableProps<TData, TValue>) {
-  const [sorting, setSorting] = useState<SortingState>([])
+  // サーバーサイドソート時は serverSort の値から初期値を設定
+  const [sorting, setSorting] = useState<SortingState>(
+    serverSort
+      ? [{ id: serverSort.sortBy, desc: serverSort.sortOrder === "desc" }]
+      : []
+  )
+
+  const handleSortingChange = useCallback(
+    (updater: SortingState | ((prev: SortingState) => SortingState)) => {
+      const newSorting = typeof updater === "function" ? updater(sorting) : updater
+      setSorting(newSorting)
+      if (serverSort) {
+        if (newSorting.length > 0) {
+          serverSort.onSortChange(newSorting[0].id, newSorting[0].desc ? "desc" : "asc")
+        } else {
+          serverSort.onSortChange("employeeName", "asc")
+        }
+      }
+    },
+    [serverSort, sorting]
+  )
 
   const table = useReactTable({
     data,
     columns,
     getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
+    ...(serverSort
+      ? { manualSorting: true }
+      : { getSortedRowModel: getSortedRowModel() }),
     ...(clientPagination
       ? {
           getPaginationRowModel: getPaginationRowModel(),
@@ -67,7 +97,7 @@ export function DataTable<TData, TValue>({
         pagination: { pageIndex: page - 1, pageSize },
       }),
     },
-    onSortingChange: setSorting,
+    onSortingChange: handleSortingChange,
   })
 
   const currentPage = clientPagination
@@ -84,16 +114,36 @@ export function DataTable<TData, TValue>({
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => (
-                  <TableHead key={header.id}>
-                    {header.isPlaceholder
-                      ? null
-                      : flexRender(
-                          header.column.columnDef.header,
-                          header.getContext()
-                        )}
-                  </TableHead>
-                ))}
+                {headerGroup.headers.map((header) => {
+                  const sorted = header.column.getIsSorted()
+                  return (
+                    <TableHead key={header.id}>
+                      {header.isPlaceholder ? null : (
+                        <div
+                          className={cn(
+                            header.column.getCanSort() &&
+                              "cursor-pointer select-none flex items-center gap-1"
+                          )}
+                          onClick={header.column.getToggleSortingHandler()}
+                        >
+                          {flexRender(
+                            header.column.columnDef.header,
+                            header.getContext()
+                          )}
+                          {header.column.getCanSort() && (
+                            sorted === "asc" ? (
+                              <ArrowUp className="h-3.5 w-3.5 shrink-0" />
+                            ) : sorted === "desc" ? (
+                              <ArrowDown className="h-3.5 w-3.5 shrink-0" />
+                            ) : (
+                              <ArrowUpDown className="h-3.5 w-3.5 shrink-0 opacity-30" />
+                            )
+                          )}
+                        </div>
+                      )}
+                    </TableHead>
+                  )
+                })}
               </TableRow>
             ))}
           </TableHeader>

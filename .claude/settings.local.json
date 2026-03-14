@@ -91,7 +91,13 @@
       "mcp__playwright__browser_wait_for",
       "mcp__playwright__browser_run_code",
       "Bash(find /Users/ekoresawa/project/my_app -type f \\\\\\( -name \"*shift*\" -o -name \"*calendar*\" -o -name \"*view*\" \\\\\\) 2>/dev/null | head -30)",
-      "Bash(npm run:*)"
+      "Bash(npm run:*)",
+      "Bash(timeout 15 npx next:*)",
+      "Bash(rm:*)",
+      "Bash(timeout 10 npx next:*)",
+      "Bash(netstat:*)",
+      "Bash(npx next:*)",
+      "mcp__playwright__browser_close"
     ]
   }
 }

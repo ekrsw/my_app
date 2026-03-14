@@ -11,7 +11,7 @@ import { getGroups } from "@/lib/db/groups"
 import { getFunctionRoles } from "@/lib/db/roles"
 import { getActiveShiftCodes } from "@/lib/db/shift-codes"
 import { toDateString, getTodayJST } from "@/lib/date-utils"
-import type { SearchParams } from "@/types"
+import type { SearchParams, ShiftDailySortField } from "@/types"
 
 export default async function ShiftsPage({
   searchParams,
@@ -50,8 +50,17 @@ export default async function ShiftsPage({
     : undefined
   const startTimeFrom = (params.startTimeFrom as string) || undefined
   const endTimeTo = (params.endTimeTo as string) || undefined
+  const dailySortBy = (params.dailySortBy as string) || undefined
+  const dailySortOrder = (params.dailySortOrder as string) === "desc" ? "desc" as const : "asc" as const
+  const dailyIsHoliday = params.dailyIsHoliday === "true" ? true : undefined
+  const dailyIsRemote = params.dailyIsRemote === "true" ? true : undefined
 
   const filter = { year, month, groupIds: groupIds && groupIds.length > 0 ? groupIds : undefined, unassigned, roleIds: roleIds && roleIds.length > 0 ? roleIds : undefined, roleUnassigned, employeeSearch: search }
+
+  const validSortFields: ShiftDailySortField[] = ["employeeName", "groupName", "shiftCode", "startTime", "endTime", "isHoliday", "isRemote"]
+  const dailySortByValidated = validSortFields.includes(dailySortBy as ShiftDailySortField)
+    ? (dailySortBy as ShiftDailySortField)
+    : undefined
 
   const dailyFilter = {
     date: dailyDate,
@@ -61,6 +70,10 @@ export default async function ShiftsPage({
     employeeSearch: search,
     startTimeFrom,
     endTimeTo,
+    isHoliday: dailyIsHoliday,
+    isRemote: dailyIsRemote,
+    sortBy: dailySortByValidated,
+    sortOrder: dailySortByValidated ? dailySortOrder : undefined,
   }
 
   const [calendarResult, groups, roles, shiftCodes, historyResult, shiftIdsWithHistorySet, latestNotes, dailyResult] =
@@ -128,6 +141,10 @@ export default async function ShiftsPage({
               dailySearch={search ?? ""}
               dailyStartTimeFrom={startTimeFrom ?? ""}
               dailyEndTimeTo={endTimeTo ?? ""}
+              dailySortBy={dailySortByValidated ?? "employeeName"}
+              dailySortOrder={dailySortByValidated ? dailySortOrder : "asc"}
+              dailyIsHoliday={dailyIsHoliday ?? false}
+              dailyIsRemote={dailyIsRemote ?? false}
             />
           </TabsContent>
           <TabsContent value="history" className="mt-4">

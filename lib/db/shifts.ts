@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma"
 import { Prisma } from "@/app/generated/prisma/client"
-import type { ShiftFilterParams, ShiftDailyFilterParams, ShiftDailyRow, PaginatedResult } from "@/types"
+import type { ShiftFilterParams, ShiftDailyFilterParams, ShiftDailyRow, PaginatedResult, ShiftDailySortField, SortOrder } from "@/types"
 import type { ShiftCalendarData, ShiftCalendarPaginatedResult } from "@/types/shifts"
 import { toDateString } from "@/lib/date-utils"
 
@@ -267,6 +267,20 @@ export async function getShiftsForCalendarPaginated(
 
 const DEFAULT_DAILY_PAGE_SIZE = 30
 
+// ソートフィールド → SQL式マッピング（GROUP BY対応で集約関数を使用）
+function getDailySortExpression(sortBy: ShiftDailySortField): string {
+  switch (sortBy) {
+    case "employeeName": return "e.name"
+    case "groupName": return "MIN(g.name)"
+    case "shiftCode": return "MIN(s.shift_code)"
+    case "startTime": return "MIN(s.start_time)"
+    case "endTime": return "MIN(s.end_time)"
+    case "isHoliday": return "MIN(s.is_holiday::int)"
+    case "isRemote": return "MIN(s.is_remote::int)"
+    default: return "e.name"
+  }
+}
+
 export async function getShiftsForDaily(
   filter: ShiftDailyFilterParams,
   pagination: { page?: number; pageSize?: number } = {}
@@ -274,104 +288,139 @@ export async function getShiftsForDaily(
   const page = pagination.page ?? 1
   const pageSize = pagination.pageSize ?? DEFAULT_DAILY_PAGE_SIZE
 
-  // @db.Date カラム比較用 UTC midnight
+  // Raw SQL では文字列 + ::date キャストで日付比較（Date オブジェクトは型不一致になるため）
+  const dateStr = filter.date // "YYYY-MM-DD" 形式
+  // Prisma findMany 用（@db.Date カラム比較用 UTC midnight）
   const [y, m, d] = filter.date.split("-").map(Number)
   const targetDate = new Date(Date.UTC(y, m - 1, d))
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const employeeWhere: any = {}
+  const sortBy: ShiftDailySortField = filter.sortBy ?? "employeeName"
+  const sortOrder: SortOrder = filter.sortOrder ?? "asc"
+
+  // --- Step 1: Raw SQLで動的 ORDER BY + OFFSET/LIMIT で従業員IDリスト取得 ---
+  const conditions: Prisma.Sql[] = [
+    Prisma.sql`(e.termination_date IS NULL OR e.termination_date >= ${dateStr}::date)`,
+  ]
 
   // グループフィルター
-  const groupConditions = []
+  const sqlGroupConditions: Prisma.Sql[] = []
   if (filter.groupIds && filter.groupIds.length > 0) {
-    groupConditions.push({ groups: { some: { groupId: { in: filter.groupIds }, endDate: null } } })
+    sqlGroupConditions.push(Prisma.sql`EXISTS (
+      SELECT 1 FROM employee_groups eg2
+      WHERE eg2.employee_id = e.id AND eg2.end_date IS NULL AND eg2.group_id = ANY(${filter.groupIds})
+    )`)
   }
   if (filter.unassigned) {
-    groupConditions.push({ groups: { none: { endDate: null } } })
+    sqlGroupConditions.push(Prisma.sql`NOT EXISTS (
+      SELECT 1 FROM employee_groups eg2
+      WHERE eg2.employee_id = e.id AND eg2.end_date IS NULL
+    )`)
   }
-  if (groupConditions.length > 0) {
-    employeeWhere.OR = groupConditions
+  if (sqlGroupConditions.length > 0) {
+    conditions.push(
+      sqlGroupConditions.length === 1
+        ? sqlGroupConditions[0]
+        : Prisma.sql`(${Prisma.join(sqlGroupConditions, " OR ")})`
+    )
   }
 
   // 従業員名検索
   if (filter.employeeSearch) {
-    employeeWhere.AND = [
-      ...(employeeWhere.AND ?? []),
-      {
-        OR: [
-          { name: { contains: filter.employeeSearch, mode: "insensitive" } },
-          { nameKana: { contains: filter.employeeSearch, mode: "insensitive" } },
-        ],
-      },
-    ]
+    const searchPattern = `%${filter.employeeSearch}%`
+    conditions.push(
+      Prisma.sql`(e.name ILIKE ${searchPattern} OR e.name_kana ILIKE ${searchPattern})`
+    )
   }
 
-  // シフト条件
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const shiftWhere: any = { shiftDate: targetDate }
-
+  // シフト関連フィルター（シフトコード、時刻、isHoliday、isRemote）
+  const shiftFilterConditions: Prisma.Sql[] = []
   if (filter.shiftCodes && filter.shiftCodes.length > 0) {
-    shiftWhere.shiftCode = { in: filter.shiftCodes }
+    shiftFilterConditions.push(Prisma.sql`s.shift_code = ANY(${filter.shiftCodes})`)
   }
-
   if (filter.startTimeFrom) {
-    const [hh, mm] = filter.startTimeFrom.split(":").map(Number)
-    const fromTime = new Date(Date.UTC(1970, 0, 1, hh, mm))
-    shiftWhere.startTime = { ...shiftWhere.startTime, gte: fromTime }
+    const timeStr = filter.startTimeFrom // "HH:MM" format
+    shiftFilterConditions.push(Prisma.sql`s.start_time >= ${timeStr}::time`)
   }
-
   if (filter.endTimeTo) {
-    const [hh, mm] = filter.endTimeTo.split(":").map(Number)
-    const toTime = new Date(Date.UTC(1970, 0, 1, hh, mm))
-    shiftWhere.endTime = { ...shiftWhere.endTime, lte: toTime }
+    const timeStr = filter.endTimeTo // "HH:MM" format
+    shiftFilterConditions.push(Prisma.sql`s.end_time <= ${timeStr}::time`)
+  }
+  if (filter.isHoliday) {
+    shiftFilterConditions.push(Prisma.sql`s.is_holiday = true`)
+  }
+  if (filter.isRemote) {
+    shiftFilterConditions.push(Prisma.sql`s.is_remote = true`)
   }
 
-  // シフトコード・時刻フィルターが指定されている場合、シフトが存在する従業員のみ
-  const hasShiftFilter = !!(
-    (filter.shiftCodes && filter.shiftCodes.length > 0) ||
-    filter.startTimeFrom ||
-    filter.endTimeTo
-  )
+  const hasShiftFilter = shiftFilterConditions.length > 0
+
+  // シフトフィルターがある場合はINNER JOIN、なければLEFT JOIN
+  const shiftJoin = hasShiftFilter
+    ? Prisma.sql`INNER JOIN shifts s ON e.id = s.employee_id AND s.shift_date = ${dateStr}::date`
+    : Prisma.sql`LEFT JOIN shifts s ON e.id = s.employee_id AND s.shift_date = ${dateStr}::date`
 
   if (hasShiftFilter) {
-    employeeWhere.AND = [
-      ...(employeeWhere.AND ?? []),
-      { shifts: { some: shiftWhere } },
-    ]
+    for (const cond of shiftFilterConditions) {
+      conditions.push(cond)
+    }
   }
 
-  const where = {
-    ...employeeWhere,
-    OR: employeeWhere.OR ?? undefined,
-    AND: [
-      ...(employeeWhere.AND ?? []),
-      {
-        OR: [
-          { terminationDate: null },
-          { terminationDate: { gte: targetDate } },
-        ],
-      },
-    ],
-  }
+  const whereClause = Prisma.sql`WHERE ${Prisma.join(conditions, " AND ")}`
 
-  const [employees, total] = await Promise.all([
-    prisma.employee.findMany({
-      where,
-      include: {
-        groups: {
-          include: { group: true },
-          where: { endDate: null },
-        },
-        shifts: {
-          where: { shiftDate: targetDate },
-        },
-      },
-      orderBy: [{ name: "asc" }],
-      skip: (page - 1) * pageSize,
-      take: pageSize,
-    }),
-    prisma.employee.count({ where }),
+  // ソート式構築
+  const sortExpr = getDailySortExpression(sortBy)
+  const nullsHandling = sortOrder === "asc" ? "NULLS LAST" : "NULLS FIRST"
+  // セカンダリソートとして常に e.name ASC を追加
+  const orderByRaw = sortBy === "employeeName"
+    ? `ORDER BY e.name ${sortOrder}`
+    : `ORDER BY ${sortExpr} ${sortOrder} ${nullsHandling}, e.name ASC`
+  const orderByClause = Prisma.raw(orderByRaw)
+
+  const offset = (page - 1) * pageSize
+
+  const [orderedIds, countResult] = await Promise.all([
+    prisma.$queryRaw<{ id: string }[]>(Prisma.sql`
+      SELECT e.id
+      FROM employees e
+      LEFT JOIN employee_groups eg ON e.id = eg.employee_id AND eg.end_date IS NULL
+      LEFT JOIN groups g ON eg.group_id = g.id
+      ${shiftJoin}
+      ${whereClause}
+      GROUP BY e.id, e.name
+      ${orderByClause}
+      OFFSET ${offset} LIMIT ${pageSize}
+    `),
+    prisma.$queryRaw<{ count: bigint }[]>(Prisma.sql`
+      SELECT COUNT(DISTINCT e.id) as count
+      FROM employees e
+      LEFT JOIN employee_groups eg ON e.id = eg.employee_id AND eg.end_date IS NULL
+      ${shiftJoin}
+      ${whereClause}
+    `),
   ])
+
+  const total = Number(countResult[0]?.count ?? 0)
+  const slicedIds = orderedIds.map((r) => r.id)
+
+  // --- Step 2: Prisma findManyで完全なデータを取得 ---
+  const employees = slicedIds.length > 0
+    ? await prisma.employee.findMany({
+        where: { id: { in: slicedIds } },
+        include: {
+          groups: {
+            include: { group: true },
+            where: { endDate: null },
+          },
+          shifts: {
+            where: { shiftDate: targetDate },
+          },
+        },
+      })
+    : []
+
+  // --- Step 3: Raw SQLの順序に合わせて並べ替え ---
+  const idOrder = new Map(slicedIds.map((id, i) => [id, i]))
+  employees.sort((a, b) => (idOrder.get(a.id) ?? 0) - (idOrder.get(b.id) ?? 0))
 
   const data: ShiftDailyRow[] = employees.map((emp) => {
     const shift = emp.shifts[0] ?? null

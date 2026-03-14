@@ -11,7 +11,7 @@ import { ShiftDailyView } from "./shift-daily-view"
 import { Upload, Pencil } from "lucide-react"
 import { ShiftImportDialog } from "./shift-import-dialog"
 import { SHIFT_CODE_MAP, getColorClasses, type ShiftCodeInfo } from "@/lib/constants"
-import type { ShiftCalendarData, ShiftFilterParams, ShiftDailyRow } from "@/types/shifts"
+import type { ShiftCalendarData, ShiftFilterParams, ShiftDailyRow, ShiftDailySortField, SortOrder } from "@/types/shifts"
 import type { LatestShiftHistory } from "@/lib/db/shifts"
 import type { Shift } from "@/app/generated/prisma/client"
 import { loadMoreCalendarData } from "@/lib/actions/shift-actions"
@@ -55,6 +55,10 @@ type ShiftPageClientProps = {
   dailySearch: string
   dailyStartTimeFrom: string
   dailyEndTimeTo: string
+  dailySortBy: ShiftDailySortField
+  dailySortOrder: SortOrder
+  dailyIsHoliday: boolean
+  dailyIsRemote: boolean
 }
 
 export function ShiftPageClient({
@@ -82,6 +86,10 @@ export function ShiftPageClient({
   dailySearch,
   dailyStartTimeFrom,
   dailyEndTimeTo,
+  dailySortBy,
+  dailySortOrder,
+  dailyIsHoliday,
+  dailyIsRemote,
 }: ShiftPageClientProps) {
   const [calendarData, setCalendarData] = useState(initialCalendarData)
   const [hasMore, setHasMore] = useState(initialHasMore)
@@ -233,6 +241,10 @@ export function ShiftPageClient({
         search={dailySearch}
         startTimeFrom={dailyStartTimeFrom}
         endTimeTo={dailyEndTimeTo}
+        sortBy={dailySortBy}
+        sortOrder={dailySortOrder}
+        isHolidayFilter={dailyIsHoliday}
+        isRemoteFilter={dailyIsRemote}
       />
     )
   }
