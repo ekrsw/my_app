@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo, useCallback } from "react"
+import { useState, useMemo, useCallback, useRef } from "react"
 import { ColumnDef } from "@tanstack/react-table"
 import { DataTable } from "@/components/data-table"
 import { ShiftBadge } from "@/components/shifts/shift-badge"
@@ -13,9 +13,15 @@ import { ActiveFilterTags, FilterTag } from "@/components/shifts/active-filter-t
 import { ViewModeSelect } from "@/components/shifts/view-mode-select"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
+import { Calendar } from "@/components/ui/calendar"
 import { useQueryParams } from "@/hooks/use-query-params"
 import type { ShiftDailyRow, ShiftDailySortField, SortOrder } from "@/types/shifts"
-import { Circle, ChevronLeft, ChevronRight } from "lucide-react"
+import { Circle, ChevronLeft, ChevronRight, CalendarIcon } from "lucide-react"
 
 type Group = { id: number; name: string }
 type ShiftCodeOption = {
@@ -106,12 +112,79 @@ export function ShiftDailyView({
   }, [setParams])
 
   // --- Date navigation ---
+  const [calendarOpen, setCalendarOpen] = useState(false)
+  const [editingDateValue, setEditingDateValue] = useState<string | null>(null)
+  const dateInputRef = useRef<HTMLInputElement>(null)
+
+  const formatDailyDate = (dateStr: string) => {
+    const [y, m, d] = dateStr.split("-").map(Number)
+    return `${y}年${m}月${d}日`
+  }
+
+  const formattedDate = useMemo(() => formatDailyDate(dailyDate), [dailyDate])
+
+  const parseDateInput = (input: string): string | null => {
+    const trimmed = input.trim()
+    // "2026年3月14日" or "2026年03月01日"
+    const jaMatch = trimmed.match(/^(\d{4})年(\d{1,2})月(\d{1,2})日?$/)
+    if (jaMatch) {
+      const y = parseInt(jaMatch[1], 10)
+      const m = parseInt(jaMatch[2], 10)
+      const d = parseInt(jaMatch[3], 10)
+      const date = new Date(y, m - 1, d)
+      if (!isNaN(date.getTime()) && date.getFullYear() === y && date.getMonth() === m - 1 && date.getDate() === d) {
+        return `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`
+      }
+    }
+    // "2026/3/14" or "2026-3-14"
+    const slashMatch = trimmed.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})$/)
+    if (slashMatch) {
+      const y = parseInt(slashMatch[1], 10)
+      const m = parseInt(slashMatch[2], 10)
+      const d = parseInt(slashMatch[3], 10)
+      const date = new Date(y, m - 1, d)
+      if (!isNaN(date.getTime()) && date.getFullYear() === y && date.getMonth() === m - 1 && date.getDate() === d) {
+        return `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`
+      }
+    }
+    return null
+  }
+
+  const handleDateInputCommit = () => {
+    if (editingDateValue !== null) {
+      const parsed = parseDateInput(editingDateValue)
+      if (parsed) {
+        setParams({ dailyDate: parsed, dailyPage: null })
+      }
+      setEditingDateValue(null)
+    }
+  }
+
+  const handleDateInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault()
+      handleDateInputCommit()
+      dateInputRef.current?.blur()
+    }
+  }
+
   const navigateDate = (delta: number) => {
     const [y, m, d] = dailyDate.split("-").map(Number)
     const date = new Date(y, m - 1, d + delta)
     const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`
     setParams({ dailyDate: dateStr, dailyPage: null })
   }
+
+  const navigateToDate = (date: Date) => {
+    const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`
+    setParams({ dailyDate: dateStr, dailyPage: null })
+    setCalendarOpen(false)
+  }
+
+  const selectedCalendarDate = useMemo(() => {
+    const [y, m, d] = dailyDate.split("-").map(Number)
+    return new Date(y, m - 1, d)
+  }, [dailyDate])
 
   // --- Filter handlers ---
   const handleEmployeeIdsConfirm = useCallback((ids: string[]) => {
@@ -480,29 +553,35 @@ export function ShiftDailyView({
     <div>
       {/* 日付ナビゲーション + ビュー切替 */}
       <div className="flex items-center gap-1 mb-4">
-        <Button
-          variant="outline"
-          size="icon"
-          className="h-9 w-9"
-          onClick={() => navigateDate(-1)}
-        >
+        <Button variant="outline" size="icon" onClick={() => navigateDate(-1)}>
           <ChevronLeft className="h-4 w-4" />
         </Button>
         <Input
-          type="date"
-          value={dailyDate}
-          onChange={(e) =>
-            setParams({ dailyDate: e.target.value || null, dailyPage: null })
-          }
-          className="w-44"
+          ref={dateInputRef}
+          value={editingDateValue ?? formattedDate}
+          onFocus={() => setEditingDateValue(formattedDate)}
+          onChange={(e) => setEditingDateValue(e.target.value)}
+          onBlur={handleDateInputCommit}
+          onKeyDown={handleDateInputKeyDown}
+          className="w-[160px] text-center font-medium"
         />
+        <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+          <PopoverTrigger asChild>
+            <Button variant="outline" size="icon">
+              <CalendarIcon className="h-4 w-4" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start">
+            <Calendar
+              mode="single"
+              selected={selectedCalendarDate}
+              onSelect={(date) => date && navigateToDate(date)}
+              defaultMonth={selectedCalendarDate}
+            />
+          </PopoverContent>
+        </Popover>
         <ViewModeSelect value="daily" />
-        <Button
-          variant="outline"
-          size="icon"
-          className="h-9 w-9"
-          onClick={() => navigateDate(1)}
-        >
+        <Button variant="outline" size="icon" onClick={() => navigateDate(1)}>
           <ChevronRight className="h-4 w-4" />
         </Button>
       </div>
