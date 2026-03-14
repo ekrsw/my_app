@@ -62,6 +62,13 @@ export type ShiftDailyFilterParams = {
   sortOrder?: SortOrder
 }
 
+export type DailyFilterOptions = {
+  employees: { id: string; name: string }[]
+  groups: { id: number; name: string }[]
+  shiftCodes: string[]
+  hasUnassigned: boolean
+}
+
 export type ShiftHistoryEntry = ShiftChangeHistory & {
   employee: (Employee & { groups: (EmployeeGroup & { group: Group })[] }) | null
 }

@@ -61,6 +61,8 @@ type ShiftPageClientProps = {
   dailyIsHoliday: boolean
   dailyIsRemote: boolean
   dailyShiftCodeOptions: string[]
+  dailyGroupOptions: { id: number; name: string }[]
+  dailyHasUnassigned: boolean
 }
 
 export function ShiftPageClient({
@@ -94,6 +96,8 @@ export function ShiftPageClient({
   dailyIsHoliday,
   dailyIsRemote,
   dailyShiftCodeOptions,
+  dailyGroupOptions,
+  dailyHasUnassigned,
 }: ShiftPageClientProps) {
   const [calendarData, setCalendarData] = useState(initialCalendarData)
   const [hasMore, setHasMore] = useState(initialHasMore)
@@ -237,7 +241,7 @@ export function ShiftPageClient({
         page={dailyPage}
         totalPages={dailyTotalPages}
         dailyDate={dailyDate}
-        groups={groups}
+        groups={dailyGroupOptions}
         shiftCodes={shiftCodes}
         groupIds={dailyGroupIds}
         unassigned={dailyUnassigned}
@@ -251,6 +255,7 @@ export function ShiftPageClient({
         isHolidayFilter={dailyIsHoliday}
         isRemoteFilter={dailyIsRemote}
         dailyShiftCodeOptions={dailyShiftCodeOptions}
+        hasUnassigned={dailyHasUnassigned}
       />
     )
   }

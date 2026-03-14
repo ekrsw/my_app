@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma"
 import { Prisma } from "@/app/generated/prisma/client"
 import type { ShiftFilterParams, ShiftDailyFilterParams, ShiftDailyRow, PaginatedResult, ShiftDailySortField, SortOrder } from "@/types"
-import type { ShiftCalendarData, ShiftCalendarPaginatedResult } from "@/types/shifts"
+import type { ShiftCalendarData, ShiftCalendarPaginatedResult, DailyFilterOptions } from "@/types/shifts"
 import { toDateString } from "@/lib/date-utils"
 
 export async function getShiftsForCalendar(
@@ -281,6 +281,97 @@ function getDailySortExpression(sortBy: ShiftDailySortField): string {
   }
 }
 
+/**
+ * 日次フィルター条件構築ヘルパー。
+ * exclude パラメータで特定のフィルター条件をスキップすることで、
+ * カスケードフィルターのオプション取得時に「自分自身の条件を除外」できる。
+ */
+function buildDailyFilterConditions(
+  filter: ShiftDailyFilterParams,
+  dateStr: string,
+  exclude?: "employeeIds" | "groupIds" | "shiftCodes"
+): {
+  conditions: Prisma.Sql[]
+  shiftFilterConditions: Prisma.Sql[]
+  hasShiftFilter: boolean
+  shiftJoin: Prisma.Sql
+} {
+  const conditions: Prisma.Sql[] = [
+    Prisma.sql`(e.termination_date IS NULL OR e.termination_date >= ${dateStr}::date)`,
+  ]
+
+  // グループフィルター
+  if (exclude !== "groupIds") {
+    const sqlGroupConditions: Prisma.Sql[] = []
+    if (filter.groupIds && filter.groupIds.length > 0) {
+      sqlGroupConditions.push(Prisma.sql`EXISTS (
+        SELECT 1 FROM employee_groups eg2
+        WHERE eg2.employee_id = e.id AND eg2.end_date IS NULL AND eg2.group_id = ANY(${filter.groupIds})
+      )`)
+    }
+    if (filter.unassigned) {
+      sqlGroupConditions.push(Prisma.sql`NOT EXISTS (
+        SELECT 1 FROM employee_groups eg2
+        WHERE eg2.employee_id = e.id AND eg2.end_date IS NULL
+      )`)
+    }
+    if (sqlGroupConditions.length > 0) {
+      conditions.push(
+        sqlGroupConditions.length === 1
+          ? sqlGroupConditions[0]
+          : Prisma.sql`(${Prisma.join(sqlGroupConditions, " OR ")})`
+      )
+    }
+  }
+
+  // 従業員名検索
+  if (filter.employeeSearch) {
+    const searchPattern = `%${filter.employeeSearch}%`
+    conditions.push(
+      Prisma.sql`(e.name ILIKE ${searchPattern} OR e.name_kana ILIKE ${searchPattern})`
+    )
+  }
+
+  // 従業員IDフィルター
+  if (exclude !== "employeeIds" && filter.employeeIds && filter.employeeIds.length > 0) {
+    conditions.push(Prisma.sql`e.id = ANY(${filter.employeeIds}::uuid[])`)
+  }
+
+  // シフト関連フィルター（シフトコード、時刻、isHoliday、isRemote）
+  const shiftFilterConditions: Prisma.Sql[] = []
+  if (exclude !== "shiftCodes" && filter.shiftCodes && filter.shiftCodes.length > 0) {
+    shiftFilterConditions.push(Prisma.sql`s.shift_code = ANY(${filter.shiftCodes})`)
+  }
+  if (filter.startTimeFrom) {
+    const timeStr = filter.startTimeFrom
+    shiftFilterConditions.push(Prisma.sql`s.start_time >= ${timeStr}::time`)
+  }
+  if (filter.endTimeTo) {
+    const timeStr = filter.endTimeTo
+    shiftFilterConditions.push(Prisma.sql`s.end_time <= ${timeStr}::time`)
+  }
+  if (filter.isHoliday) {
+    shiftFilterConditions.push(Prisma.sql`s.is_holiday = true`)
+  }
+  if (filter.isRemote) {
+    shiftFilterConditions.push(Prisma.sql`s.is_remote = true`)
+  }
+
+  const hasShiftFilter = shiftFilterConditions.length > 0
+
+  const shiftJoin = hasShiftFilter
+    ? Prisma.sql`INNER JOIN shifts s ON e.id = s.employee_id AND s.shift_date = ${dateStr}::date`
+    : Prisma.sql`LEFT JOIN shifts s ON e.id = s.employee_id AND s.shift_date = ${dateStr}::date`
+
+  if (hasShiftFilter) {
+    for (const cond of shiftFilterConditions) {
+      conditions.push(cond)
+    }
+  }
+
+  return { conditions, shiftFilterConditions, hasShiftFilter, shiftJoin }
+}
+
 export async function getShiftsForDaily(
   filter: ShiftDailyFilterParams,
   pagination: { page?: number; pageSize?: number } = {}
@@ -298,77 +389,7 @@ export async function getShiftsForDaily(
   const sortOrder: SortOrder = filter.sortOrder ?? "asc"
 
   // --- Step 1: Raw SQLで動的 ORDER BY + OFFSET/LIMIT で従業員IDリスト取得 ---
-  const conditions: Prisma.Sql[] = [
-    Prisma.sql`(e.termination_date IS NULL OR e.termination_date >= ${dateStr}::date)`,
-  ]
-
-  // グループフィルター
-  const sqlGroupConditions: Prisma.Sql[] = []
-  if (filter.groupIds && filter.groupIds.length > 0) {
-    sqlGroupConditions.push(Prisma.sql`EXISTS (
-      SELECT 1 FROM employee_groups eg2
-      WHERE eg2.employee_id = e.id AND eg2.end_date IS NULL AND eg2.group_id = ANY(${filter.groupIds})
-    )`)
-  }
-  if (filter.unassigned) {
-    sqlGroupConditions.push(Prisma.sql`NOT EXISTS (
-      SELECT 1 FROM employee_groups eg2
-      WHERE eg2.employee_id = e.id AND eg2.end_date IS NULL
-    )`)
-  }
-  if (sqlGroupConditions.length > 0) {
-    conditions.push(
-      sqlGroupConditions.length === 1
-        ? sqlGroupConditions[0]
-        : Prisma.sql`(${Prisma.join(sqlGroupConditions, " OR ")})`
-    )
-  }
-
-  // 従業員名検索
-  if (filter.employeeSearch) {
-    const searchPattern = `%${filter.employeeSearch}%`
-    conditions.push(
-      Prisma.sql`(e.name ILIKE ${searchPattern} OR e.name_kana ILIKE ${searchPattern})`
-    )
-  }
-
-  // 従業員IDフィルター
-  if (filter.employeeIds && filter.employeeIds.length > 0) {
-    conditions.push(Prisma.sql`e.id = ANY(${filter.employeeIds}::uuid[])`)
-  }
-
-  // シフト関連フィルター（シフトコード、時刻、isHoliday、isRemote）
-  const shiftFilterConditions: Prisma.Sql[] = []
-  if (filter.shiftCodes && filter.shiftCodes.length > 0) {
-    shiftFilterConditions.push(Prisma.sql`s.shift_code = ANY(${filter.shiftCodes})`)
-  }
-  if (filter.startTimeFrom) {
-    const timeStr = filter.startTimeFrom // "HH:MM" format
-    shiftFilterConditions.push(Prisma.sql`s.start_time >= ${timeStr}::time`)
-  }
-  if (filter.endTimeTo) {
-    const timeStr = filter.endTimeTo // "HH:MM" format
-    shiftFilterConditions.push(Prisma.sql`s.end_time <= ${timeStr}::time`)
-  }
-  if (filter.isHoliday) {
-    shiftFilterConditions.push(Prisma.sql`s.is_holiday = true`)
-  }
-  if (filter.isRemote) {
-    shiftFilterConditions.push(Prisma.sql`s.is_remote = true`)
-  }
-
-  const hasShiftFilter = shiftFilterConditions.length > 0
-
-  // シフトフィルターがある場合はINNER JOIN、なければLEFT JOIN
-  const shiftJoin = hasShiftFilter
-    ? Prisma.sql`INNER JOIN shifts s ON e.id = s.employee_id AND s.shift_date = ${dateStr}::date`
-    : Prisma.sql`LEFT JOIN shifts s ON e.id = s.employee_id AND s.shift_date = ${dateStr}::date`
-
-  if (hasShiftFilter) {
-    for (const cond of shiftFilterConditions) {
-      conditions.push(cond)
-    }
-  }
+  const { conditions, shiftJoin } = buildDailyFilterConditions(filter, dateStr)
 
   const whereClause = Prisma.sql`WHERE ${Prisma.join(conditions, " AND ")}`
 
@@ -509,39 +530,84 @@ export async function getLatestShiftHistoryEntries(
   return result
 }
 
-export async function getEmployeesForDailyFilter(date: string) {
-  const [y, m, d] = date.split("-").map(Number)
-  const targetDate = new Date(Date.UTC(y, m - 1, d))
+/**
+ * カスケードフィルター用オプション取得。
+ * 各フィルターの選択肢は「自分自身のフィルター条件を除外し、他の全フィルター条件を適用した結果」から抽出する。
+ */
+export async function getDailyFilterOptions(
+  filter: ShiftDailyFilterParams
+): Promise<DailyFilterOptions> {
+  const dateStr = filter.date
 
-  return prisma.employee.findMany({
-    where: {
-      OR: [
-        { terminationDate: null },
-        { terminationDate: { gte: targetDate } },
-      ],
-    },
-    select: {
-      id: true,
-      name: true,
-    },
-    orderBy: { name: "asc" },
-  })
-}
+  // 3クエリを並列実行
+  const [employeeRows, groupRows, unassignedRows, shiftCodeRows] = await Promise.all([
+    // 従業員オプション: employeeIds 条件を除外
+    (() => {
+      const { conditions, shiftJoin } = buildDailyFilterConditions(filter, dateStr, "employeeIds")
+      const whereClause = Prisma.sql`WHERE ${Prisma.join(conditions, " AND ")}`
+      return prisma.$queryRaw<{ id: string; name: string }[]>(Prisma.sql`
+        SELECT DISTINCT e.id, e.name
+        FROM employees e
+        LEFT JOIN employee_groups eg ON e.id = eg.employee_id AND eg.end_date IS NULL
+        LEFT JOIN groups g ON eg.group_id = g.id
+        ${shiftJoin}
+        ${whereClause}
+        ORDER BY e.name
+      `)
+    })(),
+    // グループオプション: groupIds 条件を除外
+    (() => {
+      const { conditions, shiftJoin } = buildDailyFilterConditions(filter, dateStr, "groupIds")
+      const whereClause = Prisma.sql`WHERE ${Prisma.join(conditions, " AND ")}`
+      return prisma.$queryRaw<{ id: number; name: string }[]>(Prisma.sql`
+        SELECT DISTINCT g.id, g.name
+        FROM employees e
+        LEFT JOIN employee_groups eg ON e.id = eg.employee_id AND eg.end_date IS NULL
+        LEFT JOIN groups g ON eg.group_id = g.id
+        ${shiftJoin}
+        ${whereClause}
+        AND g.id IS NOT NULL
+        ORDER BY g.name
+      `)
+    })(),
+    // 未所属の従業員が存在するかチェック（groupIds 条件を除外）
+    (() => {
+      const { conditions, shiftJoin } = buildDailyFilterConditions(filter, dateStr, "groupIds")
+      const whereClause = Prisma.sql`WHERE ${Prisma.join(conditions, " AND ")}`
+      return prisma.$queryRaw<{ exists: boolean }[]>(Prisma.sql`
+        SELECT EXISTS (
+          SELECT 1
+          FROM employees e
+          LEFT JOIN employee_groups eg ON e.id = eg.employee_id AND eg.end_date IS NULL
+          ${shiftJoin}
+          ${whereClause}
+          AND eg.employee_id IS NULL
+        ) as exists
+      `)
+    })(),
+    // シフトコードオプション: shiftCodes 条件を除外
+    (() => {
+      const { conditions, shiftJoin } = buildDailyFilterConditions(filter, dateStr, "shiftCodes")
+      const whereClause = Prisma.sql`WHERE ${Prisma.join(conditions, " AND ")}`
+      return prisma.$queryRaw<{ shift_code: string }[]>(Prisma.sql`
+        SELECT DISTINCT s2.shift_code
+        FROM employees e
+        LEFT JOIN employee_groups eg ON e.id = eg.employee_id AND eg.end_date IS NULL
+        ${shiftJoin}
+        INNER JOIN shifts s2 ON e.id = s2.employee_id AND s2.shift_date = ${dateStr}::date
+        ${whereClause}
+        AND s2.shift_code IS NOT NULL
+        ORDER BY s2.shift_code
+      `)
+    })(),
+  ])
 
-export async function getDistinctShiftCodesForDate(date: string): Promise<string[]> {
-  const [y, m, d] = date.split("-").map(Number)
-  const targetDate = new Date(Date.UTC(y, m - 1, d))
-
-  const result = await prisma.shift.findMany({
-    where: {
-      shiftDate: targetDate,
-      shiftCode: { not: null },
-    },
-    select: { shiftCode: true },
-    distinct: ["shiftCode"],
-    orderBy: { shiftCode: "asc" },
-  })
-  return result.map((r) => r.shiftCode!).filter(Boolean)
+  return {
+    employees: employeeRows,
+    groups: groupRows.map((r) => ({ id: Number(r.id), name: r.name })),
+    shiftCodes: shiftCodeRows.map((r) => r.shift_code),
+    hasUnassigned: unassignedRows[0]?.exists ?? false,
+  }
 }
 
 export async function getShiftById(id: number) {

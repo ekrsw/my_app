@@ -51,6 +51,7 @@ type ShiftDailyViewProps = {
   isHolidayFilter: boolean
   isRemoteFilter: boolean
   dailyShiftCodeOptions: string[]
+  hasUnassigned: boolean
 }
 
 export function ShiftDailyView({
@@ -73,6 +74,7 @@ export function ShiftDailyView({
   isHolidayFilter,
   isRemoteFilter,
   dailyShiftCodeOptions,
+  hasUnassigned,
 }: ShiftDailyViewProps) {
   const { setParams } = useQueryParams()
   const [editOpen, setEditOpen] = useState(false)
@@ -320,11 +322,11 @@ export function ShiftDailyView({
             onConfirm={handleGroupConfirm}
             onClear={handleGroupClear}
             popoverOpen={groupPopoverOpen}
-            specialOption={{
+            specialOption={hasUnassigned || unassigned ? {
               value: "unassigned",
               label: "未所属",
               checked: unassigned,
-            }}
+            } : undefined}
             searchPlaceholder="グループ名で検索..."
           />
         </ColumnFilterPopover>
@@ -429,7 +431,7 @@ export function ShiftDailyView({
     selectedEmployeeIds, employees, employeePopoverOpen,
     groupIds, unassigned, selectedShiftCodes, startTimeFrom, endTimeTo,
     isHolidayFilter, isRemoteFilter, groupOptions, selectedGroupValues, shiftCodeOptions,
-    groupPopoverOpen, shiftCodePopoverOpen, setParams,
+    groupPopoverOpen, shiftCodePopoverOpen, setParams, hasUnassigned,
     handleEmployeeIdsConfirm, handleEmployeeIdsClear,
     handleGroupConfirm, handleGroupClear, handleShiftCodesConfirm, handleShiftCodesClear,
     handleStartTimeChange, handleEndTimeChange, handleHolidayChange, handleRemoteChange,

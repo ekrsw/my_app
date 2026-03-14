@@ -5,7 +5,7 @@ import { ShiftTabs } from "@/components/shifts/shift-tabs"
 import { ShiftHistoryTable } from "@/components/shifts/shift-history-table"
 import { ShiftHistoryFilters } from "@/components/shifts/shift-history-filters"
 import { TabsContent } from "@/components/ui/tabs"
-import { getShiftsForCalendarPaginated, getShiftIdsWithHistory, getLatestShiftHistoryEntries, getShiftsForDaily, getEmployeesForDailyFilter, getDistinctShiftCodesForDate } from "@/lib/db/shifts"
+import { getShiftsForCalendarPaginated, getShiftIdsWithHistory, getLatestShiftHistoryEntries, getShiftsForDaily, getDailyFilterOptions } from "@/lib/db/shifts"
 import { getShiftHistory } from "@/lib/db/history"
 import { getGroups } from "@/lib/db/groups"
 import { getFunctionRoles } from "@/lib/db/roles"
@@ -79,7 +79,7 @@ export default async function ShiftsPage({
     sortOrder: dailySortByValidated ? dailySortOrder : undefined,
   }
 
-  const [calendarResult, groups, roles, shiftCodes, historyResult, shiftIdsWithHistorySet, latestNotes, dailyResult, dailyEmployees, dailyShiftCodeOptions] =
+  const [calendarResult, groups, roles, shiftCodes, historyResult, shiftIdsWithHistorySet, latestNotes, dailyResult, dailyFilterOptions] =
     await Promise.all([
       isHistory || isDaily
         ? Promise.resolve({ data: [], total: 0, hasMore: false, nextCursor: null })
@@ -105,11 +105,8 @@ export default async function ShiftsPage({
         ? getShiftsForDaily(dailyFilter, { page: dailyPage })
         : Promise.resolve({ data: [], total: 0, page: 1, pageSize: 30, totalPages: 0 }),
       isDaily
-        ? getEmployeesForDailyFilter(dailyDate)
-        : Promise.resolve([]),
-      isDaily
-        ? getDistinctShiftCodesForDate(dailyDate)
-        : Promise.resolve([]),
+        ? getDailyFilterOptions(dailyFilter)
+        : Promise.resolve({ employees: [], groups: [], shiftCodes: [], hasUnassigned: false }),
     ])
 
   return (
@@ -148,14 +145,16 @@ export default async function ShiftsPage({
               dailyUnassigned={unassigned}
               dailySelectedShiftCodes={shiftCodesFilter ?? []}
               dailyEmployeeIds={employeeIds ?? []}
-              dailyEmployees={dailyEmployees}
+              dailyEmployees={dailyFilterOptions.employees}
               dailyStartTimeFrom={startTimeFrom ?? ""}
               dailyEndTimeTo={endTimeTo ?? ""}
               dailySortBy={dailySortByValidated ?? "employeeName"}
               dailySortOrder={dailySortByValidated ? dailySortOrder : "asc"}
               dailyIsHoliday={dailyIsHoliday ?? false}
               dailyIsRemote={dailyIsRemote ?? false}
-              dailyShiftCodeOptions={dailyShiftCodeOptions}
+              dailyShiftCodeOptions={dailyFilterOptions.shiftCodes}
+              dailyGroupOptions={dailyFilterOptions.groups}
+              dailyHasUnassigned={dailyFilterOptions.hasUnassigned}
             />
           </TabsContent>
           <TabsContent value="history" className="mt-4">
