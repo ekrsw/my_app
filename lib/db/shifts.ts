@@ -272,10 +272,9 @@ function getDailySortExpression(sortBy: ShiftDailySortField): string {
   switch (sortBy) {
     case "employeeName": return "e.name"
     case "groupName": return "MIN(g.name)"
+    case "supervisorRoleName": return "MIN((SELECT fr.role_name FROM employee_function_roles efr JOIN function_roles fr ON efr.function_role_id = fr.id WHERE efr.employee_id = e.id AND efr.end_date IS NULL AND fr.role_type = '監督' LIMIT 1))"
+    case "businessRoleName": return "MIN((SELECT fr.role_name FROM employee_function_roles efr JOIN function_roles fr ON efr.function_role_id = fr.id WHERE efr.employee_id = e.id AND efr.end_date IS NULL AND fr.role_type = '業務' LIMIT 1))"
     case "shiftCode": return "MIN(s.shift_code)"
-    case "startTime": return "MIN(s.start_time)"
-    case "endTime": return "MIN(s.end_time)"
-    case "isHoliday": return "MIN(s.is_holiday::int)"
     case "isRemote": return "MIN(s.is_remote::int)"
     default: return "e.name"
   }
@@ -341,17 +340,6 @@ function buildDailyFilterConditions(
   const shiftFilterConditions: Prisma.Sql[] = []
   if (exclude !== "shiftCodes" && filter.shiftCodes && filter.shiftCodes.length > 0) {
     shiftFilterConditions.push(Prisma.sql`s.shift_code = ANY(${filter.shiftCodes})`)
-  }
-  if (filter.startTimeFrom) {
-    const timeStr = filter.startTimeFrom
-    shiftFilterConditions.push(Prisma.sql`s.start_time >= ${timeStr}::time`)
-  }
-  if (filter.endTimeTo) {
-    const timeStr = filter.endTimeTo
-    shiftFilterConditions.push(Prisma.sql`s.end_time <= ${timeStr}::time`)
-  }
-  if (filter.isHoliday) {
-    shiftFilterConditions.push(Prisma.sql`s.is_holiday = true`)
   }
   if (filter.isRemote) {
     shiftFilterConditions.push(Prisma.sql`s.is_remote = true`)
@@ -440,6 +428,10 @@ export async function getShiftsForDaily(
           shifts: {
             where: { shiftDate: targetDate },
           },
+          functionRoles: {
+            where: { endDate: null },
+            include: { functionRole: true },
+          },
         },
       })
     : []
@@ -450,15 +442,16 @@ export async function getShiftsForDaily(
 
   const data: ShiftDailyRow[] = employees.map((emp) => {
     const shift = emp.shifts[0] ?? null
+    const supervisorRole = emp.functionRoles.find(fr => fr.functionRole?.roleType === '監督')
+    const businessRole = emp.functionRoles.find(fr => fr.functionRole?.roleType === '業務')
     return {
       employeeId: emp.id,
       employeeName: emp.name,
       groupName: emp.groups[0]?.group.name ?? null,
+      supervisorRoleName: supervisorRole?.functionRole?.roleName ?? null,
+      businessRoleName: businessRole?.functionRole?.roleName ?? null,
       shiftId: shift?.id ?? null,
       shiftCode: shift?.shiftCode ?? "",
-      startTime: shift?.startTime ?? null,
-      endTime: shift?.endTime ?? null,
-      isHoliday: shift?.isHoliday ?? false,
       isRemote: shift?.isRemote ?? false,
     }
   })

@@ -17,7 +17,7 @@ import type { Shift } from "@/app/generated/prisma/client"
 import { loadMoreCalendarData } from "@/lib/actions/shift-actions"
 
 type Group = { id: number; name: string }
-type Role = { id: number; roleName: string }
+type Role = { id: number; roleName: string; roleType: string }
 
 type ActiveShiftCode = {
   id: number
@@ -54,11 +54,8 @@ type ShiftPageClientProps = {
   dailySelectedShiftCodes: string[]
   dailyEmployeeIds: string[]
   dailyEmployees: { id: string; name: string }[]
-  dailyStartTimeFrom: string
-  dailyEndTimeTo: string
   dailySortBy: ShiftDailySortField
   dailySortOrder: SortOrder
-  dailyIsHoliday: boolean
   dailyIsRemote: boolean
   dailyShiftCodeOptions: string[]
   dailyGroupOptions: { id: number; name: string }[]
@@ -89,11 +86,8 @@ export function ShiftPageClient({
   dailySelectedShiftCodes,
   dailyEmployeeIds,
   dailyEmployees,
-  dailyStartTimeFrom,
-  dailyEndTimeTo,
   dailySortBy,
   dailySortOrder,
-  dailyIsHoliday,
   dailyIsRemote,
   dailyShiftCodeOptions,
   dailyGroupOptions,
@@ -248,14 +242,12 @@ export function ShiftPageClient({
         selectedShiftCodes={dailySelectedShiftCodes}
         selectedEmployeeIds={dailyEmployeeIds}
         employees={dailyEmployees}
-        startTimeFrom={dailyStartTimeFrom}
-        endTimeTo={dailyEndTimeTo}
         sortBy={dailySortBy}
         sortOrder={dailySortOrder}
-        isHolidayFilter={dailyIsHoliday}
         isRemoteFilter={dailyIsRemote}
         dailyShiftCodeOptions={dailyShiftCodeOptions}
         hasUnassigned={dailyHasUnassigned}
+        roles={roles}
       />
     )
   }

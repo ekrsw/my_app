@@ -8,16 +8,14 @@ import { ShiftForm } from "@/components/shifts/shift-form"
 import { ColumnFilterPopover } from "@/components/shifts/column-filter-popover"
 import { EmployeeCheckboxFilter } from "@/components/shifts/column-filters/employee-checkbox-filter"
 import { CheckboxListFilter } from "@/components/shifts/column-filters/checkbox-list-filter"
-import { TimeRangeFilter } from "@/components/shifts/column-filters/time-range-filter"
 import { ToggleFilter } from "@/components/shifts/column-filters/toggle-filter"
 import { ActiveFilterTags, FilterTag } from "@/components/shifts/active-filter-tags"
 import { ViewModeSelect } from "@/components/shifts/view-mode-select"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useQueryParams } from "@/hooks/use-query-params"
-import { formatTime } from "@/lib/date-utils"
 import type { ShiftDailyRow, ShiftDailySortField, SortOrder } from "@/types/shifts"
-import { Circle, Check, ChevronLeft, ChevronRight } from "lucide-react"
+import { Circle, ChevronLeft, ChevronRight } from "lucide-react"
 
 type Group = { id: number; name: string }
 type ShiftCodeOption = {
@@ -44,14 +42,12 @@ type ShiftDailyViewProps = {
   selectedShiftCodes: string[]
   selectedEmployeeIds: string[]
   employees: { id: string; name: string }[]
-  startTimeFrom: string
-  endTimeTo: string
   sortBy: ShiftDailySortField
   sortOrder: SortOrder
-  isHolidayFilter: boolean
   isRemoteFilter: boolean
   dailyShiftCodeOptions: string[]
   hasUnassigned: boolean
+  roles: { id: number; roleName: string; roleType: string }[]
 }
 
 export function ShiftDailyView({
@@ -67,14 +63,12 @@ export function ShiftDailyView({
   selectedShiftCodes,
   selectedEmployeeIds,
   employees,
-  startTimeFrom,
-  endTimeTo,
   sortBy,
   sortOrder,
-  isHolidayFilter,
   isRemoteFilter,
   dailyShiftCodeOptions,
   hasUnassigned,
+  roles,
 }: ShiftDailyViewProps) {
   const { setParams } = useQueryParams()
   const [editOpen, setEditOpen] = useState(false)
@@ -147,18 +141,6 @@ export function ShiftDailyView({
     setShiftCodePopoverOpen(false)
   }, [setParams])
 
-  const handleStartTimeChange = useCallback((value: string) => {
-    setParams({ startTimeFrom: value || null, dailyPage: null })
-  }, [setParams])
-
-  const handleEndTimeChange = useCallback((value: string) => {
-    setParams({ endTimeTo: value || null, dailyPage: null })
-  }, [setParams])
-
-  const handleHolidayChange = useCallback((checked: boolean) => {
-    setParams({ dailyIsHoliday: checked ? "true" : null, dailyPage: null })
-  }, [setParams])
-
   const handleRemoteChange = useCallback((checked: boolean) => {
     setParams({ dailyIsRemote: checked ? "true" : null, dailyPage: null })
   }, [setParams])
@@ -214,30 +196,6 @@ export function ShiftDailyView({
       })
     }
 
-    if (startTimeFrom) {
-      tags.push({
-        key: "startTimeFrom",
-        label: `開始: ${startTimeFrom}以降`,
-        onRemove: () => setParams({ startTimeFrom: null, dailyPage: null }),
-      })
-    }
-
-    if (endTimeTo) {
-      tags.push({
-        key: "endTimeTo",
-        label: `終了: ${endTimeTo}以前`,
-        onRemove: () => setParams({ endTimeTo: null, dailyPage: null }),
-      })
-    }
-
-    if (isHolidayFilter) {
-      tags.push({
-        key: "isHoliday",
-        label: "休日のみ",
-        onRemove: () => setParams({ dailyIsHoliday: null, dailyPage: null }),
-      })
-    }
-
     if (isRemoteFilter) {
       tags.push({
         key: "isRemote",
@@ -247,7 +205,7 @@ export function ShiftDailyView({
     }
 
     return tags
-  }, [selectedEmployeeIds, employees, unassigned, groupIds, groups, selectedShiftCodes, startTimeFrom, endTimeTo, isHolidayFilter, isRemoteFilter, setParams])
+  }, [selectedEmployeeIds, employees, unassigned, groupIds, groups, selectedShiftCodes, isRemoteFilter, setParams])
 
   const clearAllFilters = useCallback(() => {
     setParams({
@@ -255,9 +213,6 @@ export function ShiftDailyView({
       groupIds: null,
       unassigned: null,
       shiftCodes: null,
-      startTimeFrom: null,
-      endTimeTo: null,
-      dailyIsHoliday: null,
       dailyIsRemote: null,
       dailyPage: null,
     })
@@ -334,6 +289,16 @@ export function ShiftDailyView({
       cell: ({ row }) => row.original.groupName ?? "-",
     },
     {
+      accessorKey: "supervisorRoleName",
+      header: roles.find((r) => r.roleType === "監督")?.roleType ?? "監督",
+      cell: ({ row }) => row.original.supervisorRoleName ?? "-",
+    },
+    {
+      accessorKey: "businessRoleName",
+      header: roles.find((r) => r.roleType === "業務")?.roleType ?? "業務",
+      cell: ({ row }) => row.original.businessRoleName ?? "-",
+    },
+    {
       accessorKey: "shiftCode",
       header: () => (
         <ColumnFilterPopover
@@ -354,58 +319,6 @@ export function ShiftDailyView({
         </ColumnFilterPopover>
       ),
       cell: ({ row }) => <ShiftBadge code={row.original.shiftCode} />,
-    },
-    {
-      accessorKey: "startTime",
-      header: () => (
-        <ColumnFilterPopover
-          label="開始時刻"
-          isActive={!!startTimeFrom}
-        >
-          <TimeRangeFilter
-            value={startTimeFrom}
-            onChange={handleStartTimeChange}
-            label="この時刻以降"
-          />
-        </ColumnFilterPopover>
-      ),
-      cell: ({ row }) => formatTime(row.original.startTime),
-    },
-    {
-      accessorKey: "endTime",
-      header: () => (
-        <ColumnFilterPopover
-          label="終了時刻"
-          isActive={!!endTimeTo}
-        >
-          <TimeRangeFilter
-            value={endTimeTo}
-            onChange={handleEndTimeChange}
-            label="この時刻以前"
-          />
-        </ColumnFilterPopover>
-      ),
-      cell: ({ row }) => formatTime(row.original.endTime),
-    },
-    {
-      accessorKey: "isHoliday",
-      header: () => (
-        <ColumnFilterPopover
-          label="休日"
-          isActive={isHolidayFilter}
-        >
-          <ToggleFilter
-            checked={isHolidayFilter}
-            onChange={handleHolidayChange}
-            label="休日のみ表示"
-          />
-        </ColumnFilterPopover>
-      ),
-      cell: ({ row }) =>
-        row.original.isHoliday ? (
-          <Check className="h-4 w-4 text-red-500" />
-        ) : null,
-      enableSorting: true,
     },
     {
       accessorKey: "isRemote",
@@ -429,12 +342,12 @@ export function ShiftDailyView({
     },
   ], [
     selectedEmployeeIds, employees, employeePopoverOpen,
-    groupIds, unassigned, selectedShiftCodes, startTimeFrom, endTimeTo,
-    isHolidayFilter, isRemoteFilter, groupOptions, selectedGroupValues, shiftCodeOptions,
-    groupPopoverOpen, shiftCodePopoverOpen, setParams, hasUnassigned,
+    groupIds, unassigned, selectedShiftCodes,
+    isRemoteFilter, groupOptions, selectedGroupValues, shiftCodeOptions,
+    groupPopoverOpen, shiftCodePopoverOpen, setParams, hasUnassigned, roles,
     handleEmployeeIdsConfirm, handleEmployeeIdsClear,
     handleGroupConfirm, handleGroupClear, handleShiftCodesConfirm, handleShiftCodesClear,
-    handleStartTimeChange, handleEndTimeChange, handleHolidayChange, handleRemoteChange,
+    handleRemoteChange,
   ])
 
   const editShift = editRow?.shiftId
@@ -443,9 +356,9 @@ export function ShiftDailyView({
         employeeId: editRow.employeeId,
         shiftDate: new Date(dailyDate),
         shiftCode: editRow.shiftCode,
-        startTime: editRow.startTime,
-        endTime: editRow.endTime,
-        isHoliday: editRow.isHoliday,
+        startTime: null,
+        endTime: null,
+        isHoliday: null,
         isRemote: editRow.isRemote,
       }
     : undefined

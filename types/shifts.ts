@@ -33,17 +33,16 @@ export type ShiftDailyRow = {
   employeeId: string
   employeeName: string
   groupName: string | null
+  supervisorRoleName: string | null
+  businessRoleName: string | null
   shiftId: number | null
   shiftCode: string
-  startTime: Date | null
-  endTime: Date | null
-  isHoliday: boolean
   isRemote: boolean
 }
 
 export type ShiftDailySortField =
-  | "employeeName" | "groupName" | "shiftCode"
-  | "startTime" | "endTime" | "isHoliday" | "isRemote"
+  | "employeeName" | "groupName" | "supervisorRoleName" | "businessRoleName"
+  | "shiftCode" | "isRemote"
 
 export type SortOrder = "asc" | "desc"
 
@@ -54,9 +53,6 @@ export type ShiftDailyFilterParams = {
   shiftCodes?: string[]
   employeeSearch?: string
   employeeIds?: string[]
-  startTimeFrom?: string    // "HH:mm"
-  endTimeTo?: string        // "HH:mm"
-  isHoliday?: boolean
   isRemote?: boolean
   sortBy?: ShiftDailySortField
   sortOrder?: SortOrder

@@ -48,11 +48,8 @@ export default async function ShiftsPage({
   const shiftCodesFilter = params.shiftCodes
     ? String(params.shiftCodes).split(",").filter(Boolean)
     : undefined
-  const startTimeFrom = (params.startTimeFrom as string) || undefined
-  const endTimeTo = (params.endTimeTo as string) || undefined
   const dailySortBy = (params.dailySortBy as string) || undefined
   const dailySortOrder = (params.dailySortOrder as string) === "desc" ? "desc" as const : "asc" as const
-  const dailyIsHoliday = params.dailyIsHoliday === "true" ? true : undefined
   const dailyIsRemote = params.dailyIsRemote === "true" ? true : undefined
   const employeeIds = params.employeeIds
     ? String(params.employeeIds).split(",").filter(Boolean)
@@ -60,7 +57,7 @@ export default async function ShiftsPage({
 
   const filter = { year, month, groupIds: groupIds && groupIds.length > 0 ? groupIds : undefined, unassigned, roleIds: roleIds && roleIds.length > 0 ? roleIds : undefined, roleUnassigned, employeeSearch: search }
 
-  const validSortFields: ShiftDailySortField[] = ["employeeName", "groupName", "shiftCode", "startTime", "endTime", "isHoliday", "isRemote"]
+  const validSortFields: ShiftDailySortField[] = ["employeeName", "groupName", "supervisorRoleName", "businessRoleName", "shiftCode", "isRemote"]
   const dailySortByValidated = validSortFields.includes(dailySortBy as ShiftDailySortField)
     ? (dailySortBy as ShiftDailySortField)
     : undefined
@@ -71,9 +68,6 @@ export default async function ShiftsPage({
     unassigned: unassigned || undefined,
     shiftCodes: shiftCodesFilter,
     employeeIds,
-    startTimeFrom,
-    endTimeTo,
-    isHoliday: dailyIsHoliday,
     isRemote: dailyIsRemote,
     sortBy: dailySortByValidated,
     sortOrder: dailySortByValidated ? dailySortOrder : undefined,
@@ -146,11 +140,8 @@ export default async function ShiftsPage({
               dailySelectedShiftCodes={shiftCodesFilter ?? []}
               dailyEmployeeIds={employeeIds ?? []}
               dailyEmployees={dailyFilterOptions.employees}
-              dailyStartTimeFrom={startTimeFrom ?? ""}
-              dailyEndTimeTo={endTimeTo ?? ""}
               dailySortBy={dailySortByValidated ?? "employeeName"}
               dailySortOrder={dailySortByValidated ? dailySortOrder : "asc"}
-              dailyIsHoliday={dailyIsHoliday ?? false}
               dailyIsRemote={dailyIsRemote ?? false}
               dailyShiftCodeOptions={dailyFilterOptions.shiftCodes}
               dailyGroupOptions={dailyFilterOptions.groups}
