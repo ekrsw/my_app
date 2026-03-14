@@ -118,9 +118,10 @@ export function ShiftDailyView({
     setEmployeePopoverOpen(false)
   }, [setParams])
 
-  const handleGroupConfirm = useCallback((ids: string[]) => {
+  const handleGroupConfirm = useCallback((ids: string[], specialChecked?: boolean) => {
     setParams({
       groupIds: ids.length > 0 ? ids.join(",") : null,
+      unassigned: specialChecked ? "true" : null,
       dailyPage: null,
     })
     setGroupPopoverOpen(false)
@@ -323,7 +324,6 @@ export function ShiftDailyView({
               value: "unassigned",
               label: "未所属",
               checked: unassigned,
-              onChange: (checked) => setParams({ unassigned: checked ? "true" : null, dailyPage: null }),
             }}
             searchPlaceholder="グループ名で検索..."
           />

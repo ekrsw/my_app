@@ -100,7 +100,8 @@
       "mcp__playwright__browser_close",
       "Bash(lsof -ti:3000 2>/dev/null | head -1)",
       "mcp__playwright__browser_type",
-      "Bash(lsof -ti:3000 | xargs kill 2>/dev/null; echo \"done\")"
+      "Bash(lsof -ti:3000 | xargs kill 2>/dev/null; echo \"done\")",
+      "Bash(lsof -ti :3000 | xargs kill 2>/dev/null; echo \"done\")"
     ]
   }
 }

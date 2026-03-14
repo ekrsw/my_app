@@ -18,13 +18,12 @@ type SpecialOption = {
   value: string
   label: string
   checked: boolean
-  onChange: (checked: boolean) => void
 }
 
 type CheckboxListFilterProps = {
   options: CheckboxOption[]
   selectedValues: string[]
-  onConfirm: (values: string[]) => void
+  onConfirm: (values: string[], specialChecked?: boolean) => void
   onClear: () => void
   popoverOpen: boolean
   specialOption?: SpecialOption
@@ -69,17 +68,11 @@ export function CheckboxListFilter({
   }
 
   const handleConfirm = () => {
-    onConfirm(localValues)
-    if (specialOption) {
-      specialOption.onChange(localSpecialChecked)
-    }
+    onConfirm(localValues, specialOption ? localSpecialChecked : undefined)
   }
 
   const handleClear = () => {
     onClear()
-    if (specialOption) {
-      specialOption.onChange(false)
-    }
   }
 
   return (
