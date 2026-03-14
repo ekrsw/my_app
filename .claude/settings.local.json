@@ -102,7 +102,10 @@
       "mcp__playwright__browser_type",
       "Bash(lsof -ti:3000 | xargs kill 2>/dev/null; echo \"done\")",
       "Bash(lsof -ti :3000 | xargs kill 2>/dev/null; echo \"done\")",
-      "Bash(find /Users/ekoresawa/project/my_app/components -type f -name \"*shift*\" -o -name \"*daily*\" 2>/dev/null | head -20)"
+      "Bash(find /Users/ekoresawa/project/my_app/components -type f -name \"*shift*\" -o -name \"*daily*\" 2>/dev/null | head -20)",
+      "Bash(npx playwright:*)",
+      "Bash(lsof -ti:3000 2>/dev/null || echo \"not running\")",
+      "mcp__playwright__browser_fill_form"
     ]
   }
 }

@@ -218,6 +218,13 @@ export function ShiftDailyView({
     })
   }, [setParams])
 
+  // --- Distinct role types for dynamic column headers ---
+  // getShiftsForDaily と同じ desc 順でカラムマッピングを一致させる
+  const distinctRoleTypes = useMemo(() => {
+    const types = [...new Set(roles.map((r) => r.roleType))].sort().reverse()
+    return [types[0] ?? "監督", types[1] ?? "業務"] as const
+  }, [roles])
+
   // --- Group options for checkbox filter ---
   const groupOptions = useMemo(
     () => groups.map((g) => ({ value: String(g.id), label: g.name })),
@@ -290,12 +297,12 @@ export function ShiftDailyView({
     },
     {
       accessorKey: "supervisorRoleName",
-      header: roles.find((r) => r.roleType === "監督")?.roleType ?? "監督",
+      header: distinctRoleTypes[0],
       cell: ({ row }) => row.original.supervisorRoleName ?? "-",
     },
     {
       accessorKey: "businessRoleName",
-      header: roles.find((r) => r.roleType === "業務")?.roleType ?? "業務",
+      header: distinctRoleTypes[1],
       cell: ({ row }) => row.original.businessRoleName ?? "-",
     },
     {
@@ -344,7 +351,7 @@ export function ShiftDailyView({
     selectedEmployeeIds, employees, employeePopoverOpen,
     groupIds, unassigned, selectedShiftCodes,
     isRemoteFilter, groupOptions, selectedGroupValues, shiftCodeOptions,
-    groupPopoverOpen, shiftCodePopoverOpen, setParams, hasUnassigned, roles,
+    groupPopoverOpen, shiftCodePopoverOpen, setParams, hasUnassigned, distinctRoleTypes,
     handleEmployeeIdsConfirm, handleEmployeeIdsClear,
     handleGroupConfirm, handleGroupClear, handleShiftCodesConfirm, handleShiftCodesClear,
     handleRemoteChange,

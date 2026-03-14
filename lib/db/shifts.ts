@@ -268,12 +268,14 @@ export async function getShiftsForCalendarPaginated(
 const DEFAULT_DAILY_PAGE_SIZE = 30
 
 // ソートフィールド → SQL式マッピング（GROUP BY対応で集約関数を使用）
-function getDailySortExpression(sortBy: ShiftDailySortField): string {
+function getDailySortExpression(sortBy: ShiftDailySortField, roleTypes: [string, string]): string {
+  // SQL インジェクション防止: シングルクォートをエスケープ
+  const escapeSQL = (val: string) => val.replace(/'/g, "''")
   switch (sortBy) {
     case "employeeName": return "e.name"
     case "groupName": return "MIN(g.name)"
-    case "supervisorRoleName": return "MIN((SELECT fr.role_name FROM employee_function_roles efr JOIN function_roles fr ON efr.function_role_id = fr.id WHERE efr.employee_id = e.id AND efr.end_date IS NULL AND fr.role_type = '監督' LIMIT 1))"
-    case "businessRoleName": return "MIN((SELECT fr.role_name FROM employee_function_roles efr JOIN function_roles fr ON efr.function_role_id = fr.id WHERE efr.employee_id = e.id AND efr.end_date IS NULL AND fr.role_type = '業務' LIMIT 1))"
+    case "supervisorRoleName": return `MIN((SELECT fr.role_name FROM employee_function_roles efr JOIN function_roles fr ON efr.function_role_id = fr.id WHERE efr.employee_id = e.id AND efr.end_date IS NULL AND fr.role_type = '${escapeSQL(roleTypes[0])}' LIMIT 1))`
+    case "businessRoleName": return `MIN((SELECT fr.role_name FROM employee_function_roles efr JOIN function_roles fr ON efr.function_role_id = fr.id WHERE efr.employee_id = e.id AND efr.end_date IS NULL AND fr.role_type = '${escapeSQL(roleTypes[1])}' LIMIT 1))`
     case "shiftCode": return "MIN(s.shift_code)"
     case "isRemote": return "MIN(s.is_remote::int)"
     default: return "e.name"
@@ -367,6 +369,17 @@ export async function getShiftsForDaily(
   const page = pagination.page ?? 1
   const pageSize = pagination.pageSize ?? DEFAULT_DAILY_PAGE_SIZE
 
+  // DB から distinct role_type を取得して動的にカラムマッピング
+  const distinctTypes = await prisma.functionRole.findMany({
+    select: { roleType: true },
+    distinct: ["roleType"],
+    orderBy: { roleType: "desc" },
+  })
+  const roleTypes: [string, string] = [
+    distinctTypes[0]?.roleType ?? "監督",
+    distinctTypes[1]?.roleType ?? "業務",
+  ]
+
   // Raw SQL では文字列 + ::date キャストで日付比較（Date オブジェクトは型不一致になるため）
   const dateStr = filter.date // "YYYY-MM-DD" 形式
   // Prisma findMany 用（@db.Date カラム比較用 UTC midnight）
@@ -382,7 +395,7 @@ export async function getShiftsForDaily(
   const whereClause = Prisma.sql`WHERE ${Prisma.join(conditions, " AND ")}`
 
   // ソート式構築
-  const sortExpr = getDailySortExpression(sortBy)
+  const sortExpr = getDailySortExpression(sortBy, roleTypes)
   const nullsHandling = sortOrder === "asc" ? "NULLS LAST" : "NULLS FIRST"
   // セカンダリソートとして常に e.name ASC を追加
   const orderByRaw = sortBy === "employeeName"
@@ -442,8 +455,8 @@ export async function getShiftsForDaily(
 
   const data: ShiftDailyRow[] = employees.map((emp) => {
     const shift = emp.shifts[0] ?? null
-    const supervisorRole = emp.functionRoles.find(fr => fr.functionRole?.roleType === '監督')
-    const businessRole = emp.functionRoles.find(fr => fr.functionRole?.roleType === '業務')
+    const supervisorRole = emp.functionRoles.find(fr => fr.functionRole?.roleType === roleTypes[0])
+    const businessRole = emp.functionRoles.find(fr => fr.functionRole?.roleType === roleTypes[1])
     return {
       employeeId: emp.id,
       employeeName: emp.name,
