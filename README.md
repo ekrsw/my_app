@@ -11,6 +11,8 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 ### 1. リポジトリのクローン
 
 ```bash
+git config --global http.proxy <ユーザー名>:<パスワード>@<プロキシ>:<ポート>
+git config --global https.proxy <ユーザー名>:<パスワード>@<プロキシ>:<ポート>
 git clone <リポジトリURL>
 cd my_app
 ```
@@ -18,6 +20,8 @@ cd my_app
 ### 2. パッケージインストール
 
 ```bash
+npm config set proxy http://eisuke_koresawa:koresawaeisuke@mjsproxy.mjs.co.jp:80
+npm config set https-proxy http://eisuke_koresawa:koresawaeisuke@mjsproxy.mjs.co.jp:80
 npm install
 ```
 
