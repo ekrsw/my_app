@@ -262,6 +262,10 @@ export function ShiftPageClient({
         selectedBusinessRoleNames={dailyBusinessRoleNames}
         supervisorRoleNameOptions={dailySupervisorRoleOptions}
         businessRoleNameOptions={dailyBusinessRoleOptions}
+        isAuthenticated={isAuthenticated}
+        shiftCodeMap={shiftCodeMap}
+        shiftIdsWithHistory={shiftIdsWithHistorySet}
+        shiftLatestHistory={shiftLatestHistory}
       />
     )
   }

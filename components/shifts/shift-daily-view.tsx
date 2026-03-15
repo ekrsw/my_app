@@ -5,6 +5,9 @@ import { ColumnDef } from "@tanstack/react-table"
 import { DataTable } from "@/components/data-table"
 import { ShiftBadge } from "@/components/shifts/shift-badge"
 import { ShiftForm } from "@/components/shifts/shift-form"
+import { ShiftDetailDialog } from "@/components/shifts/shift-detail-dialog"
+import type { ShiftCodeInfo } from "@/lib/constants"
+import type { LatestShiftHistory } from "@/lib/db/shifts"
 import { ColumnFilterPopover } from "@/components/shifts/column-filter-popover"
 import { EmployeeCheckboxFilter } from "@/components/shifts/column-filters/employee-checkbox-filter"
 import { CheckboxListFilter } from "@/components/shifts/column-filters/checkbox-list-filter"
@@ -58,6 +61,10 @@ type ShiftDailyViewProps = {
   selectedBusinessRoleNames: string[]
   supervisorRoleNameOptions: string[]
   businessRoleNameOptions: string[]
+  isAuthenticated?: boolean
+  shiftCodeMap: Record<string, ShiftCodeInfo>
+  shiftIdsWithHistory: Set<number>
+  shiftLatestHistory: Record<number, LatestShiftHistory>
 }
 
 export function ShiftDailyView({
@@ -83,9 +90,14 @@ export function ShiftDailyView({
   selectedBusinessRoleNames,
   supervisorRoleNameOptions,
   businessRoleNameOptions,
+  isAuthenticated,
+  shiftCodeMap,
+  shiftIdsWithHistory,
+  shiftLatestHistory,
 }: ShiftDailyViewProps) {
   const { setParams } = useQueryParams()
   const [editOpen, setEditOpen] = useState(false)
+  const [detailOpen, setDetailOpen] = useState(false)
   const [editRow, setEditRow] = useState<ShiftDailyRow | null>(null)
   const [employeePopoverOpen, setEmployeePopoverOpen] = useState(false)
   const [groupPopoverOpen, setGroupPopoverOpen] = useState(false)
@@ -95,8 +107,19 @@ export function ShiftDailyView({
 
   const handleRowClick = (row: ShiftDailyRow) => {
     setEditRow(row)
-    setEditOpen(true)
+    if (row.shiftId) {
+      // シフトが存在する → 詳細ダイアログ表示（認証状態に関わらず）
+      setDetailOpen(true)
+    } else if (isAuthenticated) {
+      // シフトが存在しない＋認証済み → 新規作成フォーム
+      setEditOpen(true)
+    }
   }
+
+  const handleEditFromDetail = useCallback(() => {
+    setDetailOpen(false)
+    setEditOpen(true)
+  }, [])
 
   const handlePageChange = (newPage: number) => {
     setParams({ dailyPage: newPage === 1 ? null : newPage })
@@ -606,15 +629,33 @@ export function ShiftDailyView({
         }}
       />
 
-      <ShiftForm
-        key={`${editRow?.shiftId ?? "new"}-${editRow?.employeeId}-${dailyDate}`}
-        open={editOpen}
-        onOpenChange={setEditOpen}
-        shift={editShift}
-        employeeId={editRow?.employeeId}
-        date={dailyDate}
-        shiftCodes={shiftCodes}
-      />
+      {editRow && editShift && (
+        <ShiftDetailDialog
+          key={`detail-${editShift.id}`}
+          open={detailOpen}
+          onOpenChange={setDetailOpen}
+          shift={editShift}
+          employeeName={editRow.employeeName}
+          date={dailyDate}
+          shiftCodeMap={shiftCodeMap}
+          hasHistory={shiftIdsWithHistory.has(editShift.id)}
+          latestHistory={shiftLatestHistory[editShift.id] ?? null}
+          isAuthenticated={isAuthenticated}
+          onEdit={handleEditFromDetail}
+        />
+      )}
+
+      {isAuthenticated && (
+        <ShiftForm
+          key={`${editRow?.shiftId ?? "new"}-${editRow?.employeeId}-${dailyDate}`}
+          open={editOpen}
+          onOpenChange={setEditOpen}
+          shift={editShift}
+          employeeId={editRow?.employeeId}
+          date={dailyDate}
+          shiftCodes={shiftCodes}
+        />
+      )}
     </div>
   )
 }
