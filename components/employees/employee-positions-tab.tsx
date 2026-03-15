@@ -46,9 +46,10 @@ import type { Position } from "@/app/generated/prisma/client"
 type Props = {
   employee: EmployeeWithDetails
   allPositions: Position[]
+  isAuthenticated?: boolean
 }
 
-export function EmployeePositionsTab({ employee, allPositions }: Props) {
+export function EmployeePositionsTab({ employee, allPositions, isAuthenticated }: Props) {
   const [showAddForm, setShowAddForm] = useState(false)
   const [addLoading, setAddLoading] = useState(false)
   const [newPositionId, setNewPositionId] = useState("")
@@ -121,7 +122,7 @@ export function EmployeePositionsTab({ employee, allPositions }: Props) {
       <Card>
         <CardContent className="pt-6">
           {/* Add form */}
-          {showAddForm ? (
+          {isAuthenticated && (showAddForm ? (
             <div className="mb-4 rounded-md border p-4 space-y-3">
               <div className="space-y-1">
                 <Label className="text-sm">役職</Label>
@@ -164,7 +165,7 @@ export function EmployeePositionsTab({ employee, allPositions }: Props) {
                 役職を追加
               </Button>
             </div>
-          )}
+          ))}
 
           {/* Table */}
           {activePositions.length === 0 ? (
@@ -177,14 +178,14 @@ export function EmployeePositionsTab({ employee, allPositions }: Props) {
                     <TableHead>役職名</TableHead>
                     <TableHead>開始日</TableHead>
                     <TableHead>終了日</TableHead>
-                    <TableHead className="w-24">操作</TableHead>
+                    {isAuthenticated && <TableHead className="w-24">操作</TableHead>}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {activePositions.map((pos) => (
                     <TableRow key={pos.id}>
                       <TableCell className="font-medium">{pos.position.positionName}</TableCell>
-                      {editingId === pos.id ? (
+                      {isAuthenticated && editingId === pos.id ? (
                         <>
                           <TableCell>
                             <Input
@@ -228,39 +229,41 @@ export function EmployeePositionsTab({ employee, allPositions }: Props) {
                         <>
                           <TableCell>{formatDate(pos.startDate)}</TableCell>
                           <TableCell>{formatDate(pos.endDate)}</TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-1">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8"
-                                onClick={() => startEdit(pos)}
-                              >
-                                <Pencil className="h-4 w-4" />
-                              </Button>
-                              <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                  <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive">
-                                    <X className="h-4 w-4" />
-                                  </Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                  <AlertDialogHeader>
-                                    <AlertDialogTitle>役職の解除</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                      {pos.position.positionName}を解除してもよろしいですか？終了日が本日に設定されます。
-                                    </AlertDialogDescription>
-                                  </AlertDialogHeader>
-                                  <AlertDialogFooter>
-                                    <AlertDialogCancel>キャンセル</AlertDialogCancel>
-                                    <AlertDialogAction onClick={() => handleRemove(pos.id)}>
-                                      解除
-                                    </AlertDialogAction>
-                                  </AlertDialogFooter>
-                                </AlertDialogContent>
-                              </AlertDialog>
-                            </div>
-                          </TableCell>
+                          {isAuthenticated && (
+                            <TableCell>
+                              <div className="flex items-center gap-1">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8"
+                                  onClick={() => startEdit(pos)}
+                                >
+                                  <Pencil className="h-4 w-4" />
+                                </Button>
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive">
+                                      <X className="h-4 w-4" />
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>役職の解除</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        {pos.position.positionName}を解除してもよろしいですか？終了日が本日に設定されます。
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel>キャンセル</AlertDialogCancel>
+                                      <AlertDialogAction onClick={() => handleRemove(pos.id)}>
+                                        解除
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
+                              </div>
+                            </TableCell>
+                          )}
                         </>
                       )}
                     </TableRow>

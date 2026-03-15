@@ -53,7 +53,7 @@ const settingsSubItems = [
 
 export function AppSidebar() {
   const pathname = usePathname()
-  const { data: session } = useSession()
+  const { data: session, status } = useSession()
   const isSettingsActive = settingsSubItems.some((item) =>
     pathname.startsWith(item.href)
   )
@@ -123,7 +123,12 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
       <SidebarFooter className="border-t p-4">
-        {session?.user ? (
+        {status === "loading" ? (
+          <Button variant="ghost" className="w-full justify-start gap-2" disabled>
+            <LogIn className="h-4 w-4" />
+            <span>ログイン</span>
+          </Button>
+        ) : session?.user ? (
           <Button
             variant="ghost"
             className="w-full justify-start gap-2"

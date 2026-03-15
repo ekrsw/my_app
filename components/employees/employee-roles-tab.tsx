@@ -44,9 +44,10 @@ import type { FunctionRole } from "@/app/generated/prisma/client"
 type Props = {
   employee: EmployeeWithDetails
   allRoles: FunctionRole[]
+  isAuthenticated?: boolean
 }
 
-export function EmployeeRolesTab({ employee, allRoles }: Props) {
+export function EmployeeRolesTab({ employee, allRoles, isAuthenticated }: Props) {
   const [showAddForm, setShowAddForm] = useState(false)
   const [addLoading, setAddLoading] = useState(false)
   const [newRoleId, setNewRoleId] = useState("")
@@ -130,7 +131,7 @@ export function EmployeeRolesTab({ employee, allRoles }: Props) {
       <Card>
         <CardContent className="pt-6">
           {/* Add form */}
-          {showAddForm ? (
+          {isAuthenticated && (showAddForm ? (
             <div className="mb-4 rounded-md border p-4 space-y-3">
               <div className="space-y-1">
                 <Label className="text-sm">ロール</Label>
@@ -182,7 +183,7 @@ export function EmployeeRolesTab({ employee, allRoles }: Props) {
                 ロールを追加
               </Button>
             </div>
-          )}
+          ))}
 
           {/* Table */}
           {activeRoles.length === 0 ? (
@@ -197,7 +198,7 @@ export function EmployeeRolesTab({ employee, allRoles }: Props) {
                     <TableHead>主担当</TableHead>
                     <TableHead>開始日</TableHead>
                     <TableHead>終了日</TableHead>
-                    <TableHead className="w-24">操作</TableHead>
+                    {isAuthenticated && <TableHead className="w-24">操作</TableHead>}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -209,7 +210,7 @@ export function EmployeeRolesTab({ employee, allRoles }: Props) {
                       <TableCell>
                         <Badge variant="outline">{role.roleType}</Badge>
                       </TableCell>
-                      {editingId === role.id ? (
+                      {isAuthenticated && editingId === role.id ? (
                         <>
                           <TableCell>
                             <Checkbox
@@ -260,39 +261,41 @@ export function EmployeeRolesTab({ employee, allRoles }: Props) {
                           <TableCell>{role.isPrimary ? "主担当" : "-"}</TableCell>
                           <TableCell>{formatDate(role.startDate)}</TableCell>
                           <TableCell>{formatDate(role.endDate)}</TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-1">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8"
-                                onClick={() => startEdit(role)}
-                              >
-                                <Pencil className="h-4 w-4" />
-                              </Button>
-                              <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                  <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive">
-                                    <X className="h-4 w-4" />
-                                  </Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                  <AlertDialogHeader>
-                                    <AlertDialogTitle>ロールの解除</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                      {role.functionRole?.roleName}を解除してもよろしいですか？終了日が本日に設定されます。
-                                    </AlertDialogDescription>
-                                  </AlertDialogHeader>
-                                  <AlertDialogFooter>
-                                    <AlertDialogCancel>キャンセル</AlertDialogCancel>
-                                    <AlertDialogAction onClick={() => handleRemove(role.id)}>
-                                      解除
-                                    </AlertDialogAction>
-                                  </AlertDialogFooter>
-                                </AlertDialogContent>
-                              </AlertDialog>
-                            </div>
-                          </TableCell>
+                          {isAuthenticated && (
+                            <TableCell>
+                              <div className="flex items-center gap-1">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8"
+                                  onClick={() => startEdit(role)}
+                                >
+                                  <Pencil className="h-4 w-4" />
+                                </Button>
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive">
+                                      <X className="h-4 w-4" />
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>ロールの解除</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        {role.functionRole?.roleName}を解除してもよろしいですか？終了日が本日に設定されます。
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel>キャンセル</AlertDialogCancel>
+                                      <AlertDialogAction onClick={() => handleRemove(role.id)}>
+                                        解除
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
+                              </div>
+                            </TableCell>
+                          )}
                         </>
                       )}
                     </TableRow>

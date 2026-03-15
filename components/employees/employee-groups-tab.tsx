@@ -47,9 +47,10 @@ type Group = { id: number; name: string }
 type Props = {
   employee: EmployeeWithDetails
   groups: Group[]
+  isAuthenticated?: boolean
 }
 
-export function EmployeeGroupsTab({ employee, groups }: Props) {
+export function EmployeeGroupsTab({ employee, groups, isAuthenticated }: Props) {
   const [showAddForm, setShowAddForm] = useState(false)
   const [addLoading, setAddLoading] = useState(false)
   const [newGroupId, setNewGroupId] = useState("")
@@ -122,7 +123,7 @@ export function EmployeeGroupsTab({ employee, groups }: Props) {
       <Card>
         <CardContent className="pt-6">
           {/* Add form */}
-          {showAddForm ? (
+          {isAuthenticated && (showAddForm ? (
             <div className="mb-4 rounded-md border p-4 space-y-3">
               <div className="space-y-1">
                 <Label className="text-sm">グループ</Label>
@@ -165,7 +166,7 @@ export function EmployeeGroupsTab({ employee, groups }: Props) {
                 グループを追加
               </Button>
             </div>
-          )}
+          ))}
 
           {/* Table */}
           {activeGroups.length === 0 ? (
@@ -178,14 +179,14 @@ export function EmployeeGroupsTab({ employee, groups }: Props) {
                     <TableHead>グループ名</TableHead>
                     <TableHead>開始日</TableHead>
                     <TableHead>終了日</TableHead>
-                    <TableHead className="w-24">操作</TableHead>
+                    {isAuthenticated && <TableHead className="w-24">操作</TableHead>}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {activeGroups.map((eg) => (
                     <TableRow key={eg.id}>
                       <TableCell className="font-medium">{eg.group.name}</TableCell>
-                      {editingId === eg.id ? (
+                      {isAuthenticated && editingId === eg.id ? (
                         <>
                           <TableCell>
                             <Input
@@ -229,39 +230,41 @@ export function EmployeeGroupsTab({ employee, groups }: Props) {
                         <>
                           <TableCell>{formatDate(eg.startDate)}</TableCell>
                           <TableCell>{formatDate(eg.endDate)}</TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-1">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8"
-                                onClick={() => startEdit(eg)}
-                              >
-                                <Pencil className="h-4 w-4" />
-                              </Button>
-                              <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                  <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive">
-                                    <X className="h-4 w-4" />
-                                  </Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                  <AlertDialogHeader>
-                                    <AlertDialogTitle>グループの解除</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                      {eg.group.name}から解除してもよろしいですか？終了日が本日に設定されます。
-                                    </AlertDialogDescription>
-                                  </AlertDialogHeader>
-                                  <AlertDialogFooter>
-                                    <AlertDialogCancel>キャンセル</AlertDialogCancel>
-                                    <AlertDialogAction onClick={() => handleRemove(eg.id)}>
-                                      解除
-                                    </AlertDialogAction>
-                                  </AlertDialogFooter>
-                                </AlertDialogContent>
-                              </AlertDialog>
-                            </div>
-                          </TableCell>
+                          {isAuthenticated && (
+                            <TableCell>
+                              <div className="flex items-center gap-1">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8"
+                                  onClick={() => startEdit(eg)}
+                                >
+                                  <Pencil className="h-4 w-4" />
+                                </Button>
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive">
+                                      <X className="h-4 w-4" />
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>グループの解除</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        {eg.group.name}から解除してもよろしいですか？終了日が本日に設定されます。
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel>キャンセル</AlertDialogCancel>
+                                      <AlertDialogAction onClick={() => handleRemove(eg.id)}>
+                                        解除
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
+                              </div>
+                            </TableCell>
+                          )}
                         </>
                       )}
                     </TableRow>

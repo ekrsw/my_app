@@ -32,19 +32,19 @@ export function EmployeeDetailTabs({ employee, groups, allRoles, allPositions, i
       </TabsList>
 
       <TabsContent value="basic">
-        <EmployeeBasicInfoTab employee={employee} />
+        <EmployeeBasicInfoTab employee={employee} isAuthenticated={isAuthenticated} />
       </TabsContent>
 
       <TabsContent value="groups">
-        <EmployeeGroupsTab employee={employee} groups={groups} />
+        <EmployeeGroupsTab employee={employee} groups={groups} isAuthenticated={isAuthenticated} />
       </TabsContent>
 
       <TabsContent value="roles">
-        <EmployeeRolesTab employee={employee} allRoles={allRoles} />
+        <EmployeeRolesTab employee={employee} allRoles={allRoles} isAuthenticated={isAuthenticated} />
       </TabsContent>
 
       <TabsContent value="positions">
-        <EmployeePositionsTab employee={employee} allPositions={allPositions} />
+        <EmployeePositionsTab employee={employee} allPositions={allPositions} isAuthenticated={isAuthenticated} />
       </TabsContent>
     </Tabs>
   )

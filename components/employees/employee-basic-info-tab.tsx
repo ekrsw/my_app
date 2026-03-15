@@ -15,9 +15,10 @@ import type { EmployeeWithDetails } from "@/types/employees"
 
 type Props = {
   employee: EmployeeWithDetails
+  isAuthenticated?: boolean
 }
 
-export function EmployeeBasicInfoTab({ employee }: Props) {
+export function EmployeeBasicInfoTab({ employee, isAuthenticated }: Props) {
   const [isEditing, setIsEditing] = useState(false)
   const [loading, setLoading] = useState(false)
   const [name, setName] = useState(employee.name)
@@ -124,13 +125,15 @@ export function EmployeeBasicInfoTab({ employee }: Props) {
           <Badge variant={isActive ? "default" : "secondary"}>
             {isActive ? "在籍中" : "退職済"}
           </Badge>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
-              <Pencil className="mr-1 h-4 w-4" />
-              編集
-            </Button>
-            <EmployeeDeleteButton id={employee.id} />
-          </div>
+          {isAuthenticated && (
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
+                <Pencil className="mr-1 h-4 w-4" />
+                編集
+              </Button>
+              <EmployeeDeleteButton id={employee.id} />
+            </div>
+          )}
         </div>
 
         <dl className="grid grid-cols-2 gap-4 text-sm">
