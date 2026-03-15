@@ -135,3 +135,26 @@ export const shiftCodeCsvRowSchema = z.object({
 export type EmployeeCsvRow = z.infer<typeof employeeCsvRowSchema>
 export type ShiftCsvRow = z.infer<typeof shiftCsvRowSchema>
 export type ShiftCodeCsvRow = z.infer<typeof shiftCodeCsvRowSchema>
+
+// 履歴編集スキーマ
+export const groupHistoryEditSchema = z.object({
+  groupId: z.coerce.number().int().positive("グループを選択してください").nullable().optional(),
+  startDate: z.string().nullable().optional(),
+  endDate: z.string().nullable().optional(),
+})
+export type GroupHistoryEditFormData = z.infer<typeof groupHistoryEditSchema>
+
+export const roleHistoryEditSchema = z.object({
+  roleType: z.string().max(20).nullable().optional(),
+  isPrimary: z.boolean().nullable().optional(),
+  startDate: z.string().nullable().optional(),
+  endDate: z.string().nullable().optional(),
+})
+export type RoleHistoryEditFormData = z.infer<typeof roleHistoryEditSchema>
+
+export const positionHistoryEditSchema = z.object({
+  positionId: z.coerce.number().int().positive("役職を選択してください").nullable().optional(),
+  startDate: z.string().nullable().optional(),
+  endDate: z.string().nullable().optional(),
+})
+export type PositionHistoryEditFormData = z.infer<typeof positionHistoryEditSchema>

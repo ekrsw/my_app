@@ -275,7 +275,7 @@ export function EmployeePositionsTab({ employee, allPositions, isAuthenticated }
         </CardContent>
       </Card>
 
-      <EmployeePositionHistorySection positionHistory={employee.positionHistory} />
+      <EmployeePositionHistorySection positionHistory={employee.positionHistory} allPositions={allPositions} isAuthenticated={isAuthenticated} />
     </div>
   )
 }

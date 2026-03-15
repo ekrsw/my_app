@@ -276,7 +276,7 @@ export function EmployeeGroupsTab({ employee, groups, isAuthenticated }: Props) 
         </CardContent>
       </Card>
 
-      <EmployeeGroupHistorySection groupHistory={employee.groupHistory} />
+      <EmployeeGroupHistorySection groupHistory={employee.groupHistory} groups={groups} isAuthenticated={isAuthenticated} />
     </div>
   )
 }

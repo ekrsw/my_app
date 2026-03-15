@@ -17,7 +17,9 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { ChevronDown } from "lucide-react"
 import { formatDate } from "@/lib/date-utils"
+import { RoleHistoryDetailDialog } from "@/components/employees/role-history-detail-dialog"
 import type { EmployeeFunctionRoleHistoryEntry } from "@/types/employees"
+import type { FunctionRole } from "@/app/generated/prisma/client"
 
 const CHANGE_TYPE_LABELS: Record<string, string> = {
   INSERT: "追加",
@@ -33,73 +35,92 @@ const CHANGE_TYPE_VARIANTS: Record<string, "default" | "secondary" | "destructiv
 
 type Props = {
   roleHistory: EmployeeFunctionRoleHistoryEntry[]
+  allRoles: FunctionRole[]
+  isAuthenticated?: boolean
 }
 
-export function EmployeeRoleHistorySection({ roleHistory }: Props) {
+export function EmployeeRoleHistorySection({ roleHistory, allRoles, isAuthenticated }: Props) {
   const [open, setOpen] = useState(false)
+  const [selectedEntry, setSelectedEntry] = useState<EmployeeFunctionRoleHistoryEntry | null>(null)
 
   return (
-    <Collapsible open={open} onOpenChange={setOpen}>
-      <CollapsibleTrigger className="flex w-full items-center justify-between rounded-lg border px-4 py-3 font-semibold hover:bg-muted/50 transition-colors">
-        <span>ロール履歴 ({roleHistory.length})</span>
-        <ChevronDown
-          className={`h-4 w-4 transition-transform ${open ? "rotate-180" : ""}`}
-        />
-      </CollapsibleTrigger>
-      <CollapsibleContent className="mt-2">
-        {roleHistory.length === 0 ? (
-          <p className="text-sm text-muted-foreground py-4 px-4">
-            ロールの変更履歴がありません
-          </p>
-        ) : (
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>変更日時</TableHead>
-                  <TableHead>変更種別</TableHead>
-                  <TableHead>ロールタイプ</TableHead>
-                  <TableHead>主担当</TableHead>
-                  <TableHead>開始日</TableHead>
-                  <TableHead>終了日</TableHead>
-                  <TableHead>バージョン</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {roleHistory.map((h) => (
-                  <TableRow key={h.id}>
-                    <TableCell>
-                      {formatDate(h.changedAt, "yyyy/MM/dd HH:mm")}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={CHANGE_TYPE_VARIANTS[h.changeType] ?? "outline"}>
-                        {CHANGE_TYPE_LABELS[h.changeType] ?? h.changeType}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      {h.roleType ? (
-                        <Badge variant="outline">
-                          {h.roleType}
-                        </Badge>
-                      ) : (
-                        "-"
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {h.isPrimary ? "主担当" : "-"}
-                    </TableCell>
-                    <TableCell>{formatDate(h.startDate)}</TableCell>
-                    <TableCell>{formatDate(h.endDate)}</TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {h.version}
-                    </TableCell>
+    <>
+      <Collapsible open={open} onOpenChange={setOpen}>
+        <CollapsibleTrigger className="flex w-full items-center justify-between rounded-lg border px-4 py-3 font-semibold hover:bg-muted/50 transition-colors">
+          <span>ロール履歴 ({roleHistory.length})</span>
+          <ChevronDown
+            className={`h-4 w-4 transition-transform ${open ? "rotate-180" : ""}`}
+          />
+        </CollapsibleTrigger>
+        <CollapsibleContent className="mt-2">
+          {roleHistory.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-4 px-4">
+              ロールの変更履歴がありません
+            </p>
+          ) : (
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>変更日時</TableHead>
+                    <TableHead>変更種別</TableHead>
+                    <TableHead>ロールタイプ</TableHead>
+                    <TableHead>主担当</TableHead>
+                    <TableHead>開始日</TableHead>
+                    <TableHead>終了日</TableHead>
+                    <TableHead>バージョン</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        )}
-      </CollapsibleContent>
-    </Collapsible>
+                </TableHeader>
+                <TableBody>
+                  {roleHistory.map((h) => (
+                    <TableRow
+                      key={h.id}
+                      className="cursor-pointer"
+                      onClick={() => setSelectedEntry(h)}
+                    >
+                      <TableCell>
+                        {formatDate(h.changedAt, "yyyy/MM/dd HH:mm")}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={CHANGE_TYPE_VARIANTS[h.changeType] ?? "outline"}>
+                          {CHANGE_TYPE_LABELS[h.changeType] ?? h.changeType}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {h.roleType ? (
+                          <Badge variant="outline">
+                            {h.roleType}
+                          </Badge>
+                        ) : (
+                          "-"
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {h.isPrimary ? "主担当" : "-"}
+                      </TableCell>
+                      <TableCell>{formatDate(h.startDate)}</TableCell>
+                      <TableCell>{formatDate(h.endDate)}</TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {h.version}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CollapsibleContent>
+      </Collapsible>
+
+      {selectedEntry && (
+        <RoleHistoryDetailDialog
+          open={!!selectedEntry}
+          onOpenChange={(v) => { if (!v) setSelectedEntry(null) }}
+          entry={selectedEntry}
+          allRoles={allRoles}
+          isAuthenticated={isAuthenticated}
+        />
+      )}
+    </>
   )
 }

@@ -307,7 +307,7 @@ export function EmployeeRolesTab({ employee, allRoles, isAuthenticated }: Props)
         </CardContent>
       </Card>
 
-      <EmployeeRoleHistorySection roleHistory={employee.roleHistory} />
+      <EmployeeRoleHistorySection roleHistory={employee.roleHistory} allRoles={allRoles} isAuthenticated={isAuthenticated} />
     </div>
   )
 }

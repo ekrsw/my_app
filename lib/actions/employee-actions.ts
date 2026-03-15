@@ -1,7 +1,14 @@
 "use server"
 
 import { prisma } from "@/lib/prisma"
-import { employeeSchema, groupAssignmentSchema, positionAssignmentSchema } from "@/lib/validators"
+import {
+  employeeSchema,
+  groupAssignmentSchema,
+  positionAssignmentSchema,
+  groupHistoryEditSchema,
+  roleHistoryEditSchema,
+  positionHistoryEditSchema,
+} from "@/lib/validators"
 import { revalidatePath } from "next/cache"
 import { requireAuth } from "@/lib/auth-guard"
 
@@ -583,5 +590,143 @@ export async function importEmployees(
         ? errors
         : [{ rowIndex: 0, error: "インポート処理に失敗しました" }],
     }
+  }
+}
+
+// --- 履歴レコードの編集・削除 ---
+
+export async function updateGroupHistory(
+  id: number,
+  data: { groupId?: number | null; startDate?: string | null; endDate?: string | null }
+) {
+  await requireAuth()
+  const parsed = groupHistoryEditSchema.safeParse(data)
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0].message }
+  }
+  try {
+    const updateData: Record<string, unknown> = {}
+    if (parsed.data.groupId !== undefined) updateData.groupId = parsed.data.groupId
+    if (parsed.data.startDate !== undefined) {
+      updateData.startDate = parsed.data.startDate ? new Date(parsed.data.startDate) : null
+    }
+    if (parsed.data.endDate !== undefined) {
+      updateData.endDate = parsed.data.endDate ? new Date(parsed.data.endDate) : null
+    }
+    const updated = await prisma.employeeGroupHistory.update({
+      where: { id },
+      data: updateData,
+      select: { employeeId: true },
+    })
+    revalidatePath(`/employees/${updated.employeeId}`)
+    return { success: true }
+  } catch {
+    return { error: "所属履歴の更新に失敗しました" }
+  }
+}
+
+export async function deleteGroupHistory(id: number) {
+  await requireAuth()
+  try {
+    const record = await prisma.employeeGroupHistory.findUnique({
+      where: { id },
+      select: { employeeId: true },
+    })
+    await prisma.employeeGroupHistory.delete({ where: { id } })
+    if (record) revalidatePath(`/employees/${record.employeeId}`)
+    return { success: true }
+  } catch {
+    return { error: "所属履歴の削除に失敗しました" }
+  }
+}
+
+export async function updateRoleHistory(
+  id: number,
+  data: { roleType?: string | null; isPrimary?: boolean | null; startDate?: string | null; endDate?: string | null }
+) {
+  await requireAuth()
+  const parsed = roleHistoryEditSchema.safeParse(data)
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0].message }
+  }
+  try {
+    const updateData: Record<string, unknown> = {}
+    if (parsed.data.roleType !== undefined) updateData.roleType = parsed.data.roleType
+    if (parsed.data.isPrimary !== undefined) updateData.isPrimary = parsed.data.isPrimary
+    if (parsed.data.startDate !== undefined) {
+      updateData.startDate = parsed.data.startDate ? new Date(parsed.data.startDate) : null
+    }
+    if (parsed.data.endDate !== undefined) {
+      updateData.endDate = parsed.data.endDate ? new Date(parsed.data.endDate) : null
+    }
+    const updated = await prisma.employeeFunctionRoleHistory.update({
+      where: { id },
+      data: updateData,
+      select: { employeeId: true },
+    })
+    revalidatePath(`/employees/${updated.employeeId}`)
+    return { success: true }
+  } catch {
+    return { error: "ロール履歴の更新に失敗しました" }
+  }
+}
+
+export async function deleteRoleHistory(id: number) {
+  await requireAuth()
+  try {
+    const record = await prisma.employeeFunctionRoleHistory.findUnique({
+      where: { id },
+      select: { employeeId: true },
+    })
+    await prisma.employeeFunctionRoleHistory.delete({ where: { id } })
+    if (record) revalidatePath(`/employees/${record.employeeId}`)
+    return { success: true }
+  } catch {
+    return { error: "ロール履歴の削除に失敗しました" }
+  }
+}
+
+export async function updatePositionHistory(
+  id: number,
+  data: { positionId?: number | null; startDate?: string | null; endDate?: string | null }
+) {
+  await requireAuth()
+  const parsed = positionHistoryEditSchema.safeParse(data)
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0].message }
+  }
+  try {
+    const updateData: Record<string, unknown> = {}
+    if (parsed.data.positionId !== undefined) updateData.positionId = parsed.data.positionId
+    if (parsed.data.startDate !== undefined) {
+      updateData.startDate = parsed.data.startDate ? new Date(parsed.data.startDate) : null
+    }
+    if (parsed.data.endDate !== undefined) {
+      updateData.endDate = parsed.data.endDate ? new Date(parsed.data.endDate) : null
+    }
+    const updated = await prisma.employeePositionHistory.update({
+      where: { id },
+      data: updateData,
+      select: { employeeId: true },
+    })
+    revalidatePath(`/employees/${updated.employeeId}`)
+    return { success: true }
+  } catch {
+    return { error: "役職履歴の更新に失敗しました" }
+  }
+}
+
+export async function deletePositionHistory(id: number) {
+  await requireAuth()
+  try {
+    const record = await prisma.employeePositionHistory.findUnique({
+      where: { id },
+      select: { employeeId: true },
+    })
+    await prisma.employeePositionHistory.delete({ where: { id } })
+    if (record) revalidatePath(`/employees/${record.employeeId}`)
+    return { success: true }
+  } catch {
+    return { error: "役職履歴の削除に失敗しました" }
   }
 }
