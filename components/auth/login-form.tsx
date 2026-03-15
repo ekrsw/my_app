@@ -47,7 +47,7 @@ export function LoginForm() {
   return (
     <Card className="w-full max-w-sm">
       <CardHeader>
-        <CardTitle className="text-2xl">ログイン</CardTitle>
+        <CardTitle className="text-2xl">管理者ログイン</CardTitle>
         <CardDescription>
           管理者アカウントでログインしてください
         </CardDescription>
@@ -78,7 +78,7 @@ export function LoginForm() {
             <p className="text-sm text-destructive">{error}</p>
           )}
           <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? "ログイン中..." : "ログイン"}
+            {loading ? "ログイン中..." : "管理者ログイン"}
           </Button>
         </form>
       </CardContent>

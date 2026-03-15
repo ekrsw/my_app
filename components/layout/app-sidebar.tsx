@@ -126,7 +126,7 @@ export function AppSidebar() {
         {status === "loading" ? (
           <Button variant="ghost" className="w-full justify-start gap-2" disabled>
             <LogIn className="h-4 w-4" />
-            <span>ログイン</span>
+            <span>管理者ログイン</span>
           </Button>
         ) : session?.user ? (
           <Button
@@ -135,13 +135,13 @@ export function AppSidebar() {
             onClick={() => signOut()}
           >
             <LogOut className="h-4 w-4" />
-            <span>ログアウト ({session.user.name})</span>
+            <span>ログアウト</span>
           </Button>
         ) : (
           <Button variant="ghost" className="w-full justify-start gap-2" asChild>
             <Link href="/login">
               <LogIn className="h-4 w-4" />
-              <span>ログイン</span>
+              <span>管理者ログイン</span>
             </Link>
           </Button>
         )}
