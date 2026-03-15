@@ -32,9 +32,10 @@ import type { ShiftChangeHistory } from "@/app/generated/prisma/client"
 type ShiftHistoryDetailProps = {
   entry: ShiftHistoryEntry
   versions: ShiftChangeHistory[]
+  isAuthenticated?: boolean
 }
 
-export function ShiftHistoryDetail({ entry, versions }: ShiftHistoryDetailProps) {
+export function ShiftHistoryDetail({ entry, versions, isAuthenticated }: ShiftHistoryDetailProps) {
   const router = useRouter()
   const [editingNote, setEditingNote] = useState(false)
   const [noteValue, setNoteValue] = useState(entry.note ?? "")
@@ -88,54 +89,56 @@ export function ShiftHistoryDetail({ entry, versions }: ShiftHistoryDetailProps)
           <ArrowLeft className="h-4 w-4 mr-1" />
           一覧に戻る
         </Button>
-        <div className="ml-auto flex items-center gap-2">
-          {!isDeleted && (
+        {isAuthenticated && (
+          <div className="ml-auto flex items-center gap-2">
+            {!isDeleted && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="outline" size="sm" disabled={restoring}>
+                    <RotateCcw className="h-4 w-4 mr-1" />
+                    {restoring ? "復元中..." : "このバージョンに復元"}
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>バージョンの復元</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      バージョン{entry.version}の状態にシフトを復元します。よろしいですか？
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>キャンセル</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleRestore} disabled={restoring}>
+                      復元
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <Button variant="outline" size="sm" disabled={restoring}>
-                  <RotateCcw className="h-4 w-4 mr-1" />
-                  {restoring ? "復元中..." : "このバージョンに復元"}
+                <Button variant="destructive" size="sm" disabled={deleting}>
+                  <Trash2 className="h-4 w-4 mr-1" />
+                  {deleting ? "削除中..." : "この履歴を削除"}
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
-                  <AlertDialogTitle>バージョンの復元</AlertDialogTitle>
+                  <AlertDialogTitle>変更履歴の削除</AlertDialogTitle>
                   <AlertDialogDescription>
-                    バージョン{entry.version}の状態にシフトを復元します。よろしいですか？
+                    この変更履歴を削除してもよろしいですか？この操作は取り消せません。
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>キャンセル</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleRestore} disabled={restoring}>
-                    復元
+                  <AlertDialogAction onClick={handleDelete} disabled={deleting}>
+                    削除
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
-          )}
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button variant="destructive" size="sm" disabled={deleting}>
-                <Trash2 className="h-4 w-4 mr-1" />
-                {deleting ? "削除中..." : "この履歴を削除"}
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>変更履歴の削除</AlertDialogTitle>
-                <AlertDialogDescription>
-                  この変更履歴を削除してもよろしいですか？この操作は取り消せません。
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>キャンセル</AlertDialogCancel>
-                <AlertDialogAction onClick={handleDelete} disabled={deleting}>
-                  削除
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        </div>
+          </div>
+        )}
       </div>
 
       {/* Detail card */}
@@ -239,7 +242,7 @@ export function ShiftHistoryDetail({ entry, versions }: ShiftHistoryDetailProps)
           <div>
             <div className="flex items-center gap-2 mb-1">
               <p className="text-sm text-muted-foreground">備考</p>
-              {!editingNote && (
+              {!editingNote && isAuthenticated && (
                 <Button
                   variant="ghost"
                   size="icon"

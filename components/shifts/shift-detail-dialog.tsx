@@ -24,6 +24,7 @@ type ShiftDetailDialogProps = {
   shiftCodeMap: Record<string, ShiftCodeInfo>
   hasHistory: boolean
   latestHistory: LatestShiftHistory | null
+  isAuthenticated?: boolean
   onEdit: () => void
 }
 
@@ -36,6 +37,7 @@ export function ShiftDetailDialog({
   shiftCodeMap,
   hasHistory,
   latestHistory,
+  isAuthenticated,
   onEdit,
 }: ShiftDetailDialogProps) {
   const codeInfo = getShiftCodeInfo(shift.shiftCode, shiftCodeMap)
@@ -133,11 +135,13 @@ export function ShiftDetailDialog({
           )}
         </div>
 
-        <DialogFooter>
-          <Button onClick={onEdit}>
-            編集
-          </Button>
-        </DialogFooter>
+        {isAuthenticated && (
+          <DialogFooter>
+            <Button onClick={onEdit}>
+              編集
+            </Button>
+          </DialogFooter>
+        )}
       </DialogContent>
     </Dialog>
   )

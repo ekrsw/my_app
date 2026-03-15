@@ -2,6 +2,7 @@ import { PageHeader } from "@/components/layout/page-header"
 import { PageContainer } from "@/components/layout/page-container"
 import { ShiftHistoryDetail } from "@/components/shifts/shift-history-detail"
 import { getShiftHistoryById, getShiftVersions } from "@/lib/db/history"
+import { auth } from "@/auth"
 import { notFound } from "next/navigation"
 
 export default async function ShiftHistoryDetailPage({
@@ -22,7 +23,11 @@ export default async function ShiftHistoryDetailPage({
     notFound()
   }
 
-  const versions = await getShiftVersions(entry.shiftId)
+  const [versions, session] = await Promise.all([
+    getShiftVersions(entry.shiftId),
+    auth(),
+  ])
+  const isAuthenticated = !!session?.user
 
   return (
     <>
@@ -36,7 +41,7 @@ export default async function ShiftHistoryDetailPage({
         ]}
       />
       <PageContainer>
-        <ShiftHistoryDetail entry={entry} versions={versions} />
+        <ShiftHistoryDetail entry={entry} versions={versions} isAuthenticated={isAuthenticated} />
       </PageContainer>
     </>
   )

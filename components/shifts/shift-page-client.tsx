@@ -192,12 +192,12 @@ export function ShiftPageClient({
           }
         }
         setDetailOpen(true)
-      } else {
+      } else if (isAuthenticated) {
         setEditShift(undefined)
         setEditOpen(true)
       }
     },
-    [calendarData]
+    [calendarData, isAuthenticated]
   )
 
   const handleEditFromDetail = useCallback(() => {
@@ -315,6 +315,7 @@ export function ShiftPageClient({
           shiftCodeMap={shiftCodeMap}
           hasHistory={shiftIdsWithHistorySet.has(editShift.id)}
           latestHistory={shiftLatestHistory[editShift.id] ?? null}
+          isAuthenticated={isAuthenticated}
           onEdit={handleEditFromDetail}
         />
       )}
