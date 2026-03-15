@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useSession } from "next-auth/react"
 import { DataTable } from "@/components/data-table"
 import { groupColumns } from "./group-columns"
 import { GroupForm } from "./group-form"
@@ -12,6 +13,8 @@ type GroupWithCount = {
 }
 
 export function GroupTable({ data }: { data: GroupWithCount[] }) {
+  const { data: session } = useSession()
+  const isAuthenticated = !!session?.user
   const [selectedGroup, setSelectedGroup] = useState<GroupWithCount | null>(null)
   const [dialogOpen, setDialogOpen] = useState(false)
 
@@ -22,19 +25,19 @@ export function GroupTable({ data }: { data: GroupWithCount[] }) {
         data={data}
         clientPagination
         pageSize={10}
-        onRowClick={(row) => {
+        onRowClick={isAuthenticated ? (row) => {
           setSelectedGroup(row)
           setDialogOpen(true)
-        }}
+        } : undefined}
       />
-      <GroupForm
+      {isAuthenticated && <GroupForm
         group={selectedGroup ?? undefined}
         open={dialogOpen}
         onOpenChange={(open) => {
           setDialogOpen(open)
           if (!open) setSelectedGroup(null)
         }}
-      />
+      />}
     </>
   )
 }

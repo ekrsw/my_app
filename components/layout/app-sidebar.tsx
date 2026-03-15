@@ -2,6 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { useSession, signOut } from "next-auth/react"
 import {
   LayoutDashboard,
   Calendar,
@@ -12,10 +13,13 @@ import {
   Tag,
   Settings,
   ChevronRight,
+  LogIn,
+  LogOut,
 } from "lucide-react"
 import {
   Sidebar,
   SidebarContent,
+  SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
@@ -32,6 +36,7 @@ import {
   CollapsibleTrigger,
   CollapsibleContent,
 } from "@/components/ui/collapsible"
+import { Button } from "@/components/ui/button"
 
 const navItems = [
   { label: "ダッシュボード", href: "/", icon: LayoutDashboard },
@@ -48,6 +53,7 @@ const settingsSubItems = [
 
 export function AppSidebar() {
   const pathname = usePathname()
+  const { data: session } = useSession()
   const isSettingsActive = settingsSubItems.some((item) =>
     pathname.startsWith(item.href)
   )
@@ -116,6 +122,25 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
+      <SidebarFooter className="border-t p-4">
+        {session?.user ? (
+          <Button
+            variant="ghost"
+            className="w-full justify-start gap-2"
+            onClick={() => signOut()}
+          >
+            <LogOut className="h-4 w-4" />
+            <span>ログアウト ({session.user.name})</span>
+          </Button>
+        ) : (
+          <Button variant="ghost" className="w-full justify-start gap-2" asChild>
+            <Link href="/login">
+              <LogIn className="h-4 w-4" />
+              <span>ログイン</span>
+            </Link>
+          </Button>
+        )}
+      </SidebarFooter>
     </Sidebar>
   )
 }

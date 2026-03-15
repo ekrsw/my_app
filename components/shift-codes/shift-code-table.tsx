@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useSession } from "next-auth/react"
 import { DataTable } from "@/components/data-table"
 import { shiftCodeColumns } from "./shift-code-columns"
 import { ShiftCodeForm } from "./shift-code-form"
@@ -17,6 +18,8 @@ type ShiftCodeRow = {
 }
 
 export function ShiftCodeTable({ data }: { data: ShiftCodeRow[] }) {
+  const { data: session } = useSession()
+  const isAuthenticated = !!session?.user
   const [selectedShiftCode, setSelectedShiftCode] = useState<ShiftCodeRow | null>(null)
   const [dialogOpen, setDialogOpen] = useState(false)
 
@@ -27,19 +30,19 @@ export function ShiftCodeTable({ data }: { data: ShiftCodeRow[] }) {
         data={data}
         clientPagination
         pageSize={10}
-        onRowClick={(row) => {
+        onRowClick={isAuthenticated ? (row) => {
           setSelectedShiftCode(row)
           setDialogOpen(true)
-        }}
+        } : undefined}
       />
-      <ShiftCodeForm
+      {isAuthenticated && <ShiftCodeForm
         shiftCode={selectedShiftCode ?? undefined}
         open={dialogOpen}
         onOpenChange={(open) => {
           setDialogOpen(open)
           if (!open) setSelectedShiftCode(null)
         }}
-      />
+      />}
     </>
   )
 }

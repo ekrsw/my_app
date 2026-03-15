@@ -6,6 +6,9 @@ vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }))
 vi.mock("@/lib/prisma", async () => {
   return { prisma: (await import("../helpers/prisma")).prisma }
 })
+vi.mock("@/auth", () => ({
+  auth: vi.fn().mockResolvedValue({ user: { id: "1", name: "admin" } }),
+}))
 
 const { createGroup, updateGroup, deleteGroup } = await import(
   "@/lib/actions/group-actions"

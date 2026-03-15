@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma"
 import { employeeSchema, groupAssignmentSchema, positionAssignmentSchema } from "@/lib/validators"
 import { revalidatePath } from "next/cache"
+import { requireAuth } from "@/lib/auth-guard"
 
 export type RoleChangeItem = {
   status: "added" | "modified" | "removed"
@@ -30,6 +31,7 @@ export type GroupChangeItem = {
 }
 
 export async function createEmployee(formData: FormData) {
+  await requireAuth()
   const parsed = employeeSchema.safeParse({
     name: formData.get("name"),
     nameKana: formData.get("nameKana") || null,
@@ -79,6 +81,7 @@ export async function createEmployee(formData: FormData) {
 }
 
 export async function updateEmployee(id: string, formData: FormData) {
+  await requireAuth()
   const parsed = employeeSchema.safeParse({
     name: formData.get("name"),
     nameKana: formData.get("nameKana") || null,
@@ -112,6 +115,7 @@ export async function updateEmployee(id: string, formData: FormData) {
 }
 
 export async function deleteEmployee(id: string) {
+  await requireAuth()
   try {
     await prisma.$transaction(async (tx) => {
       // ステップ1: ジャンクションテーブル削除 (DELETEトリガーが履歴を自動生成)
@@ -152,6 +156,7 @@ export async function updateEmployeeWithRoles(
   positionChanges: PositionChangeItem[] = [],
   groupChanges: GroupChangeItem[] = []
 ) {
+  await requireAuth()
   const parsed = employeeSchema.safeParse(employeeData)
 
   if (!parsed.success) {
@@ -278,6 +283,7 @@ export async function addEmployeeGroup(data: {
   startDate?: string | null
   endDate?: string | null
 }) {
+  await requireAuth()
   const parsed = groupAssignmentSchema.safeParse(data)
   if (!parsed.success) {
     return { error: parsed.error.issues[0].message }
@@ -307,6 +313,7 @@ export async function updateEmployeeGroup(
     endDate?: string | null
   }
 ) {
+  await requireAuth()
   try {
     const updateData: { startDate?: Date; endDate?: Date | null } = {}
     if (data.startDate !== undefined && data.startDate) {
@@ -331,6 +338,7 @@ export async function updateEmployeeGroup(
 }
 
 export async function removeEmployeeGroup(id: number) {
+  await requireAuth()
   try {
     const updated = await prisma.employeeGroup.update({
       where: { id },
@@ -353,6 +361,7 @@ export async function addEmployeePosition(data: {
   startDate?: string | null
   endDate?: string | null
 }) {
+  await requireAuth()
   const parsed = positionAssignmentSchema.safeParse(data)
   if (!parsed.success) {
     return { error: parsed.error.issues[0].message }
@@ -385,6 +394,7 @@ export async function updateEmployeePosition(
     endDate?: string | null
   }
 ) {
+  await requireAuth()
   try {
     const updateData: { startDate?: Date; endDate?: Date | null } = {}
     if (data.startDate !== undefined && data.startDate) {
@@ -412,6 +422,7 @@ export async function updateEmployeePosition(
 }
 
 export async function removeEmployeePosition(id: number) {
+  await requireAuth()
   try {
     const updated = await prisma.employeePosition.update({
       where: { id },
@@ -445,6 +456,7 @@ export type EmployeeImportResult = {
 export async function importEmployees(
   rows: Array<EmployeeImportRow & { rowIndex: number }>
 ): Promise<EmployeeImportResult> {
+  await requireAuth()
   let created = 0
   let updated = 0
   const errors: Array<{ rowIndex: number; error: string }> = []

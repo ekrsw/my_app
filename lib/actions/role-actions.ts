@@ -3,8 +3,10 @@
 import { prisma } from "@/lib/prisma"
 import { functionRoleSchema, roleAssignmentSchema } from "@/lib/validators"
 import { revalidatePath } from "next/cache"
+import { requireAuth } from "@/lib/auth-guard"
 
 export async function createFunctionRole(formData: FormData) {
+  await requireAuth()
   const parsed = functionRoleSchema.safeParse({
     roleCode: formData.get("roleCode"),
     roleName: formData.get("roleName"),
@@ -29,6 +31,7 @@ export async function createFunctionRole(formData: FormData) {
 }
 
 export async function updateFunctionRole(id: number, formData: FormData) {
+  await requireAuth()
   const parsed = functionRoleSchema.safeParse({
     roleCode: formData.get("roleCode"),
     roleName: formData.get("roleName"),
@@ -56,6 +59,7 @@ export async function updateFunctionRole(id: number, formData: FormData) {
 }
 
 export async function deleteFunctionRole(id: number) {
+  await requireAuth()
   try {
     await prisma.functionRole.delete({ where: { id } })
     revalidatePath("/roles")
@@ -72,6 +76,7 @@ export async function assignRole(data: {
   startDate?: string | null
   endDate?: string | null
 }) {
+  await requireAuth()
   const parsed = roleAssignmentSchema.safeParse(data)
 
   if (!parsed.success) {
@@ -109,6 +114,7 @@ export async function updateEmployeeRole(
     endDate?: string | null
   }
 ) {
+  await requireAuth()
   try {
     const updateData: {
       isPrimary?: boolean
@@ -148,6 +154,7 @@ export async function updateEmployeeRole(
 }
 
 export async function unassignRole(id: number) {
+  await requireAuth()
   try {
     await prisma.employeeFunctionRole.update({
       where: { id },

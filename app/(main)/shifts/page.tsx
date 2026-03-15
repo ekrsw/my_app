@@ -12,6 +12,7 @@ import { getFunctionRoles } from "@/lib/db/roles"
 import { getActiveShiftCodes } from "@/lib/db/shift-codes"
 import { toDateString, getTodayJST } from "@/lib/date-utils"
 import type { SearchParams, ShiftDailySortField } from "@/types"
+import { auth } from "@/auth"
 
 export default async function ShiftsPage({
   searchParams,
@@ -60,6 +61,9 @@ export default async function ShiftsPage({
   const businessRoleNames = params.businessRoleNames
     ? String(params.businessRoleNames).split(",").filter(Boolean)
     : undefined
+
+  const session = await auth()
+  const isAuthenticated = !!session?.user
 
   const filter = { year, month, groupIds: groupIds && groupIds.length > 0 ? groupIds : undefined, unassigned, roleIds: roleIds && roleIds.length > 0 ? roleIds : undefined, roleUnassigned, employeeSearch: search }
 
@@ -125,6 +129,7 @@ export default async function ShiftsPage({
         <ShiftTabs activeTab={activeTab}>
           <TabsContent value="management" className="mt-4">
             <ShiftPageClient
+              isAuthenticated={isAuthenticated}
               viewMode={viewMode}
               initialCalendarData={calendarResult.data}
               calendarTotal={calendarResult.total}

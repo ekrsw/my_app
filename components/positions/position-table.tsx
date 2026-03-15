@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useSession } from "next-auth/react"
 import { DataTable } from "@/components/data-table"
 import { positionColumns } from "./position-columns"
 import { PositionForm } from "./position-form"
@@ -15,6 +16,8 @@ type PositionWithCount = {
 }
 
 export function PositionTable({ data }: { data: PositionWithCount[] }) {
+  const { data: session } = useSession()
+  const isAuthenticated = !!session?.user
   const [selectedPosition, setSelectedPosition] = useState<PositionWithCount | null>(null)
   const [dialogOpen, setDialogOpen] = useState(false)
 
@@ -25,19 +28,19 @@ export function PositionTable({ data }: { data: PositionWithCount[] }) {
         data={data}
         clientPagination
         pageSize={10}
-        onRowClick={(row) => {
+        onRowClick={isAuthenticated ? (row) => {
           setSelectedPosition(row)
           setDialogOpen(true)
-        }}
+        } : undefined}
       />
-      <PositionForm
+      {isAuthenticated && <PositionForm
         position={selectedPosition ?? undefined}
         open={dialogOpen}
         onOpenChange={(open) => {
           setDialogOpen(open)
           if (!open) setSelectedPosition(null)
         }}
-      />
+      />}
     </>
   )
 }

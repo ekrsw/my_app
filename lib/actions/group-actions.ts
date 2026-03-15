@@ -3,8 +3,10 @@
 import { prisma } from "@/lib/prisma"
 import { groupSchema } from "@/lib/validators"
 import { revalidatePath } from "next/cache"
+import { requireAuth } from "@/lib/auth-guard"
 
 export async function createGroup(formData: FormData) {
+  await requireAuth()
   const parsed = groupSchema.safeParse({
     name: formData.get("name"),
   })
@@ -26,6 +28,7 @@ export async function createGroup(formData: FormData) {
 }
 
 export async function updateGroup(id: number, formData: FormData) {
+  await requireAuth()
   const parsed = groupSchema.safeParse({
     name: formData.get("name"),
   })
@@ -50,6 +53,7 @@ export async function updateGroup(id: number, formData: FormData) {
 }
 
 export async function deleteGroup(id: number) {
+  await requireAuth()
   try {
     await prisma.group.delete({ where: { id } })
     revalidatePath("/groups")

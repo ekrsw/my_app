@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma"
 import { shiftSchema, shiftBulkSchema, shiftHistoryNoteSchema } from "@/lib/validators"
 import { revalidatePath } from "next/cache"
+import { requireAuth } from "@/lib/auth-guard"
 import { getShiftsForCalendarPaginated } from "@/lib/db/shifts"
 import type { ShiftFilterParams } from "@/types"
 import type { ShiftCalendarPaginatedResult } from "@/types/shifts"
@@ -16,6 +17,7 @@ export async function createShift(data: {
   isHoliday?: boolean
   isRemote?: boolean
 }) {
+  await requireAuth()
   const parsed = shiftSchema.safeParse(data)
 
   if (!parsed.success) {
@@ -59,6 +61,7 @@ export async function updateShift(
     note?: string | null
   }
 ) {
+  await requireAuth()
   try {
     await prisma.$transaction(async (tx) => {
       if (data.note) {
@@ -96,6 +99,7 @@ export async function getLatestShiftNote(shiftId: number): Promise<string | null
 }
 
 export async function deleteShift(id: number) {
+  await requireAuth()
   try {
     await prisma.shift.delete({ where: { id } })
     revalidatePath("/shifts")
@@ -115,6 +119,7 @@ export async function bulkUpdateShifts(data: {
   isRemote?: boolean
   note?: string | null
 }) {
+  await requireAuth()
   const parsed = shiftBulkSchema.safeParse(data)
 
   if (!parsed.success) {
@@ -153,6 +158,7 @@ export async function bulkUpdateShifts(data: {
 }
 
 export async function updateShiftHistory(id: number, data: { note: string }) {
+  await requireAuth()
   const parsed = shiftHistoryNoteSchema.safeParse(data)
   if (!parsed.success) {
     return { error: parsed.error.issues[0].message }
@@ -172,6 +178,7 @@ export async function updateShiftHistory(id: number, data: { note: string }) {
 }
 
 export async function deleteShiftHistory(id: number) {
+  await requireAuth()
   try {
     await prisma.shiftChangeHistory.delete({ where: { id } })
     revalidatePath("/shifts")
@@ -182,6 +189,7 @@ export async function deleteShiftHistory(id: number) {
 }
 
 export async function restoreShiftVersion(shiftId: number, version: number) {
+  await requireAuth()
   try {
     const history = await prisma.shiftChangeHistory.findFirst({
       where: { shiftId, version },
@@ -240,6 +248,7 @@ const IMPORT_BATCH_SIZE = 200
 export async function importShifts(
   rows: Array<ShiftImportRow & { rowIndex: number }>
 ): Promise<ShiftImportResult> {
+  await requireAuth()
   let created = 0
   let updated = 0
   const errors: Array<{ rowIndex: number; error: string }> = []

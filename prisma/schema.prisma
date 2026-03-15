@@ -220,6 +220,16 @@ model EmployeeGroup {
   @@map("employee_groups")
 }
 
+model User {
+  id           Int      @id @default(autoincrement())
+  username     String   @unique @db.VarChar(50)
+  passwordHash String   @map("password_hash") @db.VarChar(255)
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@map("users")
+}
+
 model EmployeePositionHistory {
   id         Int       @id @default(autoincrement())
   employeeId String    @map("employee_id") @db.Uuid

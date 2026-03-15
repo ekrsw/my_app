@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useSession } from "next-auth/react"
 import { DataTable } from "@/components/data-table"
 import { roleColumns } from "./role-columns"
 import { RoleForm } from "./role-form"
@@ -15,6 +16,8 @@ type FunctionRoleWithCount = {
 }
 
 export function RoleTable({ data }: { data: FunctionRoleWithCount[] }) {
+  const { data: session } = useSession()
+  const isAuthenticated = !!session?.user
   const [selectedRole, setSelectedRole] = useState<FunctionRoleWithCount | null>(null)
   const [dialogOpen, setDialogOpen] = useState(false)
 
@@ -25,19 +28,19 @@ export function RoleTable({ data }: { data: FunctionRoleWithCount[] }) {
         data={data}
         clientPagination
         pageSize={10}
-        onRowClick={(row) => {
+        onRowClick={isAuthenticated ? (row) => {
           setSelectedRole(row)
           setDialogOpen(true)
-        }}
+        } : undefined}
       />
-      <RoleForm
+      {isAuthenticated && <RoleForm
         role={selectedRole ?? undefined}
         open={dialogOpen}
         onOpenChange={(open) => {
           setDialogOpen(open)
           if (!open) setSelectedRole(null)
         }}
-      />
+      />}
     </>
   )
 }

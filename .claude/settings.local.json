@@ -105,7 +105,13 @@
       "Bash(find /Users/ekoresawa/project/my_app/components -type f -name \"*shift*\" -o -name \"*daily*\" 2>/dev/null | head -20)",
       "Bash(npx playwright:*)",
       "Bash(lsof -ti:3000 2>/dev/null || echo \"not running\")",
-      "mcp__playwright__browser_fill_form"
+      "mcp__playwright__browser_fill_form",
+      "mcp__morphllm-fast-apply__list_directory",
+      "mcp__morphllm-fast-apply__directory_tree",
+      "mcp__morphllm-fast-apply__search_files",
+      "Bash(for dir:*)",
+      "Bash(for i:*)",
+      "mcp__playwright__browser_install"
     ]
   }
 }

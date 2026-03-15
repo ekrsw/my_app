@@ -4,9 +4,12 @@ import { PageContainer } from "@/components/layout/page-container"
 import { getFunctionRoles } from "@/lib/db/roles"
 import { RoleForm } from "@/components/roles/role-form"
 import { RoleTable } from "@/components/roles/role-table"
+import { auth } from "@/auth"
 
 export default async function RolesPage() {
   await connection()
+  const session = await auth()
+  const isAuthenticated = !!session?.user
   const roles = await getFunctionRoles()
 
   return (
@@ -21,7 +24,7 @@ export default async function RolesPage() {
       <PageContainer>
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-2xl font-bold">ロール管理</h1>
-          <RoleForm />
+          {isAuthenticated && <RoleForm />}
         </div>
         <RoleTable data={roles} />
       </PageContainer>

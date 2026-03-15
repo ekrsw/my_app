@@ -3,8 +3,10 @@
 import { prisma } from "@/lib/prisma"
 import { positionSchema } from "@/lib/validators"
 import { revalidatePath } from "next/cache"
+import { requireAuth } from "@/lib/auth-guard"
 
 export async function createPosition(formData: FormData) {
+  await requireAuth()
   const parsed = positionSchema.safeParse({
     positionCode: formData.get("positionCode"),
     positionName: formData.get("positionName"),
@@ -29,6 +31,7 @@ export async function createPosition(formData: FormData) {
 }
 
 export async function updatePosition(id: number, formData: FormData) {
+  await requireAuth()
   const parsed = positionSchema.safeParse({
     positionCode: formData.get("positionCode"),
     positionName: formData.get("positionName"),
@@ -56,6 +59,7 @@ export async function updatePosition(id: number, formData: FormData) {
 }
 
 export async function deletePosition(id: number) {
+  await requireAuth()
   try {
     await prisma.position.delete({ where: { id } })
     revalidatePath("/positions")

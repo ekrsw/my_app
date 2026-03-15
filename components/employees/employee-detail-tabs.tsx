@@ -16,9 +16,10 @@ type Props = {
   groups: Group[]
   allRoles: FunctionRole[]
   allPositions: Position[]
+  isAuthenticated?: boolean
 }
 
-export function EmployeeDetailTabs({ employee, groups, allRoles, allPositions }: Props) {
+export function EmployeeDetailTabs({ employee, groups, allRoles, allPositions, isAuthenticated }: Props) {
   const [activeTab, setActiveTab] = useState("basic")
 
   return (

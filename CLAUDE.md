@@ -17,7 +17,10 @@ npm run dev              # Next.js dev server at localhost:3000
 npm run build            # Production build
 npm run lint             # ESLint
 
-# Testing (requires .env.test with test DATABASE_URL)
+# Authentication
+npm run db:seed          # Create admin user from .env ADMIN_USERNAME/ADMIN_PASSWORD
+
+# Testing (requires .env.test with DATABASE_URL, AUTH_SECRET, ADMIN_USERNAME, ADMIN_PASSWORD)
 npm run test:setup-db    # Initialize test DB (run once, or after schema changes)
 npm test                 # Run all tests
 npm run test:watch       # Watch mode
@@ -43,6 +46,7 @@ npx prisma migrate deploy   # Apply migrations
 ### Tech Stack
 - **Next.js 16** (App Router) + **React 19** + **TypeScript**
 - **Prisma 6** with **PostgreSQL** (client generated to `app/generated/prisma/`)
+- **Auth.js v5** (next-auth@beta) + **bcrypt** for authentication
 - **Tailwind CSS 4** + **shadcn/ui** (new-york style) + **Radix UI**
 - **Vitest** for testing, **Zod** for validation, **React Hook Form** for forms, **TanStack React Table** for data tables
 
@@ -51,16 +55,29 @@ Server Components fetch data via `lib/db/*.ts` query functions. Mutations go thr
 
 ```
 Page (Server Component) → lib/db/ (queries) → Prisma → PostgreSQL
-Form (Client Component) → lib/actions/ (Server Actions) → Zod validation → Prisma transaction → revalidatePath()
+Form (Client Component) → lib/actions/ (Server Actions) → requireAuth() → Zod validation → Prisma transaction → revalidatePath()
 ```
 
 ### Key Directories
-- `lib/actions/` — Server Actions for all mutations (employee, shift, group, role, position)
-- `lib/db/` — Database query functions (read operations, filtering, pagination)
+- `lib/actions/` — Server Actions for all mutations (employee, shift, group, role, position). All mutations require authentication via `requireAuth()`
+- `lib/db/` — Database query functions (read operations, filtering, pagination). No auth required
+- `lib/auth-guard.ts` — `requireAuth()` helper that throws if unauthenticated
 - `lib/validators.ts` — All Zod schemas used for form validation
+- `auth.ts` — Auth.js v5 configuration (Credentials Provider, JWT strategy)
+- `middleware.ts` — Attaches session info to requests (does not enforce auth)
 - `types/` — Application types extending Prisma generated types
+- `components/auth/` — Login form and SessionProvider wrapper
 - `components/ui/` — shadcn/ui base components (do not edit manually, use `npx shadcn add`)
 - `app/generated/prisma/` — Prisma generated client (do not edit)
+
+### Authentication
+- Auth.js v5 with Credentials Provider + JWT sessions
+- Unauthenticated users can read all pages; mutations require authentication
+- Server Actions: `await requireAuth()` at the top of every mutation function
+- Server Components: `auth()` from `@/auth` to get session and conditionally render create/edit/delete UI
+- Client Components: `useSession()` from `next-auth/react` (wrapped in `SessionProvider` in `(main)/layout.tsx`)
+- Route Groups: `(auth)/` for login page (no sidebar), `(main)/` for main app (with sidebar + SessionProvider)
+- Admin user seeded via `npm run db:seed` using `ADMIN_USERNAME`/`ADMIN_PASSWORD` from `.env`
 
 ### Styling
 - **スタイルガイド**: `docs/style-guide.md` — カラーシステム、タイポグラフィ、コンポーネントパターン、シフトコード配色などのスタイリング規約を定義。新規コンポーネント作成やスタイル変更時に参照すること
@@ -84,9 +101,11 @@ Form (Client Component) → lib/actions/ (Server Actions) → Zod validation →
 - Test DB is separate (configured via `.env.test`); `npm run test:setup-db` creates DB, syncs schema, and applies triggers
 - `tests/helpers/cleanup.ts` — `cleanupDatabase()` truncates all tables; call in `beforeEach`
 - `tests/helpers/mock-next.ts` — `mockNextCache()` mocks `next/cache`; required at top of server action test files
-- Server action tests must also mock `@/lib/prisma` to use the test prisma client:
+- `tests/helpers/mock-auth.ts` — `mockAuth()` mocks `@/auth`; required for server action tests
+- Server action tests must mock `@/lib/prisma` and `@/auth`:
   ```typescript
   vi.mock("@/lib/prisma", () => ({ prisma: (await import("../helpers/prisma")).prisma }))
+  vi.mock("@/auth", () => ({ auth: vi.fn().mockResolvedValue({ user: { id: "1", name: "admin" } }) }))
   ```
 - Tests run sequentially (`fileParallelism: false`) with 30s timeout
 

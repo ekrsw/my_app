@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma"
 import { shiftCodeSchema } from "@/lib/validators"
 import { revalidatePath } from "next/cache"
+import { requireAuth } from "@/lib/auth-guard"
 
 function toTimeOrNull(value: string | null | undefined): Date | null {
   if (!value) return null
@@ -10,6 +11,7 @@ function toTimeOrNull(value: string | null | undefined): Date | null {
 }
 
 export async function createShiftCode(formData: FormData) {
+  await requireAuth()
   const parsed = shiftCodeSchema.safeParse({
     code: formData.get("code"),
     color: formData.get("color") || null,
@@ -47,6 +49,7 @@ export async function createShiftCode(formData: FormData) {
 }
 
 export async function updateShiftCode(id: number, formData: FormData) {
+  await requireAuth()
   const parsed = shiftCodeSchema.safeParse({
     code: formData.get("code"),
     color: formData.get("color") || null,
@@ -85,6 +88,7 @@ export async function updateShiftCode(id: number, formData: FormData) {
 }
 
 export async function deleteShiftCode(id: number) {
+  await requireAuth()
   try {
     await prisma.shiftCode.delete({ where: { id } })
     revalidatePath("/shift-codes")
@@ -115,6 +119,7 @@ type ShiftCodeImportResult = {
 export async function importShiftCodes(
   rows: ShiftCodeImportRow[]
 ): Promise<ShiftCodeImportResult> {
+  await requireAuth()
   let created = 0
   let updated = 0
   const errors: Array<{ rowIndex: number; error: string }> = []

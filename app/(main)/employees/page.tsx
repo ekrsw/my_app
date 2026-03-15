@@ -11,6 +11,7 @@ import { EmployeeExportButton } from "@/components/employees/employee-export-but
 import { Suspense } from "react"
 import { Skeleton } from "@/components/ui/skeleton"
 import type { SearchParams } from "@/types"
+import { auth } from "@/auth"
 
 export default async function EmployeesPage({
   searchParams,
@@ -45,6 +46,9 @@ export default async function EmployeesPage({
     if (roleIds.length === 0) roleIds = undefined
   }
 
+  const session = await auth()
+  const isAuthenticated = !!session?.user
+
   const [result, groups, roles] = await Promise.all([
     getEmployees(
       { search, groupIds, noGroup: unassigned || undefined, roleIds, roleUnassigned: roleUnassigned || undefined, activeOnly },
@@ -67,11 +71,11 @@ export default async function EmployeesPage({
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-2xl font-bold">従業員一覧</h1>
           <div className="flex items-center gap-2">
-            <EmployeeImportDialog />
+            {isAuthenticated && <EmployeeImportDialog />}
             <Suspense fallback={null}>
               <EmployeeExportButton />
             </Suspense>
-            <EmployeeForm groups={groups} />
+            {isAuthenticated && <EmployeeForm groups={groups} />}
           </div>
         </div>
         <Suspense fallback={<Skeleton className="h-10 w-full" />}>

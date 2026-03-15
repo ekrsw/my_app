@@ -31,6 +31,7 @@ type ActiveShiftCode = {
 }
 
 type ShiftPageClientProps = {
+  isAuthenticated?: boolean
   viewMode: "monthly" | "daily"
   initialCalendarData: ShiftCalendarData[]
   calendarTotal: number
@@ -67,6 +68,7 @@ type ShiftPageClientProps = {
 }
 
 export function ShiftPageClient({
+  isAuthenticated,
   viewMode,
   initialCalendarData,
   calendarTotal,
@@ -269,7 +271,7 @@ export function ShiftPageClient({
       <div className="flex flex-wrap items-center justify-between gap-4">
         <ShiftFilters groups={groups} roles={roles} year={year} month={month} />
         <div className="flex items-center gap-2">
-          {selectedCells.size > 0 && (
+          {isAuthenticated && selectedCells.size > 0 && (
             <Button
               variant="secondary"
               size="sm"
@@ -279,7 +281,7 @@ export function ShiftPageClient({
               {selectedCells.size}件を一括編集
             </Button>
           )}
-          <ShiftImportDialog />
+          {isAuthenticated && <ShiftImportDialog />}
           <Button variant="outline" size="sm" onClick={handleExport}>
             <Upload className="h-4 w-4 mr-1" />
             CSV

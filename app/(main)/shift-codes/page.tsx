@@ -5,8 +5,11 @@ import { getShiftCodes } from "@/lib/db/shift-codes"
 import { ShiftCodeForm } from "@/components/shift-codes/shift-code-form"
 import { ShiftCodeImportDialog } from "@/components/shift-codes/shift-code-import-dialog"
 import { ShiftCodeExportButton } from "@/components/shift-codes/shift-code-export-button"
+import { auth } from "@/auth"
 
 export default async function ShiftCodesPage() {
+  const session = await auth()
+  const isAuthenticated = !!session?.user
   const shiftCodes = await getShiftCodes()
 
   return (
@@ -22,9 +25,9 @@ export default async function ShiftCodesPage() {
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-2xl font-bold">シフトコード管理</h1>
           <div className="flex items-center gap-2">
-            <ShiftCodeImportDialog />
+            {isAuthenticated && <ShiftCodeImportDialog />}
             <ShiftCodeExportButton />
-            <ShiftCodeForm />
+            {isAuthenticated && <ShiftCodeForm />}
           </div>
         </div>
         <ShiftCodeTable data={shiftCodes} />

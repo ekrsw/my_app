@@ -3,8 +3,11 @@ import { PageContainer } from "@/components/layout/page-container"
 import { GroupTable } from "@/components/groups/group-table"
 import { GroupForm } from "@/components/groups/group-form"
 import { getGroups } from "@/lib/db/groups"
+import { auth } from "@/auth"
 
 export default async function GroupsPage() {
+  const session = await auth()
+  const isAuthenticated = !!session?.user
   const groups = await getGroups()
 
   return (
@@ -19,7 +22,7 @@ export default async function GroupsPage() {
       <PageContainer>
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-2xl font-bold">グループ管理</h1>
-          <GroupForm />
+          {isAuthenticated && <GroupForm />}
         </div>
         <GroupTable data={groups} />
       </PageContainer>

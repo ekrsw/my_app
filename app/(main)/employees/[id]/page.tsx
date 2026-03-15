@@ -6,6 +6,7 @@ import { getGroups } from "@/lib/db/groups"
 import { getFunctionRoles } from "@/lib/db/roles"
 import { getActivePositions } from "@/lib/db/positions"
 import { notFound } from "next/navigation"
+import { auth } from "@/auth"
 
 export default async function EmployeeDetailPage({
   params,
@@ -13,6 +14,9 @@ export default async function EmployeeDetailPage({
   params: Promise<{ id: string }>
 }) {
   const { id } = await params
+  const session = await auth()
+  const isAuthenticated = !!session?.user
+
   const [employee, groups, allRoles, allPositions] = await Promise.all([
     getEmployeeById(id),
     getGroups(),
@@ -40,6 +44,7 @@ export default async function EmployeeDetailPage({
           groups={groups}
           allRoles={allRoles}
           allPositions={allPositions}
+          isAuthenticated={isAuthenticated}
         />
       </PageContainer>
     </>
