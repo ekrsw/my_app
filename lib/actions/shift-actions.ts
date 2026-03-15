@@ -5,6 +5,7 @@ import { shiftSchema, shiftBulkSchema, shiftHistoryNoteSchema } from "@/lib/vali
 import { revalidatePath } from "next/cache"
 import { requireAuth } from "@/lib/auth-guard"
 import { getShiftsForCalendarPaginated } from "@/lib/db/shifts"
+import { getShiftVersions } from "@/lib/db/history"
 import type { ShiftFilterParams } from "@/types"
 import type { ShiftCalendarPaginatedResult } from "@/types/shifts"
 
@@ -352,5 +353,14 @@ export async function importShifts(
         ? errors
         : [{ rowIndex: 0, error: "インポート処理に失敗しました" }],
     }
+  }
+}
+
+export async function fetchShiftVersions(shiftId: number) {
+  try {
+    const data = await getShiftVersions(shiftId)
+    return { data }
+  } catch {
+    return { data: [], error: "バージョン一覧の取得に失敗しました" }
   }
 }
