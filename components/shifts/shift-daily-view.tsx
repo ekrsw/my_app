@@ -603,6 +603,9 @@ export function ShiftDailyView({
             />
           </PopoverContent>
         </Popover>
+        <Button variant="outline" size="sm" onClick={() => navigateToDate(new Date())}>
+          今日
+        </Button>
         <ViewModeSelect value="daily" />
         <Button variant="outline" size="icon" onClick={() => navigateDate(1)}>
           <ChevronRight className="h-4 w-4" />
