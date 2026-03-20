@@ -25,6 +25,7 @@ import { Calendar } from "@/components/ui/calendar"
 import { useQueryParams } from "@/hooks/use-query-params"
 import type { ShiftDailyRow, ShiftDailySortField, SortOrder } from "@/types/shifts"
 import { Circle, ChevronLeft, ChevronRight, CalendarIcon } from "lucide-react"
+import Link from "next/link"
 
 type Group = { id: number; name: string }
 type ShiftCodeOption = {
@@ -428,6 +429,15 @@ export function ShiftDailyView({
             popoverOpen={employeePopoverOpen}
           />
         </ColumnFilterPopover>
+      ),
+      cell: ({ row }) => (
+        <Link
+          href={`/employees/${row.original.employeeId}`}
+          className="hover:underline hover:text-primary"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {row.original.employeeName}
+        </Link>
       ),
     },
     {
