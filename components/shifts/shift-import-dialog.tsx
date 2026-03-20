@@ -67,6 +67,7 @@ export function ShiftImportDialog() {
       rowIndex: r.rowIndex,
       shiftDate: r.data.shiftDate,
       employeeId: r.data.employeeId,
+      employeeName: r.data._employeeName || undefined,
       shiftCode: r.data.shiftCode,
       startTime: r.data.startTime,
       endTime: r.data.endTime,

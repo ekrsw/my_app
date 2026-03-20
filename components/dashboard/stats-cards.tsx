@@ -1,11 +1,12 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Users, Calendar, Monitor } from "lucide-react"
+import { Users, Calendar, Monitor, ClipboardList } from "lucide-react"
 
 type StatsCardsProps = {
   activeEmployees: number
   totalEmployees: number
   todayShifts: number
   todayRemote: number
+  todayDuties: number
 }
 
 export function StatsCards({
@@ -13,6 +14,7 @@ export function StatsCards({
   totalEmployees,
   todayShifts,
   todayRemote,
+  todayDuties,
 }: StatsCardsProps) {
   const cards = [
     {
@@ -33,10 +35,16 @@ export function StatsCards({
       subtitle: "本日",
       icon: Monitor,
     },
+    {
+      title: "本日の当番",
+      value: todayDuties,
+      subtitle: "割当数",
+      icon: ClipboardList,
+    },
   ]
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
       {cards.map((card) => (
         <Card key={card.title}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">

@@ -222,6 +222,7 @@ export async function restoreShiftVersion(shiftId: number, version: number) {
 export type ShiftImportRow = {
   shiftDate: string
   employeeId: string
+  employeeName?: string
   shiftCode: string | null
   startTime: string | null
   endTime: string | null
@@ -255,8 +256,61 @@ export async function importShifts(
   const errors: Array<{ rowIndex: number; error: string }> = []
 
   try {
+    // 従業員名→ID解決
+    const nameOnlyRows = rows.filter((r) => r.employeeId === "" && r.employeeName)
+    const uniqueNames = [...new Set(nameOnlyRows.map((r) => r.employeeName!))]
+    const nameToIdMap = new Map<string, string>()
+    const duplicateNames = new Set<string>()
+
+    if (uniqueNames.length > 0) {
+      const employeesByName = await prisma.employee.findMany({
+        where: { name: { in: uniqueNames } },
+        select: { id: true, name: true },
+      })
+
+      const nameCountMap = new Map<string, Array<{ id: string }>>()
+      for (const emp of employeesByName) {
+        const list = nameCountMap.get(emp.name) || []
+        list.push({ id: emp.id })
+        nameCountMap.set(emp.name, list)
+      }
+
+      for (const [name, emps] of nameCountMap) {
+        if (emps.length === 1) {
+          nameToIdMap.set(name, emps[0].id)
+        } else {
+          duplicateNames.add(name)
+        }
+      }
+    }
+
+    // 従業員名でID解決し、解決済み行を構築
+    const resolvedRows: typeof rows = []
+    for (const row of rows) {
+      if (row.employeeId === "" && row.employeeName) {
+        if (duplicateNames.has(row.employeeName)) {
+          errors.push({
+            rowIndex: row.rowIndex,
+            error: `従業員名 '${row.employeeName}' に該当する従業員が複数存在します。従業員IDを指定してください`,
+          })
+          continue
+        }
+        const resolvedId = nameToIdMap.get(row.employeeName)
+        if (!resolvedId) {
+          errors.push({
+            rowIndex: row.rowIndex,
+            error: `従業員名 '${row.employeeName}' に該当する従業員が見つかりません`,
+          })
+          continue
+        }
+        resolvedRows.push({ ...row, employeeId: resolvedId })
+      } else {
+        resolvedRows.push(row)
+      }
+    }
+
     // 従業員IDの存在チェック用
-    const employeeIds = [...new Set(rows.map((r) => r.employeeId))]
+    const employeeIds = [...new Set(resolvedRows.map((r) => r.employeeId))]
     const existingEmployees = await prisma.employee.findMany({
       where: { id: { in: employeeIds } },
       select: { id: true },
@@ -265,7 +319,7 @@ export async function importShifts(
 
     // 従業員ID不正の行を除外
     const validRows: typeof rows = []
-    for (const row of rows) {
+    for (const row of resolvedRows) {
       if (!existingEmployeeIds.has(row.employeeId)) {
         errors.push({ rowIndex: row.rowIndex, error: `従業員ID ${row.employeeId} が存在しません` })
       } else {

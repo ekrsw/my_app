@@ -1,5 +1,6 @@
 export type { ShiftWithEmployee, ShiftCalendarData, ShiftCalendarPaginatedResult, ShiftFilterParams, ShiftDailyRow, ShiftDailyFilterParams, ShiftDailySortField, SortOrder, ShiftHistoryEntry } from "./shifts"
 export type { EmployeeWithGroups, EmployeeWithDetails, EmployeeFilterParams, EmployeeGroupHistoryEntry } from "./employees"
+export type { DutyAssignmentWithDetails } from "./duties"
 
 // 共通型
 export type PaginationParams = {

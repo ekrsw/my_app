@@ -13,7 +13,7 @@ const HEADER_MAP: Record<string, string> = {
   "テレワーク": "isRemote",
 }
 
-const REQUIRED_HEADERS = ["日付", "従業員ID", "シフトコード", "開始時刻", "終了時刻", "休日", "テレワーク"]
+const REQUIRED_HEADERS = ["日付", "シフトコード", "開始時刻", "終了時刻", "休日", "テレワーク"]
 
 export type ParsedShiftRow = {
   rowIndex: number
@@ -66,6 +66,17 @@ export function parseShiftCsv(csvText: string): ShiftCsvParseResult {
       rows: [],
       headerValid: false,
       headerError: `必須ヘッダーがありません: ${missingHeaders.join(", ")}`,
+    }
+  }
+
+  // 従業員IDまたは従業員名の少なくとも一方が必要
+  const hasEmployeeId = headers.includes("従業員ID")
+  const hasEmployeeName = headers.includes("従業員名")
+  if (!hasEmployeeId && !hasEmployeeName) {
+    return {
+      rows: [],
+      headerValid: false,
+      headerError: "「従業員ID」または「従業員名」のヘッダーが少なくとも1つ必要です",
     }
   }
 
@@ -124,6 +135,13 @@ export function parseShiftCsv(csvText: string): ShiftCsvParseResult {
         valid: false,
         error: errorMsg,
       })
+    }
+
+    // 従業員IDと従業員名の両方が空の場合はエラー
+    if (rawEmployeeId === "" && rawEmployeeName === "") {
+      const existing = rows[rows.length - 1]
+      existing.valid = false
+      existing.error = (existing.error ? existing.error + ", " : "") + "従業員IDまたは従業員名のいずれかは必須です"
     }
 
     // Additional validation

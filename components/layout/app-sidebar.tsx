@@ -15,6 +15,8 @@ import {
   ChevronRight,
   LogIn,
   LogOut,
+  ClipboardList,
+  ListChecks,
 } from "lucide-react"
 import {
   Sidebar,
@@ -41,6 +43,7 @@ import { Button } from "@/components/ui/button"
 const navItems = [
   { label: "ダッシュボード", href: "/", icon: LayoutDashboard },
   { label: "シフト管理", href: "/shifts", icon: Calendar },
+  { label: "当番管理", href: "/duty-assignments", icon: ClipboardList },
   { label: "従業員", href: "/employees", icon: User },
 ]
 
@@ -49,6 +52,7 @@ const settingsSubItems = [
   { label: "ロール", href: "/roles", icon: Shield },
   { label: "役職", href: "/positions", icon: Award },
   { label: "シフトコード", href: "/shift-codes", icon: Tag },
+  { label: "当番種別", href: "/duty-types", icon: ListChecks },
 ]
 
 export function AppSidebar() {

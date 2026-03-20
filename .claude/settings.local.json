@@ -111,7 +111,8 @@
       "mcp__morphllm-fast-apply__search_files",
       "Bash(for dir:*)",
       "Bash(for i:*)",
-      "mcp__playwright__browser_install"
+      "mcp__playwright__browser_install",
+      "mcp__serena__write_memory"
     ]
   }
 }
