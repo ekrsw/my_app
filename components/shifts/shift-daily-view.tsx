@@ -585,41 +585,45 @@ export function ShiftDailyView({
   return (
     <div>
       {/* 日付ナビゲーション + ビュー切替 */}
-      <div className="flex items-center gap-1 mb-4">
-        <Button variant="outline" size="icon" onClick={() => navigateDate(-1)}>
-          <ChevronLeft className="h-4 w-4" />
-        </Button>
-        <Input
-          ref={dateInputRef}
-          value={editingDateValue ?? formattedDate}
-          onFocus={() => setEditingDateValue(formattedDate)}
-          onChange={(e) => setEditingDateValue(e.target.value)}
-          onBlur={handleDateInputCommit}
-          onKeyDown={handleDateInputKeyDown}
-          className="w-[160px] text-center font-medium"
-        />
-        <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
-          <PopoverTrigger asChild>
-            <Button variant="outline" size="icon">
-              <CalendarIcon className="h-4 w-4" />
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="start">
-            <Calendar
-              mode="single"
-              selected={selectedCalendarDate}
-              onSelect={(date) => date && navigateToDate(date)}
-              defaultMonth={selectedCalendarDate}
-            />
-          </PopoverContent>
-        </Popover>
-        <Button variant="outline" onClick={() => navigateToDate(new Date())}>
-          今日
-        </Button>
-        <ViewModeSelect value="daily" />
-        <Button variant="outline" size="icon" onClick={() => navigateDate(1)}>
-          <ChevronRight className="h-4 w-4" />
-        </Button>
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-1">
+          <Button variant="outline" size="icon" onClick={() => navigateDate(-1)}>
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <Button variant="outline" size="icon" onClick={() => navigateDate(1)}>
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+          <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="icon">
+                <CalendarIcon className="h-4 w-4" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={selectedCalendarDate}
+                onSelect={(date) => date && navigateToDate(date)}
+                defaultMonth={selectedCalendarDate}
+              />
+            </PopoverContent>
+          </Popover>
+          <Input
+            ref={dateInputRef}
+            value={editingDateValue ?? formattedDate}
+            onFocus={() => setEditingDateValue(formattedDate)}
+            onChange={(e) => setEditingDateValue(e.target.value)}
+            onBlur={handleDateInputCommit}
+            onKeyDown={handleDateInputKeyDown}
+            className="w-[160px] text-center font-medium"
+          />
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={() => navigateToDate(new Date())}>
+            今日
+          </Button>
+          <ViewModeSelect value="daily" />
+        </div>
       </div>
 
       <p className="text-sm text-muted-foreground mb-2">

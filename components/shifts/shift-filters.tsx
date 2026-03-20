@@ -31,6 +31,7 @@ type ShiftFiltersProps = {
   roles: Role[]
   year: number
   month: number
+  rightActions?: React.ReactNode
 }
 
 function parseGroupIds(value: string): number[] {
@@ -65,7 +66,7 @@ function parseRoleIds(value: string): number[] {
   return value.split(",").map(Number).filter((n) => !isNaN(n) && n > 0)
 }
 
-export function ShiftFilters({ groups, roles, year, month }: ShiftFiltersProps) {
+export function ShiftFilters({ groups, roles, year, month, rightActions }: ShiftFiltersProps) {
   const { setParams, getParam } = useQueryParams()
   const [search, setSearch] = useState(getParam("search"))
   const debouncedSearch = useDebounce(search)
@@ -114,74 +115,79 @@ export function ShiftFilters({ groups, roles, year, month }: ShiftFiltersProps) 
   const yearOptions = Array.from({ length: 11 }, (_, i) => currentYear - 5 + i)
 
   return (
-    <div className="flex flex-wrap items-center gap-3">
-      <div className="flex items-center gap-1">
-        <Button variant="outline" size="icon" onClick={() => navigateMonth(-1)}>
-          <ChevronLeft className="h-4 w-4" />
-        </Button>
-        <Input
-          ref={inputRef}
-          value={editingValue ?? formattedMonth}
-          onFocus={() => setEditingValue(formattedMonth)}
-          onChange={(e) => setEditingValue(e.target.value)}
-          onBlur={handleMonthInputCommit}
-          onKeyDown={handleMonthInputKeyDown}
-          className="w-[130px] text-center font-medium"
-        />
-        <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
-          <PopoverTrigger asChild>
-            <Button variant="outline" size="icon">
-              <CalendarIcon className="h-4 w-4" />
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-3" align="start">
-            <div className="flex items-center gap-2">
-              <Select
-                value={year.toString()}
-                onValueChange={(v) => {
-                  navigateToYearMonth(parseInt(v, 10), month)
-                  setCalendarOpen(false)
-                }}
-              >
-                <SelectTrigger className="w-[100px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {yearOptions.map((y) => (
-                    <SelectItem key={y} value={y.toString()}>
-                      {y}年
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select
-                value={month.toString()}
-                onValueChange={(v) => {
-                  navigateToYearMonth(year, parseInt(v, 10))
-                  setCalendarOpen(false)
-                }}
-              >
-                <SelectTrigger className="w-[80px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
-                    <SelectItem key={m} value={m.toString()}>
-                      {m}月
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </PopoverContent>
-        </Popover>
-        <Button variant="outline" onClick={() => { const now = new Date(); navigateToYearMonth(now.getFullYear(), now.getMonth() + 1) }}>
-          今月
-        </Button>
-        <ViewModeSelect value="monthly" />
-        <Button variant="outline" size="icon" onClick={() => navigateMonth(1)}>
-          <ChevronRight className="h-4 w-4" />
-        </Button>
+    <div className="flex flex-wrap items-center gap-3 w-full">
+      <div className="flex items-center justify-between w-full">
+        <div className="flex items-center gap-1">
+          <Button variant="outline" size="icon" onClick={() => navigateMonth(-1)}>
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <Button variant="outline" size="icon" onClick={() => navigateMonth(1)}>
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+          <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="icon">
+                <CalendarIcon className="h-4 w-4" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-3" align="start">
+              <div className="flex items-center gap-2">
+                <Select
+                  value={year.toString()}
+                  onValueChange={(v) => {
+                    navigateToYearMonth(parseInt(v, 10), month)
+                    setCalendarOpen(false)
+                  }}
+                >
+                  <SelectTrigger className="w-[100px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {yearOptions.map((y) => (
+                      <SelectItem key={y} value={y.toString()}>
+                        {y}年
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select
+                  value={month.toString()}
+                  onValueChange={(v) => {
+                    navigateToYearMonth(year, parseInt(v, 10))
+                    setCalendarOpen(false)
+                  }}
+                >
+                  <SelectTrigger className="w-[80px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
+                      <SelectItem key={m} value={m.toString()}>
+                        {m}月
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </PopoverContent>
+          </Popover>
+          <Input
+            ref={inputRef}
+            value={editingValue ?? formattedMonth}
+            onFocus={() => setEditingValue(formattedMonth)}
+            onChange={(e) => setEditingValue(e.target.value)}
+            onBlur={handleMonthInputCommit}
+            onKeyDown={handleMonthInputKeyDown}
+            className="w-[130px] text-center font-medium"
+          />
+        </div>
+        <div className="flex items-center gap-2">
+          {rightActions}
+          <Button variant="outline" onClick={() => { const now = new Date(); navigateToYearMonth(now.getFullYear(), now.getMonth() + 1) }}>
+            今月
+          </Button>
+          <ViewModeSelect value="monthly" />
+        </div>
       </div>
 
       <GroupMultiSelect

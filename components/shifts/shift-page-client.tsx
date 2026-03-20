@@ -272,25 +272,32 @@ export function ShiftPageClient({
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <ShiftFilters groups={groups} roles={roles} year={year} month={month} />
-        <div className="flex items-center gap-2">
-          {isAuthenticated && selectedCells.size > 0 && (
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => setBulkOpen(true)}
-            >
-              <Pencil className="h-4 w-4 mr-1" />
-              {selectedCells.size}件を一括編集
-            </Button>
-          )}
-          {isAuthenticated && <ShiftImportDialog />}
-          <Button variant="outline" size="sm" onClick={handleExport}>
-            <Upload className="h-4 w-4 mr-1" />
-            CSV
+      <div className="flex flex-wrap items-center gap-4">
+        {isAuthenticated && selectedCells.size > 0 && (
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => setBulkOpen(true)}
+          >
+            <Pencil className="h-4 w-4 mr-1" />
+            {selectedCells.size}件を一括編集
           </Button>
-        </div>
+        )}
+        <ShiftFilters
+          groups={groups}
+          roles={roles}
+          year={year}
+          month={month}
+          rightActions={
+            <div className="flex items-center gap-2">
+              {isAuthenticated && <ShiftImportDialog />}
+              <Button variant="outline" size="sm" onClick={handleExport}>
+                <Upload className="h-4 w-4 mr-1" />
+                CSV
+              </Button>
+            </div>
+          }
+        />
       </div>
 
       <ShiftCalendar
