@@ -175,6 +175,9 @@ export function ShiftFilters({ groups, roles, year, month }: ShiftFiltersProps) 
             </div>
           </PopoverContent>
         </Popover>
+        <Button variant="outline" onClick={() => { const now = new Date(); navigateToYearMonth(now.getFullYear(), now.getMonth() + 1) }}>
+          今月
+        </Button>
         <ViewModeSelect value="monthly" />
         <Button variant="outline" size="icon" onClick={() => navigateMonth(1)}>
           <ChevronRight className="h-4 w-4" />

@@ -38,7 +38,7 @@ export function ViewModeSelect({ value }: ViewModeSelectProps) {
 
   return (
     <Select value={value} onValueChange={handleChange}>
-      <SelectTrigger className="w-[70px] h-9">
+      <SelectTrigger className="w-[70px] h-9 font-medium">
         <SelectValue />
       </SelectTrigger>
       <SelectContent>
