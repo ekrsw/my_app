@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useEffect, useRef, useId, useState } from "react"
+import { useMemo, useEffect, useRef, useId, useState, useCallback } from "react"
 import type { ShiftCalendarData } from "@/types/shifts"
 import type { ShiftCodeInfo } from "@/lib/constants"
 import { ShiftCalendarCell } from "./shift-calendar-cell"
@@ -12,10 +12,13 @@ import {
   isToday as checkToday,
   toDateString,
 } from "@/lib/date-utils"
-import { ChevronDown, ChevronRight, Loader2 } from "lucide-react"
+import { Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
 import { StickyHorizontalScrollbar } from "@/components/ui/sticky-horizontal-scrollbar"
+import { ColumnFilterPopover } from "@/components/shifts/column-filter-popover"
+import { EmployeeCheckboxFilter } from "@/components/shifts/column-filters/employee-checkbox-filter"
+import { useQueryParams } from "@/hooks/use-query-params"
 
 type ShiftCalendarProps = {
   data: ShiftCalendarData[]
@@ -30,6 +33,8 @@ type ShiftCalendarProps = {
   isLoadingMore?: boolean
   onLoadMore?: () => void
   total?: number
+  employees?: { id: string; name: string }[]
+  selectedEmployeeIds?: string[]
 }
 
 export function ShiftCalendar({
@@ -45,10 +50,24 @@ export function ShiftCalendar({
   isLoadingMore,
   onLoadMore,
   total,
+  employees = [],
+  selectedEmployeeIds = [],
 }: ShiftCalendarProps) {
   const days = useMemo(() => getDaysInMonth(year, month), [year, month])
-  const { groupedData, selectedCells: internalSelectedCells, toggleGroup } = useShiftCalendar(data)
+  const { selectedCells: internalSelectedCells } = useShiftCalendar()
   const selectedCells = externalSelectedCells ?? internalSelectedCells
+  const { setParams } = useQueryParams()
+  const [employeePopoverOpen, setEmployeePopoverOpen] = useState(false)
+
+  const handleEmployeeIdsConfirm = useCallback((ids: string[]) => {
+    setParams({ calendarEmployeeIds: ids.length > 0 ? ids.join(",") : null })
+    setEmployeePopoverOpen(false)
+  }, [setParams])
+
+  const handleEmployeeIdsClear = useCallback(() => {
+    setParams({ calendarEmployeeIds: null })
+    setEmployeePopoverOpen(false)
+  }, [setParams])
 
   const scrollContainerId = useId()
   const scrollContainerRef = useRef<HTMLDivElement>(null)
@@ -109,7 +128,21 @@ export function ShiftCalendar({
         {/* Header row */}
         <div className="flex h-10 sticky top-0 z-20 bg-background border-b">
           <div className="sticky left-0 z-30 flex w-48 min-w-48 items-center border-r bg-background px-3 text-sm font-medium">
-            従業員
+            <ColumnFilterPopover
+              label="従業員名"
+              isActive={selectedEmployeeIds.length > 0}
+              activeCount={selectedEmployeeIds.length}
+              open={employeePopoverOpen}
+              onOpenChange={setEmployeePopoverOpen}
+            >
+              <EmployeeCheckboxFilter
+                employees={employees}
+                selectedIds={selectedEmployeeIds}
+                onConfirm={handleEmployeeIdsConfirm}
+                onClear={handleEmployeeIdsClear}
+                popoverOpen={employeePopoverOpen}
+              />
+            </ColumnFilterPopover>
           </div>
           {days.map((day) => {
             const weekend = checkWeekend(day)
@@ -131,57 +164,32 @@ export function ShiftCalendar({
         </div>
 
         {/* Body rows */}
-        {groupedData.map((group) => (
-          <div key={group.groupId ?? "ungrouped"}>
-            {/* Group header */}
-            <div
-              className="flex sticky top-10 z-[15] bg-muted border-b cursor-pointer hover:bg-muted/80"
-              onClick={() => toggleGroup(group.groupId)}
-            >
-              <div className="sticky left-0 z-20 flex w-48 min-w-48 items-center gap-1 border-r bg-muted px-3 py-1.5 text-sm font-medium">
-                {group.collapsed ? (
-                  <ChevronRight className="h-3.5 w-3.5" />
-                ) : (
-                  <ChevronDown className="h-3.5 w-3.5" />
-                )}
-                {group.groupName ?? "未所属"}
-                <span className="ml-1 text-muted-foreground text-xs">
-                  ({group.employees.length})
-                </span>
-              </div>
-              <div className="flex-1" />
+        {data.map((emp) => (
+          <div key={emp.employeeId} className="flex border-b hover:bg-muted/20">
+            <div className="sticky left-0 z-10 flex w-48 min-w-48 items-center border-r bg-background px-3 py-0 text-sm truncate">
+              <Link href={`/employees/${emp.employeeId}`} className="hover:underline hover:text-primary">
+                {emp.employeeName}
+              </Link>
             </div>
-
-            {/* Employee rows */}
-            {!group.collapsed &&
-              group.employees.map((emp) => (
-                <div key={emp.employeeId} className="flex border-b hover:bg-muted/20">
-                  <div className="sticky left-0 z-10 flex w-48 min-w-48 items-center border-r bg-background px-3 py-0 text-sm truncate">
-                    <Link href={`/employees/${emp.employeeId}`} className="hover:underline hover:text-primary">
-                      {emp.employeeName}
-                    </Link>
-                  </div>
-                  {days.map((day) => {
-                    const dateStr = toDateString(day)
-                    const shift = emp.shifts[dateStr]
-                    const cellKey = `${emp.employeeId}:${dateStr}`
-                    return (
-                      <div key={dateStr} className="h-8 w-12 min-w-12">
-                        <ShiftCalendarCell
-                          shift={shift}
-                          isWeekend={checkWeekend(day)}
-                          isToday={checkToday(day)}
-                          isSelected={selectedCells.has(cellKey)}
-                          hasHistory={shift?.id != null && (shiftIdsWithHistory?.has(shift.id) ?? false)}
-                          onClick={() => onCellClick?.(emp.employeeId, dateStr, shift?.id)}
-                          onSelect={() => onCellSelect?.(cellKey)}
-                          shiftCodeMap={shiftCodeMap}
-                        />
-                      </div>
-                    )
-                  })}
+            {days.map((day) => {
+              const dateStr = toDateString(day)
+              const shift = emp.shifts[dateStr]
+              const cellKey = `${emp.employeeId}:${dateStr}`
+              return (
+                <div key={dateStr} className="h-8 w-12 min-w-12">
+                  <ShiftCalendarCell
+                    shift={shift}
+                    isWeekend={checkWeekend(day)}
+                    isToday={checkToday(day)}
+                    isSelected={selectedCells.has(cellKey)}
+                    hasHistory={shift?.id != null && (shiftIdsWithHistory?.has(shift.id) ?? false)}
+                    onClick={() => onCellClick?.(emp.employeeId, dateStr, shift?.id)}
+                    onSelect={() => onCellSelect?.(cellKey)}
+                    shiftCodeMap={shiftCodeMap}
+                  />
                 </div>
-              ))}
+              )
+            })}
           </div>
         ))}
 

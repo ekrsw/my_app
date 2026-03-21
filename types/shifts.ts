@@ -20,6 +20,7 @@ export type ShiftFilterParams = {
   roleIds?: number[]
   roleUnassigned?: boolean
   employeeSearch?: string
+  employeeIds?: string[]
 }
 
 export type ShiftCalendarPaginatedResult = {

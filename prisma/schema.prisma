@@ -34,7 +34,6 @@ model Employee {
   positionHistory    EmployeePositionHistory[]
   shiftChangeHistory ShiftChangeHistory[]
   dutyAssignments       DutyAssignment[]
-  dutyAssignmentHistory DutyAssignmentHistory[]
 
   @@map("employees")
 }
@@ -231,7 +230,6 @@ model DutyType {
   sortOrder Int       @default(0) @map("sort_order")
 
   dutyAssignments       DutyAssignment[]
-  dutyAssignmentHistory DutyAssignmentHistory[]
 
   @@map("duty_types")
 }
@@ -249,25 +247,6 @@ model DutyAssignment {
 
   @@unique([employeeId, dutyTypeId, dutyDate, startTime])
   @@map("duty_assignments")
-}
-
-model DutyAssignmentHistory {
-  id         Int       @id @default(autoincrement())
-  employeeId String    @map("employee_id") @db.Uuid
-  dutyTypeId Int?      @map("duty_type_id")
-  dutyDate   DateTime? @map("duty_date") @db.Date
-  startTime  DateTime? @map("start_time") @db.Time(6)
-  endTime    DateTime? @map("end_time") @db.Time(6)
-  changeType String    @map("change_type") @db.VarChar(10)
-  version    Int
-  changedAt  DateTime  @default(now()) @map("changed_at")
-
-  employee Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  dutyType DutyType? @relation(fields: [dutyTypeId], references: [id], onDelete: Restrict)
-
-  @@unique([employeeId, version])
-  @@index([employeeId, changedAt])
-  @@map("duty_assignment_history")
 }
 
 model User {

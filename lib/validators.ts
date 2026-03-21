@@ -102,20 +102,20 @@ export const shiftCodeSchema = z.object({
 })
 export type ShiftCodeFormData = z.infer<typeof shiftCodeSchema>
 
-// 当番種別スキーマ
+// 業務種別スキーマ
 export const dutyTypeSchema = z.object({
-  code: z.string().min(1, "当番コードは必須です").max(20, "20文字以内で入力してください"),
-  name: z.string().min(1, "当番名は必須です").max(50, "50文字以内で入力してください"),
+  code: z.string().min(1, "業務コードは必須です").max(20, "20文字以内で入力してください"),
+  name: z.string().min(1, "業務名は必須です").max(50, "50文字以内で入力してください"),
   color: z.string().max(20).nullable().optional(),
   isActive: z.boolean().default(true),
   sortOrder: z.coerce.number().int().min(0, "0以上の数値を入力してください").default(0),
 })
 export type DutyTypeFormData = z.infer<typeof dutyTypeSchema>
 
-// 当番割当スキーマ
+// 業務割当スキーマ
 export const dutyAssignmentSchema = z.object({
   employeeId: z.string().uuid("従業員を選択してください"),
-  dutyTypeId: z.coerce.number().int().positive("当番種別を選択してください"),
+  dutyTypeId: z.coerce.number().int().positive("業務種別を選択してください"),
   dutyDate: z.string().min(1, "日付は必須です"),
   startTime: z.string().min(1, "開始時刻は必須です"),
   endTime: z.string().min(1, "終了時刻は必須です"),

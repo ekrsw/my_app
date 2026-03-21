@@ -33,9 +33,9 @@ export async function createDutyType(formData: FormData) {
     return { success: true }
   } catch (e: unknown) {
     if (e && typeof e === "object" && "code" in e && e.code === "P2002") {
-      return { error: "この当番コードは既に使用されています" }
+      return { error: "この業務コードは既に使用されています" }
     }
-    return { error: "当番種別の作成に失敗しました" }
+    return { error: "業務種別の作成に失敗しました" }
   }
 }
 
@@ -68,9 +68,9 @@ export async function updateDutyType(id: number, formData: FormData) {
     return { success: true }
   } catch (e: unknown) {
     if (e && typeof e === "object" && "code" in e && e.code === "P2002") {
-      return { error: "この当番コードは既に使用されています" }
+      return { error: "この業務コードは既に使用されています" }
     }
-    return { error: "当番種別の更新に失敗しました" }
+    return { error: "業務種別の更新に失敗しました" }
   }
 }
 
@@ -81,6 +81,6 @@ export async function deleteDutyType(id: number) {
     revalidatePath("/duty-types")
     return { success: true }
   } catch {
-    return { error: "当番種別の削除に失敗しました。割当で使用中の可能性があります" }
+    return { error: "業務種別の削除に失敗しました。割当で使用中の可能性があります" }
   }
 }

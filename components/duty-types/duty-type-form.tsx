@@ -79,7 +79,7 @@ export function DutyTypeForm({ dutyType, open: controlledOpen, onOpenChange }: D
     if (result.error) {
       toast.error(result.error)
     } else {
-      toast.success(isEdit ? "当番種別を更新しました" : "当番種別を作成しました")
+      toast.success(isEdit ? "業務種別を更新しました" : "業務種別を作成しました")
       setOpen(false)
     }
   }
@@ -93,7 +93,7 @@ export function DutyTypeForm({ dutyType, open: controlledOpen, onOpenChange }: D
     if (result.error) {
       toast.error(result.error)
     } else {
-      toast.success("当番種別を削除しました")
+      toast.success("業務種別を削除しました")
       setOpen(false)
     }
   }
@@ -110,11 +110,11 @@ export function DutyTypeForm({ dutyType, open: controlledOpen, onOpenChange }: D
       )}
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>{isEdit ? "当番種別編集" : "当番種別作成"}</DialogTitle>
+          <DialogTitle>{isEdit ? "業務種別編集" : "業務種別作成"}</DialogTitle>
         </DialogHeader>
         <form action={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="code">当番コード *</Label>
+            <Label htmlFor="code">業務コード *</Label>
             <Input
               id="code"
               name="code"
@@ -126,7 +126,7 @@ export function DutyTypeForm({ dutyType, open: controlledOpen, onOpenChange }: D
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="name">当番名 *</Label>
+            <Label htmlFor="name">業務名 *</Label>
             <Input
               id="name"
               name="name"
@@ -134,7 +134,7 @@ export function DutyTypeForm({ dutyType, open: controlledOpen, onOpenChange }: D
               key={`name-${dutyType?.id ?? "new"}`}
               required
               maxLength={50}
-              placeholder="例: 直着当番"
+              placeholder="例: 直着業務"
             />
           </div>
           <div className="space-y-2">
@@ -207,9 +207,9 @@ export function DutyTypeForm({ dutyType, open: controlledOpen, onOpenChange }: D
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
-                    <AlertDialogTitle>当番種別の削除</AlertDialogTitle>
+                    <AlertDialogTitle>業務種別の削除</AlertDialogTitle>
                     <AlertDialogDescription>
-                      この当番種別を削除してもよろしいですか？
+                      この業務種別を削除してもよろしいですか？
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>

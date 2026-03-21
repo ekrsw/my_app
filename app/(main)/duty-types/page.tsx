@@ -13,15 +13,15 @@ export default async function DutyTypesPage() {
   return (
     <>
       <PageHeader
-        title="当番種別管理"
+        title="業務種別管理"
         breadcrumbs={[
           { label: "ダッシュボード", href: "/" },
-          { label: "当番種別管理" },
+          { label: "業務種別管理" },
         ]}
       />
       <PageContainer>
         <div className="flex items-center justify-between mb-4">
-          <h1 className="text-2xl font-bold">当番種別管理</h1>
+          <h1 className="text-2xl font-bold">業務種別管理</h1>
           <div className="flex items-center gap-2">
             {isAuthenticated && <DutyTypeForm />}
           </div>

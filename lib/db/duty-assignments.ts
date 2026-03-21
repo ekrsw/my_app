@@ -21,9 +21,9 @@ export async function getTodayDutyAssignments() {
   })
 }
 
-export async function getDutyAssignmentsByDate(date: Date) {
+export async function getDutyAssignmentsByDate(date: Date | null) {
   return prisma.dutyAssignment.findMany({
-    where: { dutyDate: date },
+    where: date ? { dutyDate: date } : undefined,
     include: {
       employee: {
         include: {
@@ -35,6 +35,6 @@ export async function getDutyAssignmentsByDate(date: Date) {
       },
       dutyType: true,
     },
-    orderBy: [{ dutyType: { sortOrder: "asc" } }, { startTime: "asc" }, { employee: { name: "asc" } }],
+    orderBy: [{ dutyType: { sortOrder: "asc" } }, { dutyDate: "asc" }, { startTime: "asc" }, { employee: { name: "asc" } }],
   })
 }

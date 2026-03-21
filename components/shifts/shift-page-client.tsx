@@ -45,6 +45,8 @@ type ShiftPageClientProps = {
   shiftCodes: ActiveShiftCode[]
   shiftIdsWithHistory: number[]
   shiftLatestHistory: Record<number, LatestShiftHistory>
+  calendarEmployeeIds: string[]
+  calendarEmployees: { id: string; name: string }[]
   dailyData: ShiftDailyRow[]
   dailyTotal: number
   dailyPage: number
@@ -102,6 +104,8 @@ export function ShiftPageClient({
   dailyBusinessRoleNames,
   dailySupervisorRoleOptions,
   dailyBusinessRoleOptions,
+  calendarEmployeeIds,
+  calendarEmployees,
 }: ShiftPageClientProps) {
   const [calendarData, setCalendarData] = useState(initialCalendarData)
   const [hasMore, setHasMore] = useState(initialHasMore)
@@ -313,6 +317,8 @@ export function ShiftPageClient({
         isLoadingMore={isLoadingMore}
         onLoadMore={handleLoadMore}
         total={calendarTotal}
+        employees={calendarEmployees}
+        selectedEmployeeIds={calendarEmployeeIds}
       />
 
       {editShift && editDate && (

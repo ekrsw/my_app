@@ -36,7 +36,7 @@ export function StatsCards({
       icon: Monitor,
     },
     {
-      title: "本日の当番",
+      title: "本日の業務",
       value: todayDuties,
       subtitle: "割当数",
       icon: ClipboardList,

@@ -34,9 +34,9 @@ export async function createDutyAssignment(data: {
     return { success: true }
   } catch (e: unknown) {
     if (e && typeof e === "object" && "code" in e && e.code === "P2002") {
-      return { error: "この従業員・当番種別・日付・開始時刻の組み合わせは既に存在します" }
+      return { error: "この従業員・業務種別・日付・開始時刻の組み合わせは既に存在します" }
     }
-    return { error: "当番割当の作成に失敗しました" }
+    return { error: "業務割当の作成に失敗しました" }
   }
 }
 
@@ -73,9 +73,9 @@ export async function updateDutyAssignment(
     return { success: true }
   } catch (e: unknown) {
     if (e && typeof e === "object" && "code" in e && e.code === "P2002") {
-      return { error: "この従業員・当番種別・日付・開始時刻の組み合わせは既に存在します" }
+      return { error: "この従業員・業務種別・日付・開始時刻の組み合わせは既に存在します" }
     }
-    return { error: "当番割当の更新に失敗しました" }
+    return { error: "業務割当の更新に失敗しました" }
   }
 }
 
@@ -87,6 +87,6 @@ export async function deleteDutyAssignment(id: number) {
     revalidatePath("/")
     return { success: true }
   } catch {
-    return { error: "当番割当の削除に失敗しました" }
+    return { error: "業務割当の削除に失敗しました" }
   }
 }

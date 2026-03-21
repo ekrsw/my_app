@@ -38,7 +38,7 @@ export const dutyAssignmentColumns: ColumnDef<DutyAssignmentWithDetails>[] = [
   },
   {
     id: "dutyType",
-    header: "当番種別",
+    header: "業務種別",
     cell: ({ row }) => {
       const dt = row.original.dutyType
       const colorKey = dt.color

@@ -5,7 +5,7 @@ import { ShiftTabs } from "@/components/shifts/shift-tabs"
 import { ShiftHistoryTable } from "@/components/shifts/shift-history-table"
 import { ShiftHistoryFilters } from "@/components/shifts/shift-history-filters"
 import { TabsContent } from "@/components/ui/tabs"
-import { getShiftsForCalendarPaginated, getShiftIdsWithHistory, getLatestShiftHistoryEntries, getShiftsForDaily, getDailyFilterOptions } from "@/lib/db/shifts"
+import { getShiftsForCalendarPaginated, getShiftIdsWithHistory, getLatestShiftHistoryEntries, getShiftsForDaily, getDailyFilterOptions, getCalendarEmployeeOptions } from "@/lib/db/shifts"
 import { getShiftHistory } from "@/lib/db/history"
 import { getGroups } from "@/lib/db/groups"
 import { getFunctionRoles } from "@/lib/db/roles"
@@ -65,7 +65,11 @@ export default async function ShiftsPage({
   const session = await auth()
   const isAuthenticated = !!session?.user
 
-  const filter = { year, month, groupIds: groupIds && groupIds.length > 0 ? groupIds : undefined, unassigned, roleIds: roleIds && roleIds.length > 0 ? roleIds : undefined, roleUnassigned, employeeSearch: search }
+  const calendarEmployeeIds = params.calendarEmployeeIds
+    ? String(params.calendarEmployeeIds).split(",").filter(Boolean)
+    : undefined
+
+  const filter = { year, month, groupIds: groupIds && groupIds.length > 0 ? groupIds : undefined, unassigned, roleIds: roleIds && roleIds.length > 0 ? roleIds : undefined, roleUnassigned, employeeSearch: search, employeeIds: calendarEmployeeIds }
 
   const validSortFields: ShiftDailySortField[] = ["employeeName", "groupName", "supervisorRoleName", "businessRoleName", "shiftCode", "isRemote"]
   const dailySortByValidated = validSortFields.includes(dailySortBy as ShiftDailySortField)
@@ -85,7 +89,7 @@ export default async function ShiftsPage({
     sortOrder: dailySortByValidated ? dailySortOrder : undefined,
   }
 
-  const [calendarResult, groups, roles, shiftCodes, historyResult, shiftIdsWithHistorySet, latestNotes, dailyResult, dailyFilterOptions] =
+  const [calendarResult, groups, roles, shiftCodes, historyResult, shiftIdsWithHistorySet, latestNotes, dailyResult, dailyFilterOptions, calendarEmployees] =
     await Promise.all([
       isHistory || isDaily
         ? Promise.resolve({ data: [], total: 0, hasMore: false, nextCursor: null })
@@ -113,6 +117,9 @@ export default async function ShiftsPage({
       isDaily
         ? getDailyFilterOptions(dailyFilter)
         : Promise.resolve({ employees: [], groups: [], shiftCodes: [], hasUnassigned: false, supervisorRoleNames: [], businessRoleNames: [] }),
+      isHistory || isDaily
+        ? Promise.resolve([])
+        : getCalendarEmployeeOptions({ ...filter, employeeIds: undefined }),
     ])
 
   return (
@@ -143,6 +150,8 @@ export default async function ShiftsPage({
               shiftCodes={shiftCodes}
               shiftIdsWithHistory={[...shiftIdsWithHistorySet]}
               shiftLatestHistory={latestNotes}
+              calendarEmployeeIds={calendarEmployeeIds ?? []}
+              calendarEmployees={calendarEmployees}
               dailyData={dailyResult.data}
               dailyTotal={dailyResult.total}
               dailyPage={dailyResult.page}

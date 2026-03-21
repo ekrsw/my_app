@@ -139,6 +139,13 @@ export async function getShiftsForCalendarPaginated(
     ]
   }
 
+  if (filter.employeeIds && filter.employeeIds.length > 0) {
+    employeeWhere.AND = [
+      ...(employeeWhere.AND ?? []),
+      { id: { in: filter.employeeIds } },
+    ]
+  }
+
   const where = {
     ...employeeWhere,
     AND: [
@@ -205,6 +212,10 @@ export async function getShiftsForCalendarPaginated(
     )
   }
 
+  if (filter.employeeIds && filter.employeeIds.length > 0) {
+    conditions.push(Prisma.sql`e.id::text = ANY(${filter.employeeIds})`)
+  }
+
   const whereClause = Prisma.sql`WHERE ${Prisma.join(conditions, " AND ")}`
 
   const orderedIds = await prisma.$queryRaw<{ id: string }[]>(Prisma.sql`
@@ -263,6 +274,77 @@ export async function getShiftsForCalendarPaginated(
     hasMore,
     nextCursor: hasMore ? cursor + pageSize : null,
   }
+}
+
+/**
+ * 月次カレンダーのフィルター用従業員一覧を取得
+ */
+export async function getCalendarEmployeeOptions(
+  filter: ShiftFilterParams
+): Promise<{ id: string; name: string }[]> {
+  const startDate = new Date(Date.UTC(filter.year, filter.month - 1, 1))
+
+  const conditions: Prisma.Sql[] = [
+    Prisma.sql`(e.termination_date IS NULL OR e.termination_date >= ${startDate})`,
+  ]
+
+  const sqlGroupConditions: Prisma.Sql[] = []
+  if (filter.groupIds && filter.groupIds.length > 0) {
+    sqlGroupConditions.push(Prisma.sql`EXISTS (
+      SELECT 1 FROM employee_groups eg2
+      WHERE eg2.employee_id = e.id AND eg2.end_date IS NULL AND eg2.group_id = ANY(${filter.groupIds})
+    )`)
+  }
+  if (filter.unassigned) {
+    sqlGroupConditions.push(Prisma.sql`NOT EXISTS (
+      SELECT 1 FROM employee_groups eg2
+      WHERE eg2.employee_id = e.id AND eg2.end_date IS NULL
+    )`)
+  }
+  if (sqlGroupConditions.length > 0) {
+    conditions.push(
+      sqlGroupConditions.length === 1
+        ? sqlGroupConditions[0]
+        : Prisma.sql`(${Prisma.join(sqlGroupConditions, " OR ")})`
+    )
+  }
+
+  const sqlRoleConditions: Prisma.Sql[] = []
+  if (filter.roleIds && filter.roleIds.length > 0) {
+    sqlRoleConditions.push(Prisma.sql`EXISTS (
+      SELECT 1 FROM employee_function_roles efr
+      WHERE efr.employee_id = e.id AND efr.end_date IS NULL AND efr.function_role_id = ANY(${filter.roleIds})
+    )`)
+  }
+  if (filter.roleUnassigned) {
+    sqlRoleConditions.push(Prisma.sql`NOT EXISTS (
+      SELECT 1 FROM employee_function_roles efr
+      WHERE efr.employee_id = e.id AND efr.end_date IS NULL
+    )`)
+  }
+  if (sqlRoleConditions.length > 0) {
+    conditions.push(
+      sqlRoleConditions.length === 1
+        ? sqlRoleConditions[0]
+        : Prisma.sql`(${Prisma.join(sqlRoleConditions, " OR ")})`
+    )
+  }
+
+  if (filter.employeeSearch) {
+    const searchPattern = `%${filter.employeeSearch}%`
+    conditions.push(
+      Prisma.sql`(e.name ILIKE ${searchPattern} OR e.name_kana ILIKE ${searchPattern})`
+    )
+  }
+
+  const whereClause = Prisma.sql`WHERE ${Prisma.join(conditions, " AND ")}`
+
+  return prisma.$queryRaw<{ id: string; name: string }[]>(Prisma.sql`
+    SELECT e.id, e.name
+    FROM employees e
+    ${whereClause}
+    ORDER BY e.name
+  `)
 }
 
 const DEFAULT_DAILY_PAGE_SIZE = 30

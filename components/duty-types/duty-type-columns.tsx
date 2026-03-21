@@ -28,7 +28,7 @@ export const dutyTypeColumns: ColumnDef<DutyTypeRow>[] = [
   },
   {
     accessorKey: "name",
-    header: "当番名",
+    header: "業務名",
   },
   {
     accessorKey: "color",

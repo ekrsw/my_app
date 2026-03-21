@@ -17,12 +17,14 @@ export default async function DutyAssignmentsPage({ searchParams }: Props) {
   const params = await searchParams
   const dateStr = typeof params.date === "string" ? params.date : null
 
-  const today = getTodayJST()
-  const filterDate = dateStr ? new Date(dateStr) : today
-  const defaultDateStr = filterDate.toISOString().substring(0, 10)
+  const filterDate = dateStr ? new Date(dateStr) : null
+  const defaultDateStr = dateStr || ""
 
   const session = await auth()
   const isAuthenticated = !!session?.user
+
+  const today = getTodayJST()
+  const todayStr = today.toISOString().substring(0, 10)
 
   const [assignments, dutyTypes, employees] = await Promise.all([
     getDutyAssignmentsByDate(filterDate),
@@ -36,31 +38,31 @@ export default async function DutyAssignmentsPage({ searchParams }: Props) {
   return (
     <>
       <PageHeader
-        title="当番管理"
+        title="業務管理"
         breadcrumbs={[
           { label: "ダッシュボード", href: "/" },
-          { label: "当番管理" },
+          { label: "業務管理" },
         ]}
       />
       <PageContainer>
         <div className="flex items-center justify-between mb-4">
-          <h1 className="text-2xl font-bold">当番管理</h1>
+          <h1 className="text-2xl font-bold">業務管理</h1>
           <div className="flex items-center gap-2">
             {isAuthenticated && (
               <DutyAssignmentForm
                 employees={employeeOptions}
                 dutyTypes={dutyTypeOptions}
-                defaultDate={defaultDateStr}
+                defaultDate={defaultDateStr || todayStr}
               />
             )}
           </div>
         </div>
-        <DutyAssignmentFilters defaultDate={defaultDateStr} />
+        <DutyAssignmentFilters defaultDate={defaultDateStr} todayDate={todayStr} />
         <DutyAssignmentTable
           data={assignments}
           employees={employeeOptions}
           dutyTypes={dutyTypeOptions}
-          defaultDate={defaultDateStr}
+          defaultDate={defaultDateStr || todayStr}
         />
       </PageContainer>
     </>

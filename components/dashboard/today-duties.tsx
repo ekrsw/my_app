@@ -17,7 +17,7 @@ type Props = {
 }
 
 export function TodayDuties({ duties }: Props) {
-  // 当番種別ごとにグルーピング
+  // 業務種別ごとにグルーピング
   const grouped = duties.reduce<Record<number, { dutyType: DutyAssignmentWithDetails["dutyType"]; assignments: DutyAssignmentWithDetails[] }>>(
     (acc, duty) => {
       if (!acc[duty.dutyTypeId]) {
@@ -32,11 +32,11 @@ export function TodayDuties({ duties }: Props) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>本日の当番 ({duties.length}件)</CardTitle>
+        <CardTitle>本日の業務 ({duties.length}件)</CardTitle>
       </CardHeader>
       <CardContent>
         {duties.length === 0 ? (
-          <p className="text-sm text-muted-foreground">本日の当番はありません</p>
+          <p className="text-sm text-muted-foreground">本日の業務はありません</p>
         ) : (
           <div className="space-y-4">
             {Object.values(grouped).map(({ dutyType, assignments }) => {

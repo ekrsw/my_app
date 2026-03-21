@@ -114,7 +114,7 @@ export function DutyAssignmentForm({
     if (result.error) {
       toast.error(result.error)
     } else {
-      toast.success(isEdit ? "当番割当を更新しました" : "当番割当を作成しました")
+      toast.success(isEdit ? "業務割当を更新しました" : "業務割当を作成しました")
       setOpen(false)
     }
   }
@@ -128,7 +128,7 @@ export function DutyAssignmentForm({
     if (result.error) {
       toast.error(result.error)
     } else {
-      toast.success("当番割当を削除しました")
+      toast.success("業務割当を削除しました")
       setOpen(false)
     }
   }
@@ -145,7 +145,7 @@ export function DutyAssignmentForm({
       )}
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>{isEdit ? "当番割当編集" : "当番割当作成"}</DialogTitle>
+          <DialogTitle>{isEdit ? "業務割当編集" : "業務割当作成"}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
@@ -164,10 +164,10 @@ export function DutyAssignmentForm({
             </Select>
           </div>
           <div className="space-y-2">
-            <Label>当番種別 *</Label>
+            <Label>業務種別 *</Label>
             <Select value={selectedDutyTypeId} onValueChange={setSelectedDutyTypeId}>
               <SelectTrigger>
-                <SelectValue placeholder="当番種別を選択" />
+                <SelectValue placeholder="業務種別を選択" />
               </SelectTrigger>
               <SelectContent>
                 {dutyTypes.map((dt) => (
@@ -231,9 +231,9 @@ export function DutyAssignmentForm({
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
-                    <AlertDialogTitle>当番割当の削除</AlertDialogTitle>
+                    <AlertDialogTitle>業務割当の削除</AlertDialogTitle>
                     <AlertDialogDescription>
-                      この当番割当を削除してもよろしいですか？
+                      この業務割当を削除してもよろしいですか？
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
