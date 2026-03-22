@@ -56,7 +56,7 @@ export function ShiftCalendar({
   const days = useMemo(() => getDaysInMonth(year, month), [year, month])
   const { selectedCells: internalSelectedCells } = useShiftCalendar()
   const selectedCells = externalSelectedCells ?? internalSelectedCells
-  const { setParams } = useQueryParams()
+  const { setParams, searchParams } = useQueryParams()
   const [employeePopoverOpen, setEmployeePopoverOpen] = useState(false)
 
   const handleEmployeeIdsConfirm = useCallback((ids: string[]) => {
@@ -68,6 +68,17 @@ export function ShiftCalendar({
     setParams({ calendarEmployeeIds: null })
     setEmployeePopoverOpen(false)
   }, [setParams])
+
+  const buildDailyHref = useCallback((day: Date) => {
+    const params = new URLSearchParams(searchParams.toString())
+    // 月次カレンダー固有のパラメータを除外
+    params.delete("calendarEmployeeIds")
+    params.delete("search")
+    // 日次ビュー用に上書き
+    params.set("view", "daily")
+    params.set("dailyDate", toDateString(day))
+    return `/shifts?${params.toString()}`
+  }, [searchParams])
 
   const scrollContainerId = useId()
   const scrollContainerRef = useRef<HTMLDivElement>(null)
@@ -148,17 +159,18 @@ export function ShiftCalendar({
             const weekend = checkWeekend(day)
             const today = checkToday(day)
             return (
-              <div
+              <Link
                 key={day.toISOString()}
+                href={buildDailyHref(day)}
                 className={cn(
-                  "flex w-12 min-w-12 flex-col items-center border-r py-1 text-xs",
+                  "flex w-12 min-w-12 flex-col items-center border-r py-1 text-xs hover:bg-primary/10 transition-colors",
                   weekend && "bg-red-50 text-red-600",
                   today && "bg-primary/5 font-bold"
                 )}
               >
                 <span>{day.getDate()}</span>
                 <span className="text-[10px]">{getDayOfWeekJa(day)}</span>
-              </div>
+              </Link>
             )
           })}
         </div>
