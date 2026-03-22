@@ -1,6 +1,8 @@
 "use client"
 
 import { useState, useCallback, useMemo, useEffect } from "react"
+import { ActiveFilterTags, type FilterTag } from "./active-filter-tags"
+import { useQueryParams } from "@/hooks/use-query-params"
 import { Button } from "@/components/ui/button"
 import { ShiftCalendar } from "./shift-calendar"
 import { ShiftFilters } from "./shift-filters"
@@ -161,6 +163,86 @@ export function ShiftPageClient({
     [shiftIdsWithHistory]
   )
 
+  const { setParams, getParam } = useQueryParams()
+
+  const filterTags = useMemo(() => {
+    const tags: FilterTag[] = []
+
+    if (calendarFilter.groupIds && calendarFilter.groupIds.length > 0) {
+      const names = calendarFilter.groupIds.map(id =>
+        groups.find(g => g.id === id)?.name ?? `ID:${id}`
+      )
+      const label = names.length <= 2 ? names.join(", ") : `${names.length}グループ`
+      tags.push({
+        key: "groupIds",
+        label: `グループ: ${label}`,
+        onRemove: () => setParams({ groupIds: null }),
+      })
+    }
+
+    if (calendarFilter.unassigned) {
+      tags.push({
+        key: "unassigned",
+        label: "グループ未所属",
+        onRemove: () => setParams({ unassigned: null }),
+      })
+    }
+
+    if (calendarFilter.roleIds && calendarFilter.roleIds.length > 0) {
+      const names = calendarFilter.roleIds.map(id =>
+        roles.find(r => r.id === id)?.roleName ?? `ID:${id}`
+      )
+      const label = names.length <= 2 ? names.join(", ") : `${names.length}ロール`
+      tags.push({
+        key: "roleIds",
+        label: `ロール: ${label}`,
+        onRemove: () => setParams({ roleIds: null }),
+      })
+    }
+
+    if (calendarFilter.roleUnassigned) {
+      tags.push({
+        key: "roleUnassigned",
+        label: "ロール未設定",
+        onRemove: () => setParams({ roleUnassigned: null }),
+      })
+    }
+
+    const searchParam = getParam("search")
+    if (searchParam) {
+      tags.push({
+        key: "search",
+        label: `検索: ${searchParam}`,
+        onRemove: () => setParams({ search: null }),
+      })
+    }
+
+    if (calendarEmployeeIds.length > 0) {
+      const names = calendarEmployeeIds.map(id =>
+        calendarEmployees.find(e => e.id === id)?.name ?? id
+      )
+      const label = names.length <= 2 ? names.join(", ") : `${names.length}名選択`
+      tags.push({
+        key: "calendarEmployeeIds",
+        label: `従業員: ${label}`,
+        onRemove: () => setParams({ calendarEmployeeIds: null }),
+      })
+    }
+
+    return tags
+  }, [calendarFilter, groups, roles, getParam, calendarEmployeeIds, calendarEmployees, setParams])
+
+  const clearAllCalendarFilters = useCallback(() => {
+    setParams({
+      groupIds: null,
+      unassigned: null,
+      roleIds: null,
+      roleUnassigned: null,
+      search: null,
+      calendarEmployeeIds: null,
+    })
+  }, [setParams])
+
   const detailEmployeeName = useMemo(() => {
     if (!editEmployeeId) return ""
     return calendarData.find(e => e.employeeId === editEmployeeId)?.employeeName ?? ""
@@ -303,6 +385,8 @@ export function ShiftPageClient({
           }
         />
       </div>
+
+      <ActiveFilterTags tags={filterTags} onClearAll={clearAllCalendarFilters} />
 
       <ShiftCalendar
         data={calendarData}

@@ -112,7 +112,8 @@
       "Bash(for dir:*)",
       "Bash(for i:*)",
       "mcp__playwright__browser_install",
-      "mcp__serena__write_memory"
+      "mcp__serena__write_memory",
+      "Bash(ls -la /Users/ekoresawa/project/my_app/app/\\\\\\(main\\\\\\)/shifts/)"
     ]
   }
 }
