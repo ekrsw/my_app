@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -19,12 +19,18 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
+import {
   createDutyAssignment,
   updateDutyAssignment,
   deleteDutyAssignment,
 } from "@/lib/actions/duty-assignment-actions"
 import { toast } from "sonner"
-import { Plus } from "lucide-react"
+import { Plus, Search, Check, ChevronsUpDown } from "lucide-react"
+import { cn } from "@/lib/utils"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -81,6 +87,8 @@ export function DutyAssignmentForm({
   const [selectedDutyTypeId, setSelectedDutyTypeId] = useState(
     dutyAssignment?.dutyTypeId?.toString() ?? ""
   )
+  const [employeeSearch, setEmployeeSearch] = useState("")
+  const [employeePopoverOpen, setEmployeePopoverOpen] = useState(false)
   const isEdit = !!dutyAssignment
 
   const [prevOpen, setPrevOpen] = useState(false)
@@ -91,6 +99,14 @@ export function DutyAssignmentForm({
       setSelectedDutyTypeId(dutyAssignment?.dutyTypeId?.toString() ?? "")
     }
   }
+
+  const filteredEmployees = useMemo(() => {
+    if (!employeeSearch) return employees
+    const lower = employeeSearch.toLowerCase()
+    return employees.filter((e) => e.name.toLowerCase().includes(lower))
+  }, [employees, employeeSearch])
+
+  const selectedEmployee = employees.find((e) => e.id === selectedEmployeeId)
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -150,18 +166,68 @@ export function DutyAssignmentForm({
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label>従業員 *</Label>
-            <Select value={selectedEmployeeId} onValueChange={setSelectedEmployeeId}>
-              <SelectTrigger>
-                <SelectValue placeholder="従業員を選択" />
-              </SelectTrigger>
-              <SelectContent>
-                {employees.map((emp) => (
-                  <SelectItem key={emp.id} value={emp.id}>
-                    {emp.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Popover
+              open={employeePopoverOpen}
+              onOpenChange={(v) => {
+                setEmployeePopoverOpen(v)
+                if (!v) setEmployeeSearch("")
+              }}
+            >
+              <PopoverTrigger asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={employeePopoverOpen}
+                  className="w-full justify-between font-normal"
+                >
+                  {selectedEmployee ? selectedEmployee.name : "従業員を選択"}
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-2" align="start">
+                <div className="relative mb-2">
+                  <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                  <Input
+                    value={employeeSearch}
+                    onChange={(e) => setEmployeeSearch(e.target.value)}
+                    placeholder="従業員名で検索..."
+                    className="h-8 pl-7"
+                  />
+                </div>
+                <div className="max-h-48 overflow-y-auto">
+                  <div className="flex flex-col gap-0.5">
+                    {filteredEmployees.map((emp) => (
+                      <div
+                        key={emp.id}
+                        className={cn(
+                          "flex items-center gap-2 px-2 py-1.5 rounded cursor-pointer hover:bg-accent text-sm",
+                          emp.id === selectedEmployeeId && "bg-accent"
+                        )}
+                        onClick={() => {
+                          setSelectedEmployeeId(emp.id)
+                          setEmployeePopoverOpen(false)
+                          setEmployeeSearch("")
+                        }}
+                      >
+                        <Check
+                          className={cn(
+                            "h-3.5 w-3.5 shrink-0",
+                            emp.id === selectedEmployeeId ? "opacity-100" : "opacity-0"
+                          )}
+                        />
+                        {emp.name}
+                      </div>
+                    ))}
+                    {filteredEmployees.length === 0 && (
+                      <p className="text-sm text-muted-foreground px-2 py-1.5">
+                        該当なし
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </PopoverContent>
+            </Popover>
           </div>
           <div className="space-y-2">
             <Label>業務種別 *</Label>
