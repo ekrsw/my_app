@@ -38,6 +38,9 @@ export type ShiftDailyRow = {
   businessRoleName: string | null
   shiftId: number | null
   shiftCode: string
+  startTime: Date | null
+  endTime: Date | null
+  isHoliday: boolean | null
   isRemote: boolean
 }
 

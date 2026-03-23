@@ -575,9 +575,9 @@ export function ShiftDailyView({
         employeeId: editRow.employeeId,
         shiftDate: new Date(dailyDate),
         shiftCode: editRow.shiftCode,
-        startTime: null,
-        endTime: null,
-        isHoliday: null,
+        startTime: editRow.startTime,
+        endTime: editRow.endTime,
+        isHoliday: editRow.isHoliday,
         isRemote: editRow.isRemote,
       }
     : undefined

@@ -570,6 +570,9 @@ export async function getShiftsForDaily(
       businessRoleName: businessRole?.functionRole?.roleName ?? null,
       shiftId: shift?.id ?? null,
       shiftCode: shift?.shiftCode ?? "",
+      startTime: shift?.startTime ?? null,
+      endTime: shift?.endTime ?? null,
+      isHoliday: shift?.isHoliday ?? null,
       isRemote: shift?.isRemote ?? false,
     }
   })
