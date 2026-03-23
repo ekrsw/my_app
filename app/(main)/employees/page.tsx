@@ -22,7 +22,7 @@ export default async function EmployeesPage({
   const page = Number(params.page) || 1
   const pageSize = Number(params.pageSize) || 20
   const search = params.search as string | undefined
-  const activeOnly = params.activeOnly === "true"
+  const activeOnly = params.activeOnly !== "false"
 
   // グループフィルター解析（複数選択対応、旧 groupId もフォールバック）
   const rawGroupIds = params.groupIds as string | undefined
