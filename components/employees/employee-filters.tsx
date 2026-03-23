@@ -81,9 +81,9 @@ export function EmployeeFilters({
       <div className="flex items-center gap-2">
         <Checkbox
           id="activeOnly"
-          checked={getParam("activeOnly") === "true"}
+          checked={getParam("activeOnly") !== "false"}
           onCheckedChange={(checked) =>
-            setParams({ activeOnly: checked ? "true" : null, page: 1 })
+            setParams({ activeOnly: checked ? null : "false", page: 1 })
           }
         />
         <Label htmlFor="activeOnly" className="text-sm">
