@@ -282,7 +282,7 @@ export function TodayOverviewClient({ shifts, filterOptions, distinctRoleTypes }
         ) : (
           <div
             ref={scrollContainerRef}
-            className="rounded-md border overflow-auto"
+            className="rounded-md border overflow-auto [&_[data-slot=table-container]]:overflow-visible"
             style={{ maxHeight }}
           >
             <Table>
