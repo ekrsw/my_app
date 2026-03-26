@@ -1,8 +1,22 @@
 "use client"
 
-import { useState, useMemo, useCallback, useRef } from "react"
-import { ColumnDef } from "@tanstack/react-table"
-import { DataTable } from "@/components/data-table"
+import { useState, useMemo, useCallback, useRef, useEffect } from "react"
+import {
+  ColumnDef,
+  flexRender,
+  getCoreRowModel,
+  useReactTable,
+  SortingState,
+} from "@tanstack/react-table"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import { cn } from "@/lib/utils"
 import { ShiftBadge } from "@/components/shifts/shift-badge"
 import { ShiftForm } from "@/components/shifts/shift-form"
 import { ShiftDetailDialog } from "@/components/shifts/shift-detail-dialog"
@@ -24,7 +38,7 @@ import {
 import { Calendar } from "@/components/ui/calendar"
 import { useQueryParams } from "@/hooks/use-query-params"
 import type { ShiftDailyRow, ShiftDailySortField, SortOrder } from "@/types/shifts"
-import { Circle, ChevronLeft, ChevronRight, CalendarIcon } from "lucide-react"
+import { Circle, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, CalendarIcon, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react"
 import Link from "next/link"
 
 type Group = { id: number; name: string }
@@ -569,6 +583,63 @@ export function ShiftDailyView({
     handleRemoteChange,
   ])
 
+  // --- Dynamic height calculation ---
+  const scrollContainerRef = useRef<HTMLDivElement>(null)
+  const [maxHeight, setMaxHeight] = useState<number>(600)
+
+  useEffect(() => {
+    const container = scrollContainerRef.current
+    if (!container) return
+
+    const updateHeight = () => {
+      const rect = container.getBoundingClientRect()
+      const available = window.innerHeight - rect.top - 48
+      setMaxHeight(Math.max(300, available))
+    }
+
+    updateHeight()
+    window.addEventListener("resize", updateHeight)
+    const observer = new ResizeObserver(updateHeight)
+    observer.observe(document.documentElement)
+
+    return () => {
+      window.removeEventListener("resize", updateHeight)
+      observer.disconnect()
+    }
+  })
+
+  // --- TanStack Table setup ---
+  const [sorting, setSorting] = useState<SortingState>(
+    [{ id: sortBy, desc: sortOrder === "desc" }]
+  )
+
+  const handleSortingChange = useCallback(
+    (updater: SortingState | ((prev: SortingState) => SortingState)) => {
+      const newSorting = typeof updater === "function" ? updater(sorting) : updater
+      setSorting(newSorting)
+      if (newSorting.length > 0) {
+        handleSortChange(newSorting[0].id, newSorting[0].desc ? "desc" : "asc")
+      } else {
+        handleSortChange("employeeName", "asc")
+      }
+    },
+    [sorting, handleSortChange]
+  )
+
+  const table = useReactTable({
+    data,
+    columns,
+    getCoreRowModel: getCoreRowModel(),
+    manualSorting: true,
+    manualPagination: true,
+    pageCount: totalPages,
+    state: {
+      sorting,
+      pagination: { pageIndex: page - 1, pageSize: 20 },
+    },
+    onSortingChange: handleSortingChange,
+  })
+
   const editShift = editRow?.shiftId
     ? {
         id: editRow.shiftId,
@@ -632,19 +703,121 @@ export function ShiftDailyView({
 
       <ActiveFilterTags tags={filterTags} onClearAll={clearAllFilters} />
 
-      <DataTable
-        columns={columns}
-        data={data}
-        pageCount={totalPages}
-        page={page}
-        onPageChange={handlePageChange}
-        onRowClick={handleRowClick}
-        serverSort={{
-          sortBy,
-          sortOrder,
-          onSortChange: handleSortChange,
-        }}
-      />
+      <div
+        ref={scrollContainerRef}
+        className="rounded-md border overflow-auto"
+        style={{ maxHeight }}
+      >
+        <Table>
+          <TableHeader className="sticky top-0 z-10 [&_th]:bg-background [&_tr]:border-b-0 shadow-[0_1px_0_0_var(--border)]">
+            {table.getHeaderGroups().map((headerGroup) => (
+              <TableRow key={headerGroup.id}>
+                {headerGroup.headers.map((header) => {
+                  const sorted = header.column.getIsSorted()
+                  return (
+                    <TableHead key={header.id}>
+                      {header.isPlaceholder ? null : (
+                        <div
+                          className={cn(
+                            header.column.getCanSort() &&
+                              "cursor-pointer select-none flex items-center gap-1"
+                          )}
+                          onClick={header.column.getToggleSortingHandler()}
+                        >
+                          {flexRender(
+                            header.column.columnDef.header,
+                            header.getContext()
+                          )}
+                          {header.column.getCanSort() && (
+                            sorted === "asc" ? (
+                              <ArrowUp className="h-3.5 w-3.5 shrink-0" />
+                            ) : sorted === "desc" ? (
+                              <ArrowDown className="h-3.5 w-3.5 shrink-0" />
+                            ) : (
+                              <ArrowUpDown className="h-3.5 w-3.5 shrink-0 opacity-30" />
+                            )
+                          )}
+                        </div>
+                      )}
+                    </TableHead>
+                  )
+                })}
+              </TableRow>
+            ))}
+          </TableHeader>
+          <TableBody>
+            {table.getRowModel().rows?.length ? (
+              table.getRowModel().rows.map((row) => (
+                <TableRow
+                  key={row.id}
+                  className="cursor-pointer"
+                  onClick={() => handleRowClick(row.original)}
+                >
+                  {row.getVisibleCells().map((cell) => (
+                    <TableCell key={cell.id}>
+                      {flexRender(
+                        cell.column.columnDef.cell,
+                        cell.getContext()
+                      )}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell
+                  colSpan={columns.length}
+                  className="h-24 text-center"
+                >
+                  データがありません
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
+
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between px-2 py-4">
+          <div className="text-sm text-muted-foreground">
+            {page} / {totalPages} ページ
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => handlePageChange(1)}
+              disabled={page <= 1}
+            >
+              <ChevronsLeft className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => handlePageChange(page - 1)}
+              disabled={page <= 1}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => handlePageChange(page + 1)}
+              disabled={page >= totalPages}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => handlePageChange(totalPages)}
+              disabled={page >= totalPages}
+            >
+              <ChevronsRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      )}
 
       {editRow && editShift && (
         <ShiftDetailDialog
