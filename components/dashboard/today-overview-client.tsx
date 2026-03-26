@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo, useCallback } from "react"
+import { useState, useMemo, useCallback, useRef, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   Table,
@@ -46,6 +46,31 @@ type Props = {
 
 export function TodayOverviewClient({ shifts, filterOptions, distinctRoleTypes }: Props) {
   const { setParams, getParam } = useDashboardFilters()
+
+  // --- Dynamic height calculation (same pattern as shift-calendar) ---
+  const scrollContainerRef = useRef<HTMLDivElement>(null)
+  const [maxHeight, setMaxHeight] = useState<number>(600)
+
+  useEffect(() => {
+    const container = scrollContainerRef.current
+    if (!container) return
+
+    const updateHeight = () => {
+      const rect = container.getBoundingClientRect()
+      const available = window.innerHeight - rect.top - 24
+      setMaxHeight(Math.max(300, available))
+    }
+
+    updateHeight()
+    window.addEventListener("resize", updateHeight)
+    const observer = new ResizeObserver(updateHeight)
+    observer.observe(document.documentElement)
+
+    return () => {
+      window.removeEventListener("resize", updateHeight)
+      observer.disconnect()
+    }
+  })
 
   // --- Parse URL params ---
   const selectedEmployeeIds = useMemo(() => parseStrings(getParam("employeeIds")), [getParam])
@@ -255,9 +280,13 @@ export function TodayOverviewClient({ shifts, filterOptions, distinctRoleTypes }
         {shifts.length === 0 ? (
           <p className="text-sm text-muted-foreground">本日の出勤者はいません</p>
         ) : (
-          <div className="rounded-md border flex-1 overflow-auto">
+          <div
+            ref={scrollContainerRef}
+            className="rounded-md border overflow-auto"
+            style={{ maxHeight }}
+          >
             <Table>
-              <TableHeader>
+              <TableHeader className="sticky top-0 z-10 [&_th]:bg-background">
                 <TableRow>
                   <TableHead>
                     <ColumnFilterPopover
