@@ -43,7 +43,7 @@ import { Button } from "@/components/ui/button"
 const navItems = [
   { label: "ダッシュボード", href: "/", icon: LayoutDashboard },
   { label: "シフト管理", href: "/shifts", icon: Calendar },
-  { label: "業務管理", href: "/duty-assignments", icon: ClipboardList },
+  { label: "割当業務管理", href: "/duty-assignments", icon: ClipboardList },
   { label: "従業員", href: "/employees", icon: User },
 ]
 
