@@ -286,7 +286,7 @@ export function TodayOverviewClient({ shifts, filterOptions, distinctRoleTypes }
             style={{ maxHeight }}
           >
             <Table>
-              <TableHeader className="sticky top-0 z-10 [&_th]:bg-background">
+              <TableHeader className="sticky top-0 z-10 [&_th]:bg-background [&_tr]:border-b-0 shadow-[0_1px_0_0_var(--border)]">
                 <TableRow>
                   <TableHead>
                     <ColumnFilterPopover
