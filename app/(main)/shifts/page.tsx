@@ -45,7 +45,6 @@ export default async function ShiftsPage({
   const viewMode = params.view === "daily" ? "daily" : "monthly"
   const isDaily = viewMode === "daily" && !isHistory
   const dailyDate = (params.dailyDate as string) || toDateString(getTodayJST())
-  const dailyPage = Number(params.dailyPage) || 1
   const shiftCodesFilter = params.shiftCodes
     ? String(params.shiftCodes).split(",").filter(Boolean)
     : undefined
@@ -112,8 +111,8 @@ export default async function ShiftsPage({
         ? Promise.resolve({})
         : getLatestShiftHistoryEntries(year, month),
       isDaily
-        ? getShiftsForDaily(dailyFilter, { page: dailyPage })
-        : Promise.resolve({ data: [], total: 0, page: 1, pageSize: 30, totalPages: 0 }),
+        ? getShiftsForDaily(dailyFilter, { cursor: 0 })
+        : Promise.resolve({ data: [], total: 0, hasMore: false, nextCursor: null }),
       isDaily
         ? getDailyFilterOptions(dailyFilter)
         : Promise.resolve({ employees: [], groups: [], shiftCodes: [], hasUnassigned: false, supervisorRoleNames: [], businessRoleNames: [] }),
@@ -154,8 +153,8 @@ export default async function ShiftsPage({
               calendarEmployees={calendarEmployees}
               dailyData={dailyResult.data}
               dailyTotal={dailyResult.total}
-              dailyPage={dailyResult.page}
-              dailyTotalPages={dailyResult.totalPages}
+              dailyHasMore={dailyResult.hasMore}
+              dailyNextCursor={dailyResult.nextCursor}
               dailyDate={dailyDate}
               dailyGroupIds={groupIds ?? []}
               dailyUnassigned={unassigned}

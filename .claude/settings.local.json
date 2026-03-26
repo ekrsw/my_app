@@ -115,7 +115,8 @@
       "mcp__serena__write_memory",
       "Bash(ls -la /Users/ekoresawa/project/my_app/app/\\\\\\(main\\\\\\)/shifts/)",
       "Bash(claude mcp:*)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(ls -la /Users/ekoresawa/project/my_app/app/\\\\\\(main\\\\\\)/)"
     ]
   }
 }

@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma"
 import { Prisma } from "@/app/generated/prisma/client"
 import type { ShiftFilterParams, ShiftDailyFilterParams, ShiftDailyRow, PaginatedResult, ShiftDailySortField, SortOrder } from "@/types"
-import type { ShiftCalendarData, ShiftCalendarPaginatedResult, DailyFilterOptions } from "@/types/shifts"
+import type { ShiftCalendarData, ShiftCalendarPaginatedResult, ShiftDailyPaginatedResult, DailyFilterOptions } from "@/types/shifts"
 import { toDateString } from "@/lib/date-utils"
 
 export async function getShiftsForCalendar(
@@ -469,10 +469,10 @@ function buildDailyFilterConditions(
 
 export async function getShiftsForDaily(
   filter: ShiftDailyFilterParams,
-  pagination: { page?: number; pageSize?: number } = {}
-): Promise<PaginatedResult<ShiftDailyRow>> {
-  const page = pagination.page ?? 1
-  const pageSize = pagination.pageSize ?? DEFAULT_DAILY_PAGE_SIZE
+  options: { cursor?: number; pageSize?: number } = {}
+): Promise<ShiftDailyPaginatedResult> {
+  const cursor = options.cursor ?? 0
+  const pageSize = options.pageSize ?? DEFAULT_DAILY_PAGE_SIZE
 
   // DB から distinct role_type を取得して動的にカラムマッピング
   const distinctTypes = await prisma.functionRole.findMany({
@@ -508,8 +508,6 @@ export async function getShiftsForDaily(
     : `ORDER BY ${sortExpr} ${sortOrder} ${nullsHandling}, e.name ASC`
   const orderByClause = Prisma.raw(orderByRaw)
 
-  const offset = (page - 1) * pageSize
-
   const [orderedIds, countResult] = await Promise.all([
     prisma.$queryRaw<{ id: string }[]>(Prisma.sql`
       SELECT e.id
@@ -520,19 +518,23 @@ export async function getShiftsForDaily(
       ${whereClause}
       GROUP BY e.id, e.name
       ${orderByClause}
-      OFFSET ${offset} LIMIT ${pageSize}
+      OFFSET ${cursor} LIMIT ${pageSize + 1}
     `),
-    prisma.$queryRaw<{ count: bigint }[]>(Prisma.sql`
-      SELECT COUNT(DISTINCT e.id) as count
-      FROM employees e
-      LEFT JOIN employee_groups eg ON e.id = eg.employee_id AND eg.end_date IS NULL
-      ${shiftJoin}
-      ${whereClause}
-    `),
+    // total は初回（cursor === 0）のみ取得
+    cursor === 0
+      ? prisma.$queryRaw<{ count: bigint }[]>(Prisma.sql`
+          SELECT COUNT(DISTINCT e.id) as count
+          FROM employees e
+          LEFT JOIN employee_groups eg ON e.id = eg.employee_id AND eg.end_date IS NULL
+          ${shiftJoin}
+          ${whereClause}
+        `)
+      : Promise.resolve([{ count: BigInt(0) }]),
   ])
 
   const total = Number(countResult[0]?.count ?? 0)
-  const slicedIds = orderedIds.map((r) => r.id)
+  const hasMore = orderedIds.length > pageSize
+  const slicedIds = hasMore ? orderedIds.slice(0, pageSize).map((r) => r.id) : orderedIds.map((r) => r.id)
 
   // --- Step 2: Prisma findManyで完全なデータを取得 ---
   const employees = slicedIds.length > 0
@@ -580,9 +582,8 @@ export async function getShiftsForDaily(
   return {
     data,
     total,
-    page,
-    pageSize,
-    totalPages: Math.ceil(total / pageSize),
+    hasMore,
+    nextCursor: hasMore ? cursor + pageSize : null,
   }
 }
 

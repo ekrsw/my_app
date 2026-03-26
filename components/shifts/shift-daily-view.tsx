@@ -1,8 +1,22 @@
 "use client"
 
-import { useState, useMemo, useCallback, useRef } from "react"
-import { ColumnDef } from "@tanstack/react-table"
-import { DataTable } from "@/components/data-table"
+import { useState, useMemo, useCallback, useRef, useEffect } from "react"
+import {
+  ColumnDef,
+  flexRender,
+  getCoreRowModel,
+  useReactTable,
+  SortingState,
+} from "@tanstack/react-table"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import { cn } from "@/lib/utils"
 import { ShiftBadge } from "@/components/shifts/shift-badge"
 import { ShiftForm } from "@/components/shifts/shift-form"
 import { ShiftDetailDialog } from "@/components/shifts/shift-detail-dialog"
@@ -24,7 +38,7 @@ import {
 import { Calendar } from "@/components/ui/calendar"
 import { useQueryParams } from "@/hooks/use-query-params"
 import type { ShiftDailyRow, ShiftDailySortField, SortOrder } from "@/types/shifts"
-import { Circle, ChevronLeft, ChevronRight, CalendarIcon } from "lucide-react"
+import { Circle, ChevronLeft, ChevronRight, CalendarIcon, ArrowUp, ArrowDown, ArrowUpDown, Loader2 } from "lucide-react"
 import Link from "next/link"
 
 type Group = { id: number; name: string }
@@ -42,8 +56,9 @@ type ShiftCodeOption = {
 type ShiftDailyViewProps = {
   data: ShiftDailyRow[]
   total: number
-  page: number
-  totalPages: number
+  hasMore: boolean
+  isLoadingMore: boolean
+  onLoadMore: () => void
   dailyDate: string
   groups: Group[]
   shiftCodes: ShiftCodeOption[]
@@ -71,8 +86,9 @@ type ShiftDailyViewProps = {
 export function ShiftDailyView({
   data,
   total,
-  page,
-  totalPages,
+  hasMore,
+  isLoadingMore,
+  onLoadMore,
   dailyDate,
   groups,
   shiftCodes,
@@ -122,16 +138,11 @@ export function ShiftDailyView({
     setEditOpen(true)
   }, [])
 
-  const handlePageChange = (newPage: number) => {
-    setParams({ dailyPage: newPage === 1 ? null : newPage })
-  }
-
   const handleSortChange = useCallback((newSortBy: string, newSortOrder: "asc" | "desc") => {
     const isDefault = newSortBy === "employeeName" && newSortOrder === "asc"
     setParams({
       dailySortBy: isDefault ? null : newSortBy,
       dailySortOrder: isDefault ? null : newSortOrder,
-      dailyPage: null,
     })
   }, [setParams])
 
@@ -178,7 +189,7 @@ export function ShiftDailyView({
     if (editingDateValue !== null) {
       const parsed = parseDateInput(editingDateValue)
       if (parsed) {
-        setParams({ dailyDate: parsed, dailyPage: null })
+        setParams({ dailyDate: parsed })
       }
       setEditingDateValue(null)
     }
@@ -196,12 +207,12 @@ export function ShiftDailyView({
     const [y, m, d] = dailyDate.split("-").map(Number)
     const date = new Date(y, m - 1, d + delta)
     const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`
-    setParams({ dailyDate: dateStr, dailyPage: null })
+    setParams({ dailyDate: dateStr })
   }
 
   const navigateToDate = (date: Date) => {
     const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`
-    setParams({ dailyDate: dateStr, dailyPage: null })
+    setParams({ dailyDate: dateStr })
     setCalendarOpen(false)
   }
 
@@ -212,12 +223,12 @@ export function ShiftDailyView({
 
   // --- Filter handlers ---
   const handleEmployeeIdsConfirm = useCallback((ids: string[]) => {
-    setParams({ employeeIds: ids.length > 0 ? ids.join(",") : null, dailyPage: null })
+    setParams({ employeeIds: ids.length > 0 ? ids.join(",") : null })
     setEmployeePopoverOpen(false)
   }, [setParams])
 
   const handleEmployeeIdsClear = useCallback(() => {
-    setParams({ employeeIds: null, dailyPage: null })
+    setParams({ employeeIds: null })
     setEmployeePopoverOpen(false)
   }, [setParams])
 
@@ -225,50 +236,48 @@ export function ShiftDailyView({
     setParams({
       groupIds: ids.length > 0 ? ids.join(",") : null,
       unassigned: specialChecked ? "true" : null,
-      dailyPage: null,
     })
     setGroupPopoverOpen(false)
   }, [setParams])
 
   const handleGroupClear = useCallback(() => {
-    setParams({ groupIds: null, unassigned: null, dailyPage: null })
+    setParams({ groupIds: null, unassigned: null })
     setGroupPopoverOpen(false)
   }, [setParams])
 
   const handleShiftCodesConfirm = useCallback((codes: string[]) => {
     setParams({
       shiftCodes: codes.length > 0 ? codes.join(",") : null,
-      dailyPage: null,
     })
     setShiftCodePopoverOpen(false)
   }, [setParams])
 
   const handleShiftCodesClear = useCallback(() => {
-    setParams({ shiftCodes: null, dailyPage: null })
+    setParams({ shiftCodes: null })
     setShiftCodePopoverOpen(false)
   }, [setParams])
 
   const handleRemoteChange = useCallback((checked: boolean) => {
-    setParams({ dailyIsRemote: checked ? "true" : null, dailyPage: null })
+    setParams({ dailyIsRemote: checked ? "true" : null })
   }, [setParams])
 
   const handleSupervisorRoleConfirm = useCallback((names: string[]) => {
-    setParams({ supervisorRoleNames: names.length > 0 ? names.join(",") : null, dailyPage: null })
+    setParams({ supervisorRoleNames: names.length > 0 ? names.join(",") : null })
     setSupervisorPopoverOpen(false)
   }, [setParams])
 
   const handleSupervisorRoleClear = useCallback(() => {
-    setParams({ supervisorRoleNames: null, dailyPage: null })
+    setParams({ supervisorRoleNames: null })
     setSupervisorPopoverOpen(false)
   }, [setParams])
 
   const handleBusinessRoleConfirm = useCallback((names: string[]) => {
-    setParams({ businessRoleNames: names.length > 0 ? names.join(",") : null, dailyPage: null })
+    setParams({ businessRoleNames: names.length > 0 ? names.join(",") : null })
     setBusinessPopoverOpen(false)
   }, [setParams])
 
   const handleBusinessRoleClear = useCallback(() => {
-    setParams({ businessRoleNames: null, dailyPage: null })
+    setParams({ businessRoleNames: null })
     setBusinessPopoverOpen(false)
   }, [setParams])
 
@@ -294,7 +303,7 @@ export function ShiftDailyView({
       tags.push({
         key: "employeeIds",
         label: `従業員: ${label}`,
-        onRemove: () => setParams({ employeeIds: null, dailyPage: null }),
+        onRemove: () => setParams({ employeeIds: null }),
       })
     }
 
@@ -302,7 +311,7 @@ export function ShiftDailyView({
       tags.push({
         key: "unassigned",
         label: "グループ: 未所属",
-        onRemove: () => setParams({ unassigned: null, dailyPage: null }),
+        onRemove: () => setParams({ unassigned: null }),
       })
     }
 
@@ -314,7 +323,7 @@ export function ShiftDailyView({
       tags.push({
         key: "groupIds",
         label: `グループ: ${label}`,
-        onRemove: () => setParams({ groupIds: null, dailyPage: null }),
+        onRemove: () => setParams({ groupIds: null }),
       })
     }
 
@@ -326,7 +335,7 @@ export function ShiftDailyView({
       tags.push({
         key: "shiftCodes",
         label: `シフト: ${label}`,
-        onRemove: () => setParams({ shiftCodes: null, dailyPage: null }),
+        onRemove: () => setParams({ shiftCodes: null }),
       })
     }
 
@@ -338,7 +347,7 @@ export function ShiftDailyView({
       tags.push({
         key: "supervisorRoleNames",
         label: `${distinctRoleTypes[0]}: ${label}`,
-        onRemove: () => setParams({ supervisorRoleNames: null, dailyPage: null }),
+        onRemove: () => setParams({ supervisorRoleNames: null }),
       })
     }
 
@@ -350,7 +359,7 @@ export function ShiftDailyView({
       tags.push({
         key: "businessRoleNames",
         label: `${distinctRoleTypes[1]}: ${label}`,
-        onRemove: () => setParams({ businessRoleNames: null, dailyPage: null }),
+        onRemove: () => setParams({ businessRoleNames: null }),
       })
     }
 
@@ -358,7 +367,7 @@ export function ShiftDailyView({
       tags.push({
         key: "isRemote",
         label: "テレワークのみ",
-        onRemove: () => setParams({ dailyIsRemote: null, dailyPage: null }),
+        onRemove: () => setParams({ dailyIsRemote: null }),
       })
     }
 
@@ -374,7 +383,6 @@ export function ShiftDailyView({
       supervisorRoleNames: null,
       businessRoleNames: null,
       dailyIsRemote: null,
-      dailyPage: null,
     })
   }, [setParams])
 
@@ -569,6 +577,82 @@ export function ShiftDailyView({
     handleRemoteChange,
   ])
 
+  // --- Dynamic height calculation ---
+  const scrollContainerRef = useRef<HTMLDivElement>(null)
+  const [maxHeight, setMaxHeight] = useState<number>(600)
+
+  useEffect(() => {
+    const container = scrollContainerRef.current
+    if (!container) return
+
+    const updateHeight = () => {
+      const rect = container.getBoundingClientRect()
+      const available = window.innerHeight - rect.top - 48
+      setMaxHeight(Math.max(300, available))
+    }
+
+    updateHeight()
+    window.addEventListener("resize", updateHeight)
+    const observer = new ResizeObserver(updateHeight)
+    observer.observe(document.documentElement)
+
+    return () => {
+      window.removeEventListener("resize", updateHeight)
+      observer.disconnect()
+    }
+  })
+
+  // --- TanStack Table setup ---
+  const [sorting, setSorting] = useState<SortingState>(
+    [{ id: sortBy, desc: sortOrder === "desc" }]
+  )
+
+  const handleSortingChange = useCallback(
+    (updater: SortingState | ((prev: SortingState) => SortingState)) => {
+      const newSorting = typeof updater === "function" ? updater(sorting) : updater
+      setSorting(newSorting)
+      if (newSorting.length > 0) {
+        handleSortChange(newSorting[0].id, newSorting[0].desc ? "desc" : "asc")
+      } else {
+        handleSortChange("employeeName", "asc")
+      }
+    },
+    [sorting, handleSortChange]
+  )
+
+  const table = useReactTable({
+    data,
+    columns,
+    getCoreRowModel: getCoreRowModel(),
+    manualSorting: true,
+    state: { sorting },
+    onSortingChange: handleSortingChange,
+  })
+
+  // --- IntersectionObserver for lazy loading ---
+  const sentinelRef = useRef<HTMLDivElement>(null)
+  const onLoadMoreRef = useRef(onLoadMore)
+  useEffect(() => {
+    onLoadMoreRef.current = onLoadMore
+  }, [onLoadMore])
+
+  useEffect(() => {
+    const sentinel = sentinelRef.current
+    const container = scrollContainerRef.current
+    if (!sentinel || !hasMore) return
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          onLoadMoreRef.current?.()
+        }
+      },
+      { root: container, rootMargin: "200px" }
+    )
+    observer.observe(sentinel)
+    return () => observer.disconnect()
+  }, [hasMore])
+
   const editShift = editRow?.shiftId
     ? {
         id: editRow.shiftId,
@@ -632,19 +716,96 @@ export function ShiftDailyView({
 
       <ActiveFilterTags tags={filterTags} onClearAll={clearAllFilters} />
 
-      <DataTable
-        columns={columns}
-        data={data}
-        pageCount={totalPages}
-        page={page}
-        onPageChange={handlePageChange}
-        onRowClick={handleRowClick}
-        serverSort={{
-          sortBy,
-          sortOrder,
-          onSortChange: handleSortChange,
-        }}
-      />
+      <div
+        ref={scrollContainerRef}
+        className="rounded-md border overflow-auto [&_[data-slot=table-container]]:overflow-visible"
+        style={{ maxHeight }}
+      >
+        <Table>
+          <TableHeader className="sticky top-0 z-10 [&_th]:bg-background [&_tr]:border-b-0 shadow-[0_1px_0_0_var(--border)]">
+            {table.getHeaderGroups().map((headerGroup) => (
+              <TableRow key={headerGroup.id}>
+                {headerGroup.headers.map((header) => {
+                  const sorted = header.column.getIsSorted()
+                  return (
+                    <TableHead key={header.id}>
+                      {header.isPlaceholder ? null : (
+                        <div
+                          className={cn(
+                            header.column.getCanSort() &&
+                              "cursor-pointer select-none flex items-center gap-1"
+                          )}
+                          onClick={header.column.getToggleSortingHandler()}
+                        >
+                          {flexRender(
+                            header.column.columnDef.header,
+                            header.getContext()
+                          )}
+                          {header.column.getCanSort() && (
+                            sorted === "asc" ? (
+                              <ArrowUp className="h-3.5 w-3.5 shrink-0" />
+                            ) : sorted === "desc" ? (
+                              <ArrowDown className="h-3.5 w-3.5 shrink-0" />
+                            ) : (
+                              <ArrowUpDown className="h-3.5 w-3.5 shrink-0 opacity-30" />
+                            )
+                          )}
+                        </div>
+                      )}
+                    </TableHead>
+                  )
+                })}
+              </TableRow>
+            ))}
+          </TableHeader>
+          <TableBody>
+            {table.getRowModel().rows?.length ? (
+              table.getRowModel().rows.map((row) => (
+                <TableRow
+                  key={row.id}
+                  className="cursor-pointer"
+                  onClick={() => handleRowClick(row.original)}
+                >
+                  {row.getVisibleCells().map((cell) => (
+                    <TableCell key={cell.id}>
+                      {flexRender(
+                        cell.column.columnDef.cell,
+                        cell.getContext()
+                      )}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell
+                  colSpan={columns.length}
+                  className="h-24 text-center"
+                >
+                  データがありません
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+
+        {/* センチネル要素 + ローディング表示 */}
+        {data.length > 0 && hasMore && (
+          <div ref={sentinelRef} className="flex items-center justify-center py-4">
+            {isLoadingMore && (
+              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+            )}
+          </div>
+        )}
+
+        {/* 件数表示 */}
+        {total > 0 && data.length > 0 && (
+          <div className="px-3 py-2 text-xs text-muted-foreground border-t">
+            {data.length} / 全{total}人 表示中
+            {hasMore && !isLoadingMore && " — スクロールで続きを読み込み"}
+          </div>
+        )}
+      </div>
 
       {editRow && editShift && (
         <ShiftDetailDialog

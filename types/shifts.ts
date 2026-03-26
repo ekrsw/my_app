@@ -44,6 +44,13 @@ export type ShiftDailyRow = {
   isRemote: boolean
 }
 
+export type ShiftDailyPaginatedResult = {
+  data: ShiftDailyRow[]
+  total: number
+  hasMore: boolean
+  nextCursor: number | null
+}
+
 export type ShiftDailySortField =
   | "employeeName" | "groupName" | "supervisorRoleName" | "businessRoleName"
   | "shiftCode" | "isRemote"

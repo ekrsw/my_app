@@ -4,10 +4,10 @@ import { prisma } from "@/lib/prisma"
 import { shiftSchema, shiftBulkSchema, shiftHistoryNoteSchema } from "@/lib/validators"
 import { revalidatePath } from "next/cache"
 import { requireAuth } from "@/lib/auth-guard"
-import { getShiftsForCalendarPaginated } from "@/lib/db/shifts"
+import { getShiftsForCalendarPaginated, getShiftsForDaily } from "@/lib/db/shifts"
 import { getShiftVersions } from "@/lib/db/history"
-import type { ShiftFilterParams } from "@/types"
-import type { ShiftCalendarPaginatedResult } from "@/types/shifts"
+import type { ShiftFilterParams, ShiftDailyFilterParams } from "@/types"
+import type { ShiftCalendarPaginatedResult, ShiftDailyPaginatedResult } from "@/types/shifts"
 
 export async function createShift(data: {
   employeeId: string
@@ -243,6 +243,14 @@ export async function loadMoreCalendarData(
   pageSize?: number
 ): Promise<ShiftCalendarPaginatedResult> {
   return getShiftsForCalendarPaginated(filter, { cursor, pageSize })
+}
+
+export async function loadMoreDailyData(
+  filter: ShiftDailyFilterParams,
+  cursor: number,
+  pageSize?: number
+): Promise<ShiftDailyPaginatedResult> {
+  return getShiftsForDaily(filter, { cursor, pageSize })
 }
 
 const IMPORT_BATCH_SIZE = 200
