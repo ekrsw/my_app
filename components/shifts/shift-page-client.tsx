@@ -13,10 +13,10 @@ import { ShiftDailyView } from "./shift-daily-view"
 import { Upload, Pencil } from "lucide-react"
 import { ShiftImportDialog } from "./shift-import-dialog"
 import { SHIFT_CODE_MAP, getColorClasses, type ShiftCodeInfo } from "@/lib/constants"
-import type { ShiftCalendarData, ShiftFilterParams, ShiftDailyRow, ShiftDailySortField, SortOrder } from "@/types/shifts"
+import type { ShiftCalendarData, ShiftFilterParams, ShiftDailyRow, ShiftDailyFilterParams, ShiftDailySortField, SortOrder } from "@/types/shifts"
 import type { LatestShiftHistory } from "@/lib/db/shifts"
 import type { Shift } from "@/app/generated/prisma/client"
-import { loadMoreCalendarData } from "@/lib/actions/shift-actions"
+import { loadMoreCalendarData, loadMoreDailyData } from "@/lib/actions/shift-actions"
 
 type Group = { id: number; name: string }
 type Role = { id: number; roleName: string; roleType: string }
@@ -51,8 +51,8 @@ type ShiftPageClientProps = {
   calendarEmployees: { id: string; name: string }[]
   dailyData: ShiftDailyRow[]
   dailyTotal: number
-  dailyPage: number
-  dailyTotalPages: number
+  dailyHasMore: boolean
+  dailyNextCursor: number | null
   dailyDate: string
   dailyGroupIds: number[]
   dailyUnassigned: boolean
@@ -88,8 +88,8 @@ export function ShiftPageClient({
   shiftLatestHistory,
   dailyData,
   dailyTotal,
-  dailyPage,
-  dailyTotalPages,
+  dailyHasMore: initialDailyHasMore,
+  dailyNextCursor: initialDailyNextCursor,
   dailyDate,
   dailyGroupIds,
   dailyUnassigned,
@@ -134,6 +134,45 @@ export function ShiftPageClient({
       setIsLoadingMore(false)
     }
   }, [hasMore, nextCursor, isLoadingMore, calendarFilter])
+
+  // --- Daily view lazy loading state ---
+  const [dailyRows, setDailyRows] = useState(dailyData)
+  const [dailyHasMoreState, setDailyHasMoreState] = useState(initialDailyHasMore)
+  const [dailyNextCursorState, setDailyNextCursorState] = useState(initialDailyNextCursor)
+  const [dailyIsLoadingMore, setDailyIsLoadingMore] = useState(false)
+
+  useEffect(() => {
+    setDailyRows(dailyData)
+    setDailyHasMoreState(initialDailyHasMore)
+    setDailyNextCursorState(initialDailyNextCursor)
+    setDailyIsLoadingMore(false)
+  }, [dailyData, initialDailyHasMore, initialDailyNextCursor])
+
+  const dailyFilter: ShiftDailyFilterParams = useMemo(() => ({
+    date: dailyDate,
+    groupIds: dailyGroupIds.length > 0 ? dailyGroupIds : undefined,
+    unassigned: dailyUnassigned || undefined,
+    shiftCodes: dailySelectedShiftCodes.length > 0 ? dailySelectedShiftCodes : undefined,
+    employeeIds: dailyEmployeeIds.length > 0 ? dailyEmployeeIds : undefined,
+    isRemote: dailyIsRemote || undefined,
+    supervisorRoleNames: dailySupervisorRoleNames.length > 0 ? dailySupervisorRoleNames : undefined,
+    businessRoleNames: dailyBusinessRoleNames.length > 0 ? dailyBusinessRoleNames : undefined,
+    sortBy: dailySortBy,
+    sortOrder: dailySortOrder,
+  }), [dailyDate, dailyGroupIds, dailyUnassigned, dailySelectedShiftCodes, dailyEmployeeIds, dailyIsRemote, dailySupervisorRoleNames, dailyBusinessRoleNames, dailySortBy, dailySortOrder])
+
+  const handleLoadMoreDaily = useCallback(async () => {
+    if (!dailyHasMoreState || dailyNextCursorState === null || dailyIsLoadingMore) return
+    setDailyIsLoadingMore(true)
+    try {
+      const result = await loadMoreDailyData(dailyFilter, dailyNextCursorState)
+      setDailyRows((prev) => [...prev, ...result.data])
+      setDailyHasMoreState(result.hasMore)
+      setDailyNextCursorState(result.nextCursor)
+    } finally {
+      setDailyIsLoadingMore(false)
+    }
+  }, [dailyHasMoreState, dailyNextCursorState, dailyIsLoadingMore, dailyFilter])
 
   const [editOpen, setEditOpen] = useState(false)
   const [detailOpen, setDetailOpen] = useState(false)
@@ -326,10 +365,11 @@ export function ShiftPageClient({
   if (viewMode === "daily") {
     return (
       <ShiftDailyView
-        data={dailyData}
+        data={dailyRows}
         total={dailyTotal}
-        page={dailyPage}
-        totalPages={dailyTotalPages}
+        hasMore={dailyHasMoreState}
+        isLoadingMore={dailyIsLoadingMore}
+        onLoadMore={handleLoadMoreDaily}
         dailyDate={dailyDate}
         groups={dailyGroupOptions}
         shiftCodes={shiftCodes}

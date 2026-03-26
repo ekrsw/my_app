@@ -28,7 +28,6 @@ export function ViewModeSelect({ value }: ViewModeSelectProps) {
       setParams({
         view: null,
         dailyDate: null,
-        dailyPage: null,
         shiftCodes: null,
         startTimeFrom: null,
         endTimeTo: null,
