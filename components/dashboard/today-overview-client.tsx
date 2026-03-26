@@ -57,7 +57,7 @@ export function TodayOverviewClient({ shifts, filterOptions, distinctRoleTypes }
 
     const updateHeight = () => {
       const rect = container.getBoundingClientRect()
-      const available = window.innerHeight - rect.top - 24
+      const available = window.innerHeight - rect.top - 48
       setMaxHeight(Math.max(300, available))
     }
 
