@@ -3,8 +3,8 @@ import "./globals.css"
 import { Toaster } from "@/components/ui/sonner"
 
 export const metadata: Metadata = {
-  title: "シフト管理システム",
-  description: "従業員シフト管理システム",
+  title: "CSC業務管理システム",
+  description: "従業員業務管理システム",
 }
 
 export default function RootLayout({

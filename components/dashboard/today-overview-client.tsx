@@ -16,8 +16,9 @@ import { CheckboxListFilter } from "@/components/shifts/column-filters/checkbox-
 import { ToggleFilter } from "@/components/shifts/column-filters/toggle-filter"
 import { ActiveFilterTags, FilterTag } from "@/components/shifts/active-filter-tags"
 import { ShiftBadge } from "@/components/shifts/shift-badge"
-import { Badge } from "@/components/ui/badge"
 import { useDashboardFilters } from "@/hooks/use-dashboard-filters"
+import { ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react"
+import { cn } from "@/lib/utils"
 import type { Shift, Employee, Group, EmployeeGroup, EmployeeFunctionRole, FunctionRole } from "@/app/generated/prisma/client"
 import type { DashboardFilterOptions } from "@/types"
 
@@ -38,6 +39,10 @@ function parseStrings(value: string): string[] {
   return value.split(",").filter(Boolean)
 }
 
+type SortKey = "employee" | "group" | "businessRole" | "supervisorRole" | "shiftCode" | "tw"
+type SortDir = "asc" | "desc"
+type SortState = { key: SortKey; dir: SortDir } | null
+
 type Props = {
   shifts: TodayShift[]
   filterOptions: DashboardFilterOptions
@@ -57,7 +62,7 @@ export function TodayOverviewClient({ shifts, filterOptions, distinctRoleTypes }
 
     const updateHeight = () => {
       const rect = container.getBoundingClientRect()
-      const available = window.innerHeight - rect.top - 24
+      const available = window.innerHeight - rect.top - 48
       setMaxHeight(Math.max(300, available))
     }
 
@@ -71,6 +76,19 @@ export function TodayOverviewClient({ shifts, filterOptions, distinctRoleTypes }
       observer.disconnect()
     }
   })
+
+  // --- Sort state ---
+  const [sort, setSort] = useState<SortState>(null)
+
+  const toggleSort = useCallback((key: SortKey) => {
+    setSort((prev) => {
+      if (prev?.key === key) {
+        if (prev.dir === "asc") return { key, dir: "desc" }
+        return null
+      }
+      return { key, dir: "asc" }
+    })
+  }, [])
 
   // --- Parse URL params ---
   const selectedEmployeeIds = useMemo(() => parseStrings(getParam("employeeIds")), [getParam])
@@ -87,6 +105,7 @@ export function TodayOverviewClient({ shifts, filterOptions, distinctRoleTypes }
   const [shiftCodePopoverOpen, setShiftCodePopoverOpen] = useState(false)
   const [supervisorPopoverOpen, setSupervisorPopoverOpen] = useState(false)
   const [businessPopoverOpen, setBusinessPopoverOpen] = useState(false)
+  const [twPopoverOpen, setTwPopoverOpen] = useState(false)
 
   // --- Filter handlers ---
   const handleEmployeeIdsConfirm = useCallback((ids: string[]) => {
@@ -142,8 +161,9 @@ export function TodayOverviewClient({ shifts, filterOptions, distinctRoleTypes }
     setBusinessPopoverOpen(false)
   }, [setParams])
 
-  const handleRemoteChange = useCallback((checked: boolean) => {
+  const handleTwFilterChange = useCallback((checked: boolean) => {
     setParams({ isRemote: checked ? "true" : null })
+    setTwPopoverOpen(false)
   }, [setParams])
 
   // --- Filter options ---
@@ -171,6 +191,42 @@ export function TodayOverviewClient({ shifts, filterOptions, distinctRoleTypes }
     () => filterOptions.businessRoleNames.map((name) => ({ value: name, label: name })),
     [filterOptions.businessRoleNames]
   )
+
+  // --- Sorted shifts ---
+  const sortedShifts = useMemo(() => {
+    if (!sort) return shifts
+
+    const getValue = (shift: TodayShift): string => {
+      const emp = shift.employee
+      switch (sort.key) {
+        case "employee":
+          return emp?.name ?? ""
+        case "group":
+          return emp?.groups?.[0]?.group?.name ?? ""
+        case "businessRole":
+          return emp?.functionRoles?.find(
+            (r) => r.functionRole?.roleType === distinctRoleTypes[1]
+          )?.functionRole?.roleName ?? ""
+        case "supervisorRole":
+          return emp?.functionRoles?.find(
+            (r) => r.functionRole?.roleType === distinctRoleTypes[0]
+          )?.functionRole?.roleName ?? ""
+        case "shiftCode":
+          return shift.shiftCode ?? ""
+        case "tw":
+          return shift.isRemote ? "0" : "1"
+        default:
+          return ""
+      }
+    }
+
+    return [...shifts].sort((a, b) => {
+      const va = getValue(a)
+      const vb = getValue(b)
+      const cmp = va.localeCompare(vb, "ja")
+      return sort.dir === "asc" ? cmp : -cmp
+    })
+  }, [shifts, sort, distinctRoleTypes])
 
   // --- Filter tags ---
   const filterTags = useMemo<FilterTag[]>(() => {
@@ -250,7 +306,7 @@ export function TodayOverviewClient({ shifts, filterOptions, distinctRoleTypes }
     if (isRemoteFilter) {
       tags.push({
         key: "isRemote",
-        label: "テレワークのみ",
+        label: "TWのみ",
         onRemove: () => setParams({ isRemote: null }),
       })
     }
@@ -270,6 +326,29 @@ export function TodayOverviewClient({ shifts, filterOptions, distinctRoleTypes }
     })
   }, [setParams])
 
+  // --- Sort button renderer ---
+  const renderSortButton = useCallback((columnKey: SortKey) => {
+    const isActive = sort?.key === columnKey
+    return (
+      <button
+        type="button"
+        className={cn(
+          "inline-flex items-center justify-center h-5 w-5 rounded-sm hover:bg-accent",
+          isActive ? "text-primary" : "text-muted-foreground"
+        )}
+        onClick={() => toggleSort(columnKey)}
+      >
+        {isActive && sort.dir === "asc" ? (
+          <ArrowUp className="h-3 w-3" />
+        ) : isActive && sort.dir === "desc" ? (
+          <ArrowDown className="h-3 w-3" />
+        ) : (
+          <ArrowUpDown className="h-3 w-3" />
+        )}
+      </button>
+    )
+  }, [sort, toggleSort])
+
   return (
     <Card className="h-full flex flex-col">
       <CardHeader className="flex-shrink-0">
@@ -286,93 +365,105 @@ export function TodayOverviewClient({ shifts, filterOptions, distinctRoleTypes }
             style={{ maxHeight }}
           >
             <Table>
-              <TableHeader className="sticky top-0 z-10 [&_th]:bg-background">
+              <TableHeader className="sticky top-0 z-10 [&_th]:bg-background [&_tr]:border-b-0 shadow-[0_1px_0_0_var(--border)]">
                 <TableRow>
                   <TableHead>
-                    <ColumnFilterPopover
-                      label="従業員名"
-                      isActive={selectedEmployeeIds.length > 0}
-                      activeCount={selectedEmployeeIds.length}
-                      open={employeePopoverOpen}
-                      onOpenChange={setEmployeePopoverOpen}
-                    >
-                      <EmployeeCheckboxFilter
-                        employees={filterOptions.employees}
-                        selectedIds={selectedEmployeeIds}
-                        onConfirm={handleEmployeeIdsConfirm}
-                        onClear={handleEmployeeIdsClear}
-                        popoverOpen={employeePopoverOpen}
-                      />
-                    </ColumnFilterPopover>
+                    <div className="flex items-center">
+                      <ColumnFilterPopover
+                        label="従業員名"
+                        isActive={selectedEmployeeIds.length > 0}
+                        activeCount={selectedEmployeeIds.length}
+                        open={employeePopoverOpen}
+                        onOpenChange={setEmployeePopoverOpen}
+                      >
+                        <EmployeeCheckboxFilter
+                          employees={filterOptions.employees}
+                          selectedIds={selectedEmployeeIds}
+                          onConfirm={handleEmployeeIdsConfirm}
+                          onClear={handleEmployeeIdsClear}
+                          popoverOpen={employeePopoverOpen}
+                        />
+                      </ColumnFilterPopover>
+                      {renderSortButton("employee")}
+                    </div>
                   </TableHead>
                   <TableHead>
-                    <ColumnFilterPopover
-                      label="グループ"
-                      isActive={groupIds.length > 0 || unassigned}
-                      activeCount={groupIds.length + (unassigned ? 1 : 0)}
-                      open={groupPopoverOpen}
-                      onOpenChange={setGroupPopoverOpen}
-                    >
-                      <CheckboxListFilter
-                        options={groupOptions}
-                        selectedValues={selectedGroupValues}
-                        onConfirm={handleGroupConfirm}
-                        onClear={handleGroupClear}
-                        popoverOpen={groupPopoverOpen}
-                        specialOption={filterOptions.hasUnassigned || unassigned ? {
-                          value: "unassigned",
-                          label: "未所属",
-                          checked: unassigned,
-                        } : undefined}
-                        searchPlaceholder="グループ名で検索..."
-                      />
-                    </ColumnFilterPopover>
+                    <div className="flex items-center">
+                      <ColumnFilterPopover
+                        label="グループ"
+                        isActive={groupIds.length > 0 || unassigned}
+                        activeCount={groupIds.length + (unassigned ? 1 : 0)}
+                        open={groupPopoverOpen}
+                        onOpenChange={setGroupPopoverOpen}
+                      >
+                        <CheckboxListFilter
+                          options={groupOptions}
+                          selectedValues={selectedGroupValues}
+                          onConfirm={handleGroupConfirm}
+                          onClear={handleGroupClear}
+                          popoverOpen={groupPopoverOpen}
+                          specialOption={filterOptions.hasUnassigned || unassigned ? {
+                            value: "unassigned",
+                            label: "未所属",
+                            checked: unassigned,
+                          } : undefined}
+                          searchPlaceholder="グループ名で検索..."
+                        />
+                      </ColumnFilterPopover>
+                      {renderSortButton("group")}
+                    </div>
                   </TableHead>
                   <TableHead>
-                    <ColumnFilterPopover
-                      label={distinctRoleTypes[1]}
-                      isActive={selectedBusinessRoleNames.length > 0}
-                      activeCount={selectedBusinessRoleNames.length}
-                      open={businessPopoverOpen}
-                      onOpenChange={setBusinessPopoverOpen}
-                    >
-                      <CheckboxListFilter
-                        options={businessRoleOptions}
-                        selectedValues={selectedBusinessRoleNames}
-                        onConfirm={handleBusinessRoleConfirm}
-                        onClear={handleBusinessRoleClear}
-                        popoverOpen={businessPopoverOpen}
-                        searchPlaceholder={`${distinctRoleTypes[1]}で検索...`}
-                      />
-                    </ColumnFilterPopover>
+                    <div className="flex items-center">
+                      <ColumnFilterPopover
+                        label={distinctRoleTypes[1]}
+                        isActive={selectedBusinessRoleNames.length > 0}
+                        activeCount={selectedBusinessRoleNames.length}
+                        open={businessPopoverOpen}
+                        onOpenChange={setBusinessPopoverOpen}
+                      >
+                        <CheckboxListFilter
+                          options={businessRoleOptions}
+                          selectedValues={selectedBusinessRoleNames}
+                          onConfirm={handleBusinessRoleConfirm}
+                          onClear={handleBusinessRoleClear}
+                          popoverOpen={businessPopoverOpen}
+                          searchPlaceholder={`${distinctRoleTypes[1]}で検索...`}
+                        />
+                      </ColumnFilterPopover>
+                      {renderSortButton("businessRole")}
+                    </div>
                   </TableHead>
                   <TableHead>
-                    <ColumnFilterPopover
-                      label={distinctRoleTypes[0]}
-                      isActive={selectedSupervisorRoleNames.length > 0}
-                      activeCount={selectedSupervisorRoleNames.length}
-                      open={supervisorPopoverOpen}
-                      onOpenChange={setSupervisorPopoverOpen}
-                    >
-                      <CheckboxListFilter
-                        options={supervisorRoleOptions}
-                        selectedValues={selectedSupervisorRoleNames}
-                        onConfirm={handleSupervisorRoleConfirm}
-                        onClear={handleSupervisorRoleClear}
-                        popoverOpen={supervisorPopoverOpen}
-                        searchPlaceholder={`${distinctRoleTypes[0]}で検索...`}
-                      />
-                    </ColumnFilterPopover>
+                    <div className="flex items-center">
+                      <ColumnFilterPopover
+                        label={distinctRoleTypes[0]}
+                        isActive={selectedSupervisorRoleNames.length > 0}
+                        activeCount={selectedSupervisorRoleNames.length}
+                        open={supervisorPopoverOpen}
+                        onOpenChange={setSupervisorPopoverOpen}
+                      >
+                        <CheckboxListFilter
+                          options={supervisorRoleOptions}
+                          selectedValues={selectedSupervisorRoleNames}
+                          onConfirm={handleSupervisorRoleConfirm}
+                          onClear={handleSupervisorRoleClear}
+                          popoverOpen={supervisorPopoverOpen}
+                          searchPlaceholder={`${distinctRoleTypes[0]}で検索...`}
+                        />
+                      </ColumnFilterPopover>
+                      {renderSortButton("supervisorRole")}
+                    </div>
                   </TableHead>
                   <TableHead>
-                    <ColumnFilterPopover
-                      label="シフト"
-                      isActive={selectedShiftCodes.length > 0 || isRemoteFilter}
-                      activeCount={selectedShiftCodes.length + (isRemoteFilter ? 1 : 0)}
-                      open={shiftCodePopoverOpen}
-                      onOpenChange={setShiftCodePopoverOpen}
-                    >
-                      <div className="flex flex-col gap-3">
+                    <div className="flex items-center">
+                      <ColumnFilterPopover
+                        label="シフト"
+                        isActive={selectedShiftCodes.length > 0}
+                        activeCount={selectedShiftCodes.length}
+                        open={shiftCodePopoverOpen}
+                        onOpenChange={setShiftCodePopoverOpen}
+                      >
                         <CheckboxListFilter
                           options={shiftCodeOptions}
                           selectedValues={selectedShiftCodes}
@@ -381,21 +472,31 @@ export function TodayOverviewClient({ shifts, filterOptions, distinctRoleTypes }
                           popoverOpen={shiftCodePopoverOpen}
                           searchPlaceholder="シフトコードで検索..."
                         />
-                        <div className="border-t pt-2">
-                          <ToggleFilter
-                            checked={isRemoteFilter}
-                            onChange={handleRemoteChange}
-                            label="テレワークのみ表示"
-                          />
-                        </div>
-                      </div>
-                    </ColumnFilterPopover>
+                      </ColumnFilterPopover>
+                      {renderSortButton("shiftCode")}
+                    </div>
                   </TableHead>
-                  <TableHead>TW</TableHead>
+                  <TableHead>
+                    <div className="flex items-center">
+                      <ColumnFilterPopover
+                        label="TW"
+                        isActive={isRemoteFilter}
+                        open={twPopoverOpen}
+                        onOpenChange={setTwPopoverOpen}
+                      >
+                        <ToggleFilter
+                          checked={isRemoteFilter}
+                          onChange={handleTwFilterChange}
+                          label="TWのみ表示"
+                        />
+                      </ColumnFilterPopover>
+                      {renderSortButton("tw")}
+                    </div>
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {shifts.map((shift) => {
+                {sortedShifts.map((shift) => {
                   const emp = shift.employee
                   const groupName = emp?.groups?.[0]?.group?.name ?? "-"
                   const supervisorRole = emp?.functionRoles?.find(
@@ -414,9 +515,9 @@ export function TodayOverviewClient({ shifts, filterOptions, distinctRoleTypes }
                       <TableCell>
                         <ShiftBadge code={shift.shiftCode} />
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="text-center">
                         {shift.isRemote && (
-                          <Badge variant="outline" className="text-xs">TW</Badge>
+                          <span className="text-sky-600 text-sm font-bold">●</span>
                         )}
                       </TableCell>
                     </TableRow>

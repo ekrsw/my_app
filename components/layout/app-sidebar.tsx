@@ -67,7 +67,7 @@ export function AppSidebar() {
       <SidebarHeader className="border-b px-6 py-4">
         <Link href="/" className="flex items-center gap-2">
           <Calendar className="h-6 w-6" />
-          <span className="text-lg font-bold">シフト管理</span>
+          <span className="text-lg font-bold">CSC業務管理</span>
         </Link>
       </SidebarHeader>
       <SidebarContent>
