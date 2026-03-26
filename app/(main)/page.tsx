@@ -1,18 +1,27 @@
 import { PageHeader } from "@/components/layout/page-header"
 import { PageContainer } from "@/components/layout/page-container"
-import { StatsCards } from "@/components/dashboard/stats-cards"
 import { TodayOverviewClient } from "@/components/dashboard/today-overview-client"
 import { TodayDuties } from "@/components/dashboard/today-duties"
-import { RecentChanges } from "@/components/dashboard/recent-changes"
-import { getDashboardStats, getTodayOverview } from "@/lib/db/dashboard"
+import { TodayAttendance } from "@/components/dashboard/today-attendance"
+import {
+  getTodayOverview,
+  getDashboardFilterOptions,
+  getTodayShiftChangeHistory,
+} from "@/lib/db/dashboard"
 import { getTodayDutyAssignments } from "@/lib/db/duty-assignments"
-import { getGroups } from "@/lib/db/groups"
 import { getFunctionRoles } from "@/lib/db/roles"
+import type { DashboardOverviewFilter } from "@/types"
 
 function parseIds(value: string | string[] | undefined): number[] {
   const str = Array.isArray(value) ? value[0] : value
   if (!str) return []
   return str.split(",").map(Number).filter((n) => !isNaN(n) && n > 0)
+}
+
+function parseStrings(value: string | string[] | undefined): string[] {
+  const str = Array.isArray(value) ? value[0] : value
+  if (!str) return []
+  return str.split(",").filter(Boolean)
 }
 
 type Props = {
@@ -23,16 +32,36 @@ export default async function DashboardPage({ searchParams }: Props) {
   const params = await searchParams
   const groupIds = parseIds(params.groupIds)
   const unassigned = params.unassigned === "true"
-  const roleIds = parseIds(params.roleIds)
-  const roleUnassigned = params.roleUnassigned === "true"
+  const employeeIds = parseStrings(params.employeeIds)
+  const shiftCodes = parseStrings(params.shiftCodes)
+  const supervisorRoleNames = parseStrings(params.supervisorRoleNames)
+  const businessRoleNames = parseStrings(params.businessRoleNames)
+  const isRemote = params.isRemote === "true" || undefined
 
-  const [stats, todayShifts, todayDuties, groups, roles] = await Promise.all([
-    getDashboardStats(),
-    getTodayOverview({ groupIds, unassigned, roleIds, roleUnassigned }),
-    getTodayDutyAssignments(),
-    getGroups(),
-    getFunctionRoles(),
-  ])
+  const filter: DashboardOverviewFilter = {
+    groupIds,
+    unassigned,
+    employeeIds,
+    shiftCodes,
+    supervisorRoleNames,
+    businessRoleNames,
+    isRemote,
+  }
+
+  const [todayShifts, todayDuties, todayChanges, filterOptions, roles] =
+    await Promise.all([
+      getTodayOverview(filter),
+      getTodayDutyAssignments(),
+      getTodayShiftChangeHistory(),
+      getDashboardFilterOptions(),
+      getFunctionRoles(),
+    ])
+
+  // ロールタイプからカラム名を決定（shift-daily-viewと同じロジック）
+  const distinctRoleTypes = (() => {
+    const types = [...new Set(roles.map((r) => r.roleType))].sort().reverse()
+    return [types[0] ?? "監督", types[1] ?? "業務"] as const
+  })()
 
   return (
     <>
@@ -41,22 +70,16 @@ export default async function DashboardPage({ searchParams }: Props) {
         breadcrumbs={[{ label: "ダッシュボード" }]}
       />
       <PageContainer>
-        <StatsCards
-          activeEmployees={stats.activeEmployees}
-          totalEmployees={stats.totalEmployees}
-          todayShifts={stats.todayShifts}
-          todayRemote={stats.todayRemote}
-          todayDuties={stats.todayDuties}
-        />
-
-        <div className="mt-6 grid gap-6 lg:grid-cols-3">
+        <div className="grid gap-6 lg:grid-cols-[3fr_2fr]">
           <TodayOverviewClient
             shifts={todayShifts}
-            groups={groups.map((g) => ({ id: g.id, name: g.name }))}
-            roles={roles.map((r) => ({ id: r.id, roleName: r.roleName }))}
+            filterOptions={filterOptions}
+            distinctRoleTypes={distinctRoleTypes}
           />
-          <TodayDuties duties={todayDuties} />
-          <RecentChanges changes={stats.recentChanges} />
+          <div className="flex flex-col gap-6">
+            <TodayDuties duties={todayDuties} />
+            <TodayAttendance changes={todayChanges} />
+          </div>
         </div>
       </PageContainer>
     </>
