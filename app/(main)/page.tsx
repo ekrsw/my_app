@@ -10,6 +10,11 @@ import {
 } from "@/lib/db/dashboard"
 import { getTodayDutyAssignments } from "@/lib/db/duty-assignments"
 import { getFunctionRoles } from "@/lib/db/roles"
+import { auth } from "@/auth"
+import { getActiveShiftCodes } from "@/lib/db/shift-codes"
+import { getShiftIdsWithHistory, getLatestShiftHistoryEntries } from "@/lib/db/shifts"
+import { getTodayJST } from "@/lib/date-utils"
+import { format } from "date-fns"
 import type { DashboardOverviewFilter } from "@/types"
 
 function parseIds(value: string | string[] | undefined): number[] {
@@ -48,13 +53,22 @@ export default async function DashboardPage({ searchParams }: Props) {
     isRemote,
   }
 
-  const [todayShifts, todayDuties, todayChanges, filterOptions, roles] =
+  const todayJST = getTodayJST()
+  const todayYear = todayJST.getUTCFullYear()
+  const todayMonth = todayJST.getUTCMonth() + 1
+  const todayDateString = format(todayJST, "yyyy-MM-dd")
+
+  const [todayShifts, todayDuties, todayChanges, filterOptions, roles, session, activeShiftCodes, shiftIdsWithHistorySet, latestHistoryEntries] =
     await Promise.all([
       getTodayOverview(filter),
       getTodayDutyAssignments(),
       getTodayShiftChangeHistory(),
       getDashboardFilterOptions(),
       getFunctionRoles(),
+      auth(),
+      getActiveShiftCodes(),
+      getShiftIdsWithHistory(todayYear, todayMonth),
+      getLatestShiftHistoryEntries(todayYear, todayMonth),
     ])
 
   // ロールタイプからカラム名を決定（shift-daily-viewと同じロジック）
@@ -79,6 +93,11 @@ export default async function DashboardPage({ searchParams }: Props) {
             shifts={todayShifts}
             filterOptions={filterOptions}
             distinctRoleTypes={distinctRoleTypes}
+            isAuthenticated={!!session?.user}
+            shiftCodes={activeShiftCodes}
+            shiftIdsWithHistory={[...shiftIdsWithHistorySet]}
+            shiftLatestHistory={latestHistoryEntries}
+            todayDateString={todayDateString}
           />
         </div>
       </PageContainer>

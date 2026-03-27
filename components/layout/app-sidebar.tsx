@@ -136,7 +136,10 @@ export function AppSidebar() {
           <Button
             variant="ghost"
             className="w-full justify-start gap-2"
-            onClick={() => signOut()}
+            onClick={async () => {
+              await signOut({ redirect: false })
+              window.location.href = "/"
+            }}
           >
             <LogOut className="h-4 w-4" />
             <span>ログアウト</span>
