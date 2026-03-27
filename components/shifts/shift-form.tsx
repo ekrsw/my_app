@@ -88,6 +88,7 @@ function ShiftFormInner({ onClose, shift, employeeId, date, shiftCodes = [] }: S
   const [isHoliday, setIsHoliday] = useState(shift?.isHoliday ?? false)
   const [isRemote, setIsRemote] = useState(shift?.isRemote ?? false)
   const [note, setNote] = useState("")
+  const [skipHistory, setSkipHistory] = useState(false)
   const startTimeRef = useRef<HTMLInputElement>(null)
   const endTimeRef = useRef<HTMLInputElement>(null)
 
@@ -161,7 +162,8 @@ function ShiftFormInner({ onClose, shift, employeeId, date, shiftCodes = [] }: S
         endTime: (form.get("endTime") as string) || null,
         isHoliday,
         isRemote,
-        note: note || null,
+        note: skipHistory ? null : (note || null),
+        skipHistory,
       })
       setLoading(false)
       if (result.error) {
@@ -266,17 +268,28 @@ function ShiftFormInner({ onClose, shift, employeeId, date, shiftCodes = [] }: S
           </div>
         </div>
         {isEdit && (
-          <div className="space-y-2">
-            <Label htmlFor="note">備考</Label>
-            <Textarea
-              id="note"
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              placeholder="変更理由など"
-              maxLength={255}
-              rows={2}
-            />
-          </div>
+          <>
+            <div className="space-y-2">
+              <Label htmlFor="note">備考</Label>
+              <Textarea
+                id="note"
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                placeholder="変更理由など"
+                maxLength={255}
+                rows={2}
+                disabled={skipHistory}
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="skipHistory"
+                checked={skipHistory}
+                onCheckedChange={(v) => setSkipHistory(v === true)}
+              />
+              <Label htmlFor="skipHistory" className="text-sm">変更履歴を残さない</Label>
+            </div>
+          </>
         )}
         <div className="flex justify-end gap-2">
           <Button type="submit" disabled={loading || isDeleting}>

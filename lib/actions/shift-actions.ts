@@ -60,11 +60,15 @@ export async function updateShift(
     isHoliday?: boolean
     isRemote?: boolean
     note?: string | null
+    skipHistory?: boolean
   }
 ) {
   await requireAuth()
   try {
     await prisma.$transaction(async (tx) => {
+      if (data.skipHistory) {
+        await tx.$executeRaw`SELECT set_config('app.skip_shift_history', 'true', true)`
+      }
       if (data.note) {
         await tx.$executeRaw`SELECT set_config('app.shift_note', ${data.note}, true)`
       }
@@ -119,6 +123,7 @@ export async function bulkUpdateShifts(data: {
   isHoliday?: boolean
   isRemote?: boolean
   note?: string | null
+  skipHistory?: boolean
 }) {
   await requireAuth()
   const parsed = shiftBulkSchema.safeParse(data)
@@ -143,6 +148,9 @@ export async function bulkUpdateShifts(data: {
 
   try {
     await prisma.$transaction(async (tx) => {
+      if (data.skipHistory) {
+        await tx.$executeRaw`SELECT set_config('app.skip_shift_history', 'true', true)`
+      }
       if (parsed.data.note) {
         await tx.$executeRaw`SELECT set_config('app.shift_note', ${parsed.data.note}, true)`
       }

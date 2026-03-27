@@ -73,6 +73,7 @@ export function ShiftBulkEditor({
   const [applyRemote, setApplyRemote] = useState(false)
   const [note, setNote] = useState("")
   const [applyNote, setApplyNote] = useState(false)
+  const [skipHistory, setSkipHistory] = useState(false)
 
   function handleSelectChange(value: string) {
     if (value === NONE_VALUE) {
@@ -119,7 +120,8 @@ export function ShiftBulkEditor({
     if (applyEndTime) data.endTime = endTime || null
     if (applyHoliday) data.isHoliday = isHoliday
     if (applyRemote) data.isRemote = isRemote
-    if (applyNote) data.note = note || null
+    if (applyNote && !skipHistory) data.note = note || null
+    if (skipHistory) data.skipHistory = true
 
     setLoading(true)
     const result = await bulkUpdateShifts(data)
@@ -263,6 +265,7 @@ export function ShiftBulkEditor({
                 checked={applyNote}
                 onCheckedChange={(v) => setApplyNote(v === true)}
                 className="mt-2"
+                disabled={skipHistory}
               />
               <div className="flex-1 space-y-1">
                 <Label htmlFor="applyNote">備考</Label>
@@ -272,9 +275,18 @@ export function ShiftBulkEditor({
                   placeholder="変更理由など"
                   maxLength={255}
                   rows={2}
-                  disabled={!applyNote}
+                  disabled={!applyNote || skipHistory}
                 />
               </div>
+            </div>
+
+            <div className="flex items-center gap-3 pt-2 border-t">
+              <Checkbox
+                id="skipHistory"
+                checked={skipHistory}
+                onCheckedChange={(v) => setSkipHistory(v === true)}
+              />
+              <Label htmlFor="skipHistory" className="text-sm">変更履歴を残さない</Label>
             </div>
           </div>
         </div>
