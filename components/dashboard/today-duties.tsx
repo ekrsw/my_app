@@ -10,22 +10,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
 import { DutyAssignmentForm } from "@/components/duty-assignments/duty-assignment-form"
-import { deleteDutyAssignment } from "@/lib/actions/duty-assignment-actions"
 import { COLOR_PALETTE } from "@/lib/constants"
 import { cn } from "@/lib/utils"
 import { Plus } from "lucide-react"
-import { toast } from "sonner"
 import type { DutyAssignmentWithDetails } from "@/types/duties"
 
 function formatTime(d: Date | string | null): string {
@@ -46,8 +34,6 @@ export function TodayDuties({ duties, employees, dutyTypes, isAuthenticated, tod
   const [createOpen, setCreateOpen] = useState(false)
   const [detailTarget, setDetailTarget] = useState<DutyAssignmentWithDetails | null>(null)
   const [editTarget, setEditTarget] = useState<DutyAssignmentWithDetails | null>(null)
-  const [deleteTarget, setDeleteTarget] = useState<DutyAssignmentWithDetails | null>(null)
-  const [deleteLoading, setDeleteLoading] = useState(false)
 
   // 業務種別ごとにグルーピング
   const grouped = duties.reduce<Record<number, { dutyType: DutyAssignmentWithDetails["dutyType"]; assignments: DutyAssignmentWithDetails[] }>>(
@@ -60,20 +46,6 @@ export function TodayDuties({ duties, employees, dutyTypes, isAuthenticated, tod
     },
     {}
   )
-
-  async function handleDelete() {
-    if (!deleteTarget) return
-    setDeleteLoading(true)
-    const result = await deleteDutyAssignment(deleteTarget.id)
-    setDeleteLoading(false)
-    if (result.error) {
-      toast.error(result.error)
-    } else {
-      toast.success("業務割当を削除しました")
-      setDeleteTarget(null)
-      setDetailTarget(null)
-    }
-  }
 
   return (
     <>
@@ -169,13 +141,6 @@ export function TodayDuties({ duties, employees, dutyTypes, isAuthenticated, tod
                 >
                   編集
                 </Button>
-                <Button
-                  size="sm"
-                  variant="destructive"
-                  onClick={() => setDeleteTarget(detailTarget)}
-                >
-                  削除
-                </Button>
               </div>
             </div>
           )}
@@ -193,23 +158,6 @@ export function TodayDuties({ duties, employees, dutyTypes, isAuthenticated, tod
         />
       )}
 
-      {/* 削除確認ダイアログ */}
-      <AlertDialog open={!!deleteTarget} onOpenChange={(v) => !v && setDeleteTarget(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>業務割当の削除</AlertDialogTitle>
-            <AlertDialogDescription>
-              {deleteTarget && `${deleteTarget.dutyType.name}（${deleteTarget.employee.name}）を削除してもよろしいですか？`}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={deleteLoading}>キャンセル</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} disabled={deleteLoading}>
-              {deleteLoading ? "削除中..." : "削除"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </>
   )
 }
