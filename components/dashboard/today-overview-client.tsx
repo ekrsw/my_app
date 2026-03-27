@@ -1,6 +1,10 @@
 "use client"
 
 import { useState, useMemo, useCallback, useRef, useEffect } from "react"
+import { ShiftDetailDialog } from "@/components/shifts/shift-detail-dialog"
+import { ShiftForm } from "@/components/shifts/shift-form"
+import { type ShiftCodeInfo, SHIFT_CODE_MAP, getColorClasses } from "@/lib/constants"
+import type { LatestShiftHistory } from "@/lib/db/shifts"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   Table,
@@ -43,13 +47,29 @@ type SortKey = "employee" | "group" | "businessRole" | "supervisorRole" | "shift
 type SortDir = "asc" | "desc"
 type SortState = { key: SortKey; dir: SortDir } | null
 
+type ActiveShiftCode = {
+  id: number
+  code: string
+  color: string | null
+  defaultStartTime: Date | null
+  defaultEndTime: Date | null
+  defaultIsHoliday: boolean
+  isActive: boolean | null
+  sortOrder: number
+}
+
 type Props = {
   shifts: TodayShift[]
   filterOptions: DashboardFilterOptions
   distinctRoleTypes: readonly [string, string]
+  isAuthenticated?: boolean
+  shiftCodes: ActiveShiftCode[]
+  shiftIdsWithHistory: number[]
+  shiftLatestHistory: Record<number, LatestShiftHistory>
+  todayDateString: string
 }
 
-export function TodayOverviewClient({ shifts, filterOptions, distinctRoleTypes }: Props) {
+export function TodayOverviewClient({ shifts, filterOptions, distinctRoleTypes, isAuthenticated, shiftCodes: shiftCodesData, shiftIdsWithHistory, shiftLatestHistory, todayDateString }: Props) {
   const { setParams, getParam } = useDashboardFilters()
 
   // --- Dynamic height calculation (same pattern as shift-calendar) ---
@@ -76,6 +96,40 @@ export function TodayOverviewClient({ shifts, filterOptions, distinctRoleTypes }
       observer.disconnect()
     }
   })
+
+  // --- Shift detail/edit dialog state ---
+  const [editOpen, setEditOpen] = useState(false)
+  const [detailOpen, setDetailOpen] = useState(false)
+  const [editRow, setEditRow] = useState<TodayShift | null>(null)
+
+  const shiftCodeMap = useMemo(() => {
+    const map: Record<string, ShiftCodeInfo> = {}
+    for (const sc of shiftCodesData) {
+      const dbColor = getColorClasses(sc.color)
+      const hardcoded = SHIFT_CODE_MAP[sc.code]
+      map[sc.code] = {
+        label: hardcoded?.label ?? sc.code,
+        color: dbColor?.text ?? hardcoded?.color ?? "text-gray-800",
+        bgColor: dbColor?.bg ?? hardcoded?.bgColor ?? "bg-gray-100",
+      }
+    }
+    return map
+  }, [shiftCodesData])
+
+  const shiftIdsWithHistorySet = useMemo(
+    () => new Set(shiftIdsWithHistory),
+    [shiftIdsWithHistory]
+  )
+
+  const handleRowClick = useCallback((shift: TodayShift) => {
+    setEditRow(shift)
+    setDetailOpen(true)
+  }, [])
+
+  const handleEditFromDetail = useCallback(() => {
+    setDetailOpen(false)
+    setEditOpen(true)
+  }, [])
 
   // --- Sort state ---
   const [sort, setSort] = useState<SortState>(null)
@@ -507,7 +561,7 @@ export function TodayOverviewClient({ shifts, filterOptions, distinctRoleTypes }
                   )?.functionRole?.roleName ?? "-"
 
                   return (
-                    <TableRow key={shift.id}>
+                    <TableRow key={shift.id} className="cursor-pointer" onClick={() => handleRowClick(shift)}>
                       <TableCell className="font-medium">{emp?.name ?? "-"}</TableCell>
                       <TableCell>{groupName}</TableCell>
                       <TableCell>{businessRole}</TableCell>
@@ -528,6 +582,43 @@ export function TodayOverviewClient({ shifts, filterOptions, distinctRoleTypes }
           </div>
         )}
       </CardContent>
+
+      {editRow && (
+        <ShiftDetailDialog
+          key={`detail-${editRow.id}`}
+          open={detailOpen}
+          onOpenChange={setDetailOpen}
+          shift={editRow}
+          employeeName={editRow.employee?.name ?? "-"}
+          date={todayDateString}
+          shiftCodeMap={shiftCodeMap}
+          hasHistory={shiftIdsWithHistorySet.has(editRow.id)}
+          latestHistory={shiftLatestHistory[editRow.id] ?? null}
+          isAuthenticated={isAuthenticated}
+          onEdit={handleEditFromDetail}
+        />
+      )}
+
+      {isAuthenticated && editRow && (
+        <ShiftForm
+          key={`edit-${editRow.id}`}
+          open={editOpen}
+          onOpenChange={setEditOpen}
+          shift={{
+            id: editRow.id,
+            employeeId: editRow.employeeId,
+            shiftDate: editRow.shiftDate,
+            shiftCode: editRow.shiftCode,
+            startTime: editRow.startTime,
+            endTime: editRow.endTime,
+            isHoliday: editRow.isHoliday,
+            isRemote: editRow.isRemote,
+          }}
+          employeeId={editRow.employeeId ?? undefined}
+          date={todayDateString}
+          shiftCodes={shiftCodesData}
+        />
+      )}
     </Card>
   )
 }
