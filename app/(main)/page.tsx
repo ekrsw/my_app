@@ -9,6 +9,8 @@ import {
   getTodayShiftChangeHistory,
 } from "@/lib/db/dashboard"
 import { getTodayDutyAssignments } from "@/lib/db/duty-assignments"
+import { getActiveDutyTypes } from "@/lib/db/duty-types"
+import { getAllEmployees } from "@/lib/db/employees"
 import { getFunctionRoles } from "@/lib/db/roles"
 import { auth } from "@/auth"
 import { getActiveShiftCodes } from "@/lib/db/shift-codes"
@@ -58,7 +60,7 @@ export default async function DashboardPage({ searchParams }: Props) {
   const todayMonth = todayJST.getUTCMonth() + 1
   const todayDateString = format(todayJST, "yyyy-MM-dd")
 
-  const [todayShifts, todayDuties, todayChanges, filterOptions, roles, session, activeShiftCodes, shiftIdsWithHistorySet, latestHistoryEntries] =
+  const [todayShifts, todayDuties, todayChanges, filterOptions, roles, session, activeShiftCodes, shiftIdsWithHistorySet, latestHistoryEntries, dutyTypes, allEmployees] =
     await Promise.all([
       getTodayOverview(filter),
       getTodayDutyAssignments(),
@@ -69,6 +71,8 @@ export default async function DashboardPage({ searchParams }: Props) {
       getActiveShiftCodes(),
       getShiftIdsWithHistory(todayYear, todayMonth),
       getLatestShiftHistoryEntries(todayYear, todayMonth),
+      getActiveDutyTypes(),
+      getAllEmployees(),
     ])
 
   // ロールタイプからカラム名を決定（shift-daily-viewと同じロジック）
@@ -86,7 +90,13 @@ export default async function DashboardPage({ searchParams }: Props) {
       <PageContainer>
         <div className="grid gap-6 lg:grid-cols-[2fr_3fr]">
           <div className="flex flex-col gap-6">
-            <TodayDuties duties={todayDuties} />
+            <TodayDuties
+              duties={todayDuties}
+              employees={allEmployees.map((e) => ({ id: e.id, name: e.name }))}
+              dutyTypes={dutyTypes.map((dt) => ({ id: dt.id, code: dt.code, name: dt.name }))}
+              isAuthenticated={!!session?.user}
+              todayDateString={todayDateString}
+            />
             <TodayAttendance changes={todayChanges} />
           </div>
           <TodayOverviewClient

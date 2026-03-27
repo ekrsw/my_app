@@ -116,7 +116,8 @@
       "Bash(ls -la /Users/ekoresawa/project/my_app/app/\\\\\\(main\\\\\\)/shifts/)",
       "Bash(claude mcp:*)",
       "WebSearch",
-      "Bash(ls -la /Users/ekoresawa/project/my_app/app/\\\\\\(main\\\\\\)/)"
+      "Bash(ls -la /Users/ekoresawa/project/my_app/app/\\\\\\(main\\\\\\)/)",
+      "mcp__playwright__browser_hover"
     ]
   }
 }
