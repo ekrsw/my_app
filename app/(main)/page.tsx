@@ -70,16 +70,16 @@ export default async function DashboardPage({ searchParams }: Props) {
         breadcrumbs={[{ label: "ダッシュボード" }]}
       />
       <PageContainer>
-        <div className="grid gap-6 lg:grid-cols-[3fr_2fr]">
+        <div className="grid gap-6 lg:grid-cols-[2fr_3fr]">
+          <div className="flex flex-col gap-6">
+            <TodayDuties duties={todayDuties} />
+            <TodayAttendance changes={todayChanges} />
+          </div>
           <TodayOverviewClient
             shifts={todayShifts}
             filterOptions={filterOptions}
             distinctRoleTypes={distinctRoleTypes}
           />
-          <div className="flex flex-col gap-6">
-            <TodayDuties duties={todayDuties} />
-            <TodayAttendance changes={todayChanges} />
-          </div>
         </div>
       </PageContainer>
     </>
