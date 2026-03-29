@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Checkbox } from "@/components/ui/checkbox"
 import {
   Select,
   SelectContent,
@@ -32,7 +33,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { Plus, Pencil, X, Check } from "lucide-react"
-import { formatDate, formatDateForInput } from "@/lib/date-utils"
+import { formatDate, formatDateForInput, getTodayJST } from "@/lib/date-utils"
 import {
   addEmployeeGroup,
   updateEmployeeGroup,
@@ -61,7 +62,17 @@ export function EmployeeGroupsTab({ employee, groups, isAuthenticated }: Props) 
   const [editEndDate, setEditEndDate] = useState("")
   const [actionLoading, setActionLoading] = useState(false)
 
+  const [showCurrentOnly, setShowCurrentOnly] = useState(false)
+
+  const today = getTodayJST()
+  const isCurrentRecord = (item: { startDate: Date | null; endDate: Date | null }) => {
+    const startOk = !item.startDate || item.startDate.getTime() <= today.getTime()
+    const endOk = !item.endDate || item.endDate.getTime() >= today.getTime()
+    return startOk && endOk
+  }
+
   const activeGroups = employee.groups.filter((g) => !g.endDate)
+  const displayGroups = showCurrentOnly ? employee.groups.filter(isCurrentRecord) : employee.groups
   const activeGroupIds = new Set(activeGroups.map((g) => g.groupId))
   const availableGroups = groups.filter((g) => !activeGroupIds.has(g.id))
 
@@ -168,9 +179,20 @@ export function EmployeeGroupsTab({ employee, groups, isAuthenticated }: Props) 
             </div>
           ))}
 
+          <div className="flex items-center gap-2 mb-4">
+            <Checkbox
+              id="show-current-only-groups"
+              checked={showCurrentOnly}
+              onCheckedChange={(v) => setShowCurrentOnly(v === true)}
+            />
+            <Label htmlFor="show-current-only-groups" className="text-sm">現在のみ表示</Label>
+          </div>
+
           {/* Table */}
-          {activeGroups.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-4">所属グループがありません</p>
+          {displayGroups.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-4">
+              {showCurrentOnly ? "現在有効な所属グループがありません" : "所属グループがありません"}
+            </p>
           ) : (
             <div className="rounded-md border">
               <Table>
@@ -183,8 +205,8 @@ export function EmployeeGroupsTab({ employee, groups, isAuthenticated }: Props) 
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {activeGroups.map((eg) => (
-                    <TableRow key={eg.id}>
+                  {displayGroups.map((eg) => (
+                    <TableRow key={eg.id} className={!isCurrentRecord(eg) ? "text-muted-foreground" : ""}>
                       <TableCell className="font-medium">{eg.group.name}</TableCell>
                       {isAuthenticated && editingId === eg.id ? (
                         <>

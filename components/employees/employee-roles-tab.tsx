@@ -34,7 +34,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { Plus, Pencil, X, Check } from "lucide-react"
-import { formatDate, formatDateForInput } from "@/lib/date-utils"
+import { formatDate, formatDateForInput, getTodayJST } from "@/lib/date-utils"
 import { assignRole, updateEmployeeRole, unassignRole } from "@/lib/actions/role-actions"
 import { EmployeeRoleHistorySection } from "@/components/employees/employee-role-history-section"
 import { toast } from "sonner"
@@ -60,7 +60,17 @@ export function EmployeeRolesTab({ employee, allRoles, isAuthenticated }: Props)
   const [editEndDate, setEditEndDate] = useState("")
   const [actionLoading, setActionLoading] = useState(false)
 
+  const [showCurrentOnly, setShowCurrentOnly] = useState(false)
+
+  const today = getTodayJST()
+  const isCurrentRecord = (item: { startDate: Date | null; endDate: Date | null }) => {
+    const startOk = !item.startDate || item.startDate.getTime() <= today.getTime()
+    const endOk = !item.endDate || item.endDate.getTime() >= today.getTime()
+    return startOk && endOk
+  }
+
   const activeRoles = employee.functionRoles.filter((r) => !r.endDate)
+  const displayRoles = showCurrentOnly ? employee.functionRoles.filter(isCurrentRecord) : employee.functionRoles
   const activeRoleIds = new Set(activeRoles.map((r) => r.functionRoleId))
   const availableRoles = allRoles.filter((r) => r.isActive && !activeRoleIds.has(r.id))
 
@@ -185,9 +195,20 @@ export function EmployeeRolesTab({ employee, allRoles, isAuthenticated }: Props)
             </div>
           ))}
 
+          <div className="flex items-center gap-2 mb-4">
+            <Checkbox
+              id="show-current-only-roles"
+              checked={showCurrentOnly}
+              onCheckedChange={(v) => setShowCurrentOnly(v === true)}
+            />
+            <Label htmlFor="show-current-only-roles" className="text-sm">現在のみ表示</Label>
+          </div>
+
           {/* Table */}
-          {activeRoles.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-4">割り当てられたロールがありません</p>
+          {displayRoles.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-4">
+              {showCurrentOnly ? "現在有効なロールがありません" : "割り当てられたロールがありません"}
+            </p>
           ) : (
             <div className="rounded-md border">
               <Table>
@@ -202,8 +223,8 @@ export function EmployeeRolesTab({ employee, allRoles, isAuthenticated }: Props)
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {activeRoles.map((role) => (
-                    <TableRow key={role.id}>
+                  {displayRoles.map((role) => (
+                    <TableRow key={role.id} className={!isCurrentRecord(role) ? "text-muted-foreground" : ""}>
                       <TableCell className="font-medium">
                         {role.functionRole?.roleName ?? "-"}
                       </TableCell>
