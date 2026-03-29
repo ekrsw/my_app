@@ -2,11 +2,13 @@ import { prisma } from "@/lib/prisma"
 import { getTodayJST } from "@/lib/date-utils"
 import type { DashboardOverviewFilter, DashboardFilterOptions } from "@/types"
 
-/** EmployeeGroup 用 Prisma where 条件（startDate NOT NULL） */
+/** EmployeeGroup 用 Prisma where 条件（startDate nullable） */
 function currentGroupDateWhere(today: Date) {
   return {
-    startDate: { lte: today },
-    OR: [{ endDate: null }, { endDate: { gte: today } }],
+    AND: [
+      { OR: [{ startDate: null }, { startDate: { lte: today } }] },
+      { OR: [{ endDate: null }, { endDate: { gte: today } }] },
+    ],
   }
 }
 
@@ -126,10 +128,7 @@ export async function getTodayOverview(filter: DashboardOverviewFilter = {}) {
         include: {
           groups: {
             include: { group: true },
-            where: {
-              startDate: { lte: today },
-              OR: [{ endDate: null }, { endDate: { gte: today } }],
-            },
+            where: currentGroupDateWhere(today),
           },
           functionRoles: {
             where: {
@@ -166,10 +165,7 @@ export async function getDashboardFilterOptions(): Promise<DashboardFilterOption
         include: {
           groups: {
             include: { group: true },
-            where: {
-              startDate: { lte: today },
-              OR: [{ endDate: null }, { endDate: { gte: today } }],
-            },
+            where: currentGroupDateWhere(today),
           },
           functionRoles: {
             where: {
@@ -246,10 +242,7 @@ export async function getTodayRemoteWorkers() {
         include: {
           groups: {
             include: { group: true },
-            where: {
-              startDate: { lte: today },
-              OR: [{ endDate: null }, { endDate: { gte: today } }],
-            },
+            where: currentGroupDateWhere(today),
           },
         },
       },
