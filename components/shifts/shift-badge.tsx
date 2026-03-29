@@ -1,8 +1,8 @@
 import { Badge } from "@/components/ui/badge"
-import { getShiftCodeInfo } from "@/lib/constants"
+import { getShiftCodeInfo, type ShiftCodeInfo } from "@/lib/constants"
 
-export function ShiftBadge({ code }: { code: string | null }) {
-  const info = getShiftCodeInfo(code)
+export function ShiftBadge({ code, shiftCodeMap }: { code: string | null; shiftCodeMap?: Record<string, ShiftCodeInfo> }) {
+  const info = getShiftCodeInfo(code, shiftCodeMap)
   return (
     <Badge className={`${info.bgColor} ${info.color} border-0 text-xs font-medium`}>
       {info.label}

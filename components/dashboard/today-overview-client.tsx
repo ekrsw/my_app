@@ -230,7 +230,7 @@ export function TodayOverviewClient({ shifts, filterOptions, distinctRoleTypes, 
   const shiftCodeOptions = useMemo(
     () => filterOptions.shiftCodes.map((code) => ({
       value: code,
-      label: <ShiftBadge code={code} />,
+      label: <ShiftBadge code={code} shiftCodeMap={shiftCodeMap} />,
       searchText: code,
     })),
     [filterOptions.shiftCodes]
@@ -567,7 +567,7 @@ export function TodayOverviewClient({ shifts, filterOptions, distinctRoleTypes, 
                       <TableCell>{businessRole}</TableCell>
                       <TableCell>{supervisorRole}</TableCell>
                       <TableCell>
-                        <ShiftBadge code={shift.shiftCode} />
+                        <ShiftBadge code={shift.shiftCode} shiftCodeMap={shiftCodeMap} />
                       </TableCell>
                       <TableCell className="text-center">
                         {shift.isRemote && (
