@@ -2,6 +2,24 @@ import { prisma } from "@/lib/prisma"
 import { getTodayJST } from "@/lib/date-utils"
 import type { DashboardOverviewFilter, DashboardFilterOptions } from "@/types"
 
+/** EmployeeGroup 用 Prisma where 条件（startDate NOT NULL） */
+function currentGroupDateWhere(today: Date) {
+  return {
+    startDate: { lte: today },
+    OR: [{ endDate: null }, { endDate: { gte: today } }],
+  }
+}
+
+/** EmployeeFunctionRole 用 Prisma where 条件（startDate nullable） */
+function currentRoleDateWhere(today: Date) {
+  return {
+    AND: [
+      { OR: [{ startDate: null }, { startDate: { lte: today } }] },
+      { OR: [{ endDate: null }, { endDate: { gte: today } }] },
+    ],
+  }
+}
+
 /**
  * DB から distinct role_type を取得して動的にカラムマッピング（getShiftsForDaily と同じロジック）
  * roleTypes[0] = 監督系, roleTypes[1] = 業務系
@@ -25,13 +43,16 @@ export async function getTodayOverview(filter: DashboardOverviewFilter = {}) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const employeeWhere: any = {}
 
+  const groupDateFilter = currentGroupDateWhere(today)
+  const roleDateFilter = currentRoleDateWhere(today)
+
   // グループフィルター
   const groupConditions = []
   if (filter.groupIds && filter.groupIds.length > 0) {
-    groupConditions.push({ groups: { some: { groupId: { in: filter.groupIds }, endDate: null } } })
+    groupConditions.push({ groups: { some: { groupId: { in: filter.groupIds }, ...groupDateFilter } } })
   }
   if (filter.unassigned) {
-    groupConditions.push({ groups: { none: { endDate: null } } })
+    groupConditions.push({ groups: { none: groupDateFilter } })
   }
   if (groupConditions.length > 0) {
     employeeWhere.OR = groupConditions
@@ -49,7 +70,7 @@ export async function getTodayOverview(filter: DashboardOverviewFilter = {}) {
       {
         functionRoles: {
           some: {
-            endDate: null,
+            ...roleDateFilter,
             functionRole: {
               roleType: roleTypes[0],
               roleName: { in: filter.supervisorRoleNames },
@@ -67,7 +88,7 @@ export async function getTodayOverview(filter: DashboardOverviewFilter = {}) {
       {
         functionRoles: {
           some: {
-            endDate: null,
+            ...roleDateFilter,
             functionRole: {
               roleType: roleTypes[1],
               roleName: { in: filter.businessRoleNames },
@@ -105,10 +126,20 @@ export async function getTodayOverview(filter: DashboardOverviewFilter = {}) {
         include: {
           groups: {
             include: { group: true },
-            where: { endDate: null },
+            where: {
+              startDate: { lte: today },
+              OR: [{ endDate: null }, { endDate: { gte: today } }],
+            },
           },
           functionRoles: {
-            where: { endDate: null },
+            where: {
+              OR: [
+                { startDate: null, endDate: null },
+                { startDate: null, endDate: { gte: today } },
+                { startDate: { lte: today }, endDate: null },
+                { startDate: { lte: today }, endDate: { gte: today } },
+              ],
+            },
             include: { functionRole: true },
           },
         },
@@ -135,10 +166,20 @@ export async function getDashboardFilterOptions(): Promise<DashboardFilterOption
         include: {
           groups: {
             include: { group: true },
-            where: { endDate: null },
+            where: {
+              startDate: { lte: today },
+              OR: [{ endDate: null }, { endDate: { gte: today } }],
+            },
           },
           functionRoles: {
-            where: { endDate: null },
+            where: {
+              OR: [
+                { startDate: null, endDate: null },
+                { startDate: null, endDate: { gte: today } },
+                { startDate: { lte: today }, endDate: null },
+                { startDate: { lte: today }, endDate: { gte: today } },
+              ],
+            },
             include: { functionRole: true },
           },
         },
@@ -205,7 +246,10 @@ export async function getTodayRemoteWorkers() {
         include: {
           groups: {
             include: { group: true },
-            where: { endDate: null },
+            where: {
+              startDate: { lte: today },
+              OR: [{ endDate: null }, { endDate: { gte: today } }],
+            },
           },
         },
       },
@@ -232,7 +276,10 @@ export async function getTodayShiftChangeHistory() {
         include: {
           groups: {
             include: { group: true },
-            where: { endDate: null },
+            where: {
+              startDate: { lte: todayStart },
+              OR: [{ endDate: null }, { endDate: { gte: todayStart } }],
+            },
           },
         },
       },

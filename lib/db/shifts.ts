@@ -2,7 +2,25 @@ import { prisma } from "@/lib/prisma"
 import { Prisma } from "@/app/generated/prisma/client"
 import type { ShiftFilterParams, ShiftDailyFilterParams, ShiftDailyRow, PaginatedResult, ShiftDailySortField, SortOrder } from "@/types"
 import type { ShiftCalendarData, ShiftCalendarPaginatedResult, ShiftDailyPaginatedResult, DailyFilterOptions } from "@/types/shifts"
-import { toDateString } from "@/lib/date-utils"
+import { toDateString, getTodayJST } from "@/lib/date-utils"
+
+/** EmployeeGroup 用 Prisma where 条件（startDate NOT NULL） */
+function currentGroupDateWhere(today: Date) {
+  return {
+    startDate: { lte: today },
+    OR: [{ endDate: null }, { endDate: { gte: today } }],
+  }
+}
+
+/** EmployeeFunctionRole 用 Prisma where 条件（startDate nullable） */
+function currentRoleDateWhere(today: Date) {
+  return {
+    AND: [
+      { OR: [{ startDate: null }, { startDate: { lte: today } }] },
+      { OR: [{ endDate: null }, { endDate: { gte: today } }] },
+    ],
+  }
+}
 
 export async function getShiftsForCalendar(
   filter: ShiftFilterParams
@@ -11,16 +29,19 @@ export async function getShiftsForCalendar(
   // ローカル時刻ではなく UTC midnight で日付を生成する
   const startDate = new Date(Date.UTC(filter.year, filter.month - 1, 1))
   const endDate = new Date(Date.UTC(filter.year, filter.month, 0))
+  const today = getTodayJST()
+  const groupDateFilter = currentGroupDateWhere(today)
+  const roleDateFilter = currentRoleDateWhere(today)
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const employeeWhere: any = {}
 
   const groupConditions = []
   if (filter.groupIds && filter.groupIds.length > 0) {
-    groupConditions.push({ groups: { some: { groupId: { in: filter.groupIds }, endDate: null } } })
+    groupConditions.push({ groups: { some: { groupId: { in: filter.groupIds }, ...groupDateFilter } } })
   }
   if (filter.unassigned) {
-    groupConditions.push({ groups: { none: { endDate: null } } })
+    groupConditions.push({ groups: { none: groupDateFilter } })
   }
   if (groupConditions.length > 0) {
     employeeWhere.OR = groupConditions
@@ -28,10 +49,10 @@ export async function getShiftsForCalendar(
 
   const roleConditions = []
   if (filter.roleIds && filter.roleIds.length > 0) {
-    roleConditions.push({ functionRoles: { some: { functionRoleId: { in: filter.roleIds }, endDate: null } } })
+    roleConditions.push({ functionRoles: { some: { functionRoleId: { in: filter.roleIds }, ...roleDateFilter } } })
   }
   if (filter.roleUnassigned) {
-    roleConditions.push({ functionRoles: { none: { endDate: null } } })
+    roleConditions.push({ functionRoles: { none: roleDateFilter } })
   }
   if (roleConditions.length > 0) {
     employeeWhere.AND = [...(employeeWhere.AND ?? []), roleConditions.length === 1 ? roleConditions[0] : { OR: roleConditions }]
@@ -64,7 +85,10 @@ export async function getShiftsForCalendar(
     include: {
       groups: {
         include: { group: true },
-        where: { endDate: null },
+        where: {
+          startDate: { lte: today },
+          OR: [{ endDate: null }, { endDate: { gte: today } }],
+        },
       },
       shifts: {
         where: {
@@ -100,6 +124,11 @@ export async function getShiftsForCalendarPaginated(
 
   const startDate = new Date(Date.UTC(filter.year, filter.month - 1, 1))
   const endDate = new Date(Date.UTC(filter.year, filter.month, 0))
+  const today = getTodayJST()
+  const groupDateFilter = currentGroupDateWhere(today)
+  const roleDateFilter = currentRoleDateWhere(today)
+  // Raw SQL 用の日付文字列
+  const todayStr = `${today.getUTCFullYear()}-${String(today.getUTCMonth() + 1).padStart(2, "0")}-${String(today.getUTCDate()).padStart(2, "0")}`
 
   // --- Prisma where (count用) ---
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -107,10 +136,10 @@ export async function getShiftsForCalendarPaginated(
 
   const groupConditions2 = []
   if (filter.groupIds && filter.groupIds.length > 0) {
-    groupConditions2.push({ groups: { some: { groupId: { in: filter.groupIds }, endDate: null } } })
+    groupConditions2.push({ groups: { some: { groupId: { in: filter.groupIds }, ...groupDateFilter } } })
   }
   if (filter.unassigned) {
-    groupConditions2.push({ groups: { none: { endDate: null } } })
+    groupConditions2.push({ groups: { none: groupDateFilter } })
   }
   if (groupConditions2.length > 0) {
     employeeWhere.OR = groupConditions2
@@ -118,10 +147,10 @@ export async function getShiftsForCalendarPaginated(
 
   const roleConditions2 = []
   if (filter.roleIds && filter.roleIds.length > 0) {
-    roleConditions2.push({ functionRoles: { some: { functionRoleId: { in: filter.roleIds }, endDate: null } } })
+    roleConditions2.push({ functionRoles: { some: { functionRoleId: { in: filter.roleIds }, ...roleDateFilter } } })
   }
   if (filter.roleUnassigned) {
-    roleConditions2.push({ functionRoles: { none: { endDate: null } } })
+    roleConditions2.push({ functionRoles: { none: roleDateFilter } })
   }
   if (roleConditions2.length > 0) {
     employeeWhere.AND = [...(employeeWhere.AND ?? []), roleConditions2.length === 1 ? roleConditions2[0] : { OR: roleConditions2 }]
@@ -167,13 +196,13 @@ export async function getShiftsForCalendarPaginated(
   if (filter.groupIds && filter.groupIds.length > 0) {
     sqlGroupConditions.push(Prisma.sql`EXISTS (
       SELECT 1 FROM employee_groups eg2
-      WHERE eg2.employee_id = e.id AND eg2.end_date IS NULL AND eg2.group_id = ANY(${filter.groupIds})
+      WHERE eg2.employee_id = e.id AND (eg2.start_date <= ${todayStr}::date) AND (eg2.end_date IS NULL OR eg2.end_date >= ${todayStr}::date) AND eg2.group_id = ANY(${filter.groupIds})
     )`)
   }
   if (filter.unassigned) {
     sqlGroupConditions.push(Prisma.sql`NOT EXISTS (
       SELECT 1 FROM employee_groups eg2
-      WHERE eg2.employee_id = e.id AND eg2.end_date IS NULL
+      WHERE eg2.employee_id = e.id AND (eg2.start_date <= ${todayStr}::date) AND (eg2.end_date IS NULL OR eg2.end_date >= ${todayStr}::date)
     )`)
   }
   if (sqlGroupConditions.length > 0) {
@@ -188,13 +217,13 @@ export async function getShiftsForCalendarPaginated(
   if (filter.roleIds && filter.roleIds.length > 0) {
     sqlRoleConditions.push(Prisma.sql`EXISTS (
       SELECT 1 FROM employee_function_roles efr
-      WHERE efr.employee_id = e.id AND efr.end_date IS NULL AND efr.function_role_id = ANY(${filter.roleIds})
+      WHERE efr.employee_id = e.id AND (efr.start_date IS NULL OR efr.start_date <= ${todayStr}::date) AND (efr.end_date IS NULL OR efr.end_date >= ${todayStr}::date) AND efr.function_role_id = ANY(${filter.roleIds})
     )`)
   }
   if (filter.roleUnassigned) {
     sqlRoleConditions.push(Prisma.sql`NOT EXISTS (
       SELECT 1 FROM employee_function_roles efr
-      WHERE efr.employee_id = e.id AND efr.end_date IS NULL
+      WHERE efr.employee_id = e.id AND (efr.start_date IS NULL OR efr.start_date <= ${todayStr}::date) AND (efr.end_date IS NULL OR efr.end_date >= ${todayStr}::date)
     )`)
   }
   if (sqlRoleConditions.length > 0) {
@@ -221,7 +250,7 @@ export async function getShiftsForCalendarPaginated(
   const orderedIds = await prisma.$queryRaw<{ id: string }[]>(Prisma.sql`
     SELECT e.id
     FROM employees e
-    LEFT JOIN employee_groups eg ON e.id = eg.employee_id AND eg.end_date IS NULL
+    LEFT JOIN employee_groups eg ON e.id = eg.employee_id AND (eg.start_date <= ${todayStr}::date) AND (eg.end_date IS NULL OR eg.end_date >= ${todayStr}::date)
     LEFT JOIN groups g ON eg.group_id = g.id
     ${whereClause}
     GROUP BY e.id, e.name
@@ -240,7 +269,10 @@ export async function getShiftsForCalendarPaginated(
           include: {
             groups: {
               include: { group: true },
-              where: { endDate: null },
+              where: {
+                startDate: { lte: today },
+                OR: [{ endDate: null }, { endDate: { gte: today } }],
+              },
             },
             shifts: {
               where: {
@@ -283,6 +315,8 @@ export async function getCalendarEmployeeOptions(
   filter: ShiftFilterParams
 ): Promise<{ id: string; name: string }[]> {
   const startDate = new Date(Date.UTC(filter.year, filter.month - 1, 1))
+  const today = getTodayJST()
+  const todayStr = `${today.getUTCFullYear()}-${String(today.getUTCMonth() + 1).padStart(2, "0")}-${String(today.getUTCDate()).padStart(2, "0")}`
 
   const conditions: Prisma.Sql[] = [
     Prisma.sql`(e.termination_date IS NULL OR e.termination_date >= ${startDate})`,
@@ -292,13 +326,13 @@ export async function getCalendarEmployeeOptions(
   if (filter.groupIds && filter.groupIds.length > 0) {
     sqlGroupConditions.push(Prisma.sql`EXISTS (
       SELECT 1 FROM employee_groups eg2
-      WHERE eg2.employee_id = e.id AND eg2.end_date IS NULL AND eg2.group_id = ANY(${filter.groupIds})
+      WHERE eg2.employee_id = e.id AND (eg2.start_date <= ${todayStr}::date) AND (eg2.end_date IS NULL OR eg2.end_date >= ${todayStr}::date) AND eg2.group_id = ANY(${filter.groupIds})
     )`)
   }
   if (filter.unassigned) {
     sqlGroupConditions.push(Prisma.sql`NOT EXISTS (
       SELECT 1 FROM employee_groups eg2
-      WHERE eg2.employee_id = e.id AND eg2.end_date IS NULL
+      WHERE eg2.employee_id = e.id AND (eg2.start_date <= ${todayStr}::date) AND (eg2.end_date IS NULL OR eg2.end_date >= ${todayStr}::date)
     )`)
   }
   if (sqlGroupConditions.length > 0) {
@@ -313,13 +347,13 @@ export async function getCalendarEmployeeOptions(
   if (filter.roleIds && filter.roleIds.length > 0) {
     sqlRoleConditions.push(Prisma.sql`EXISTS (
       SELECT 1 FROM employee_function_roles efr
-      WHERE efr.employee_id = e.id AND efr.end_date IS NULL AND efr.function_role_id = ANY(${filter.roleIds})
+      WHERE efr.employee_id = e.id AND (efr.start_date IS NULL OR efr.start_date <= ${todayStr}::date) AND (efr.end_date IS NULL OR efr.end_date >= ${todayStr}::date) AND efr.function_role_id = ANY(${filter.roleIds})
     )`)
   }
   if (filter.roleUnassigned) {
     sqlRoleConditions.push(Prisma.sql`NOT EXISTS (
       SELECT 1 FROM employee_function_roles efr
-      WHERE efr.employee_id = e.id AND efr.end_date IS NULL
+      WHERE efr.employee_id = e.id AND (efr.start_date IS NULL OR efr.start_date <= ${todayStr}::date) AND (efr.end_date IS NULL OR efr.end_date >= ${todayStr}::date)
     )`)
   }
   if (sqlRoleConditions.length > 0) {
@@ -350,14 +384,15 @@ export async function getCalendarEmployeeOptions(
 const DEFAULT_DAILY_PAGE_SIZE = 30
 
 // ソートフィールド → SQL式マッピング（GROUP BY対応で集約関数を使用）
-function getDailySortExpression(sortBy: ShiftDailySortField, roleTypes: [string, string]): string {
+function getDailySortExpression(sortBy: ShiftDailySortField, roleTypes: [string, string], dateStr: string): string {
   // SQL インジェクション防止: シングルクォートをエスケープ
   const escapeSQL = (val: string) => val.replace(/'/g, "''")
+  const escapedDate = escapeSQL(dateStr)
   switch (sortBy) {
     case "employeeName": return "e.name"
     case "groupName": return "MIN(g.name)"
-    case "supervisorRoleName": return `MIN((SELECT fr.role_name FROM employee_function_roles efr JOIN function_roles fr ON efr.function_role_id = fr.id WHERE efr.employee_id = e.id AND efr.end_date IS NULL AND fr.role_type = '${escapeSQL(roleTypes[0])}' LIMIT 1))`
-    case "businessRoleName": return `MIN((SELECT fr.role_name FROM employee_function_roles efr JOIN function_roles fr ON efr.function_role_id = fr.id WHERE efr.employee_id = e.id AND efr.end_date IS NULL AND fr.role_type = '${escapeSQL(roleTypes[1])}' LIMIT 1))`
+    case "supervisorRoleName": return `MIN((SELECT fr.role_name FROM employee_function_roles efr JOIN function_roles fr ON efr.function_role_id = fr.id WHERE efr.employee_id = e.id AND (efr.start_date IS NULL OR efr.start_date <= '${escapedDate}'::date) AND (efr.end_date IS NULL OR efr.end_date >= '${escapedDate}'::date) AND fr.role_type = '${escapeSQL(roleTypes[0])}' LIMIT 1))`
+    case "businessRoleName": return `MIN((SELECT fr.role_name FROM employee_function_roles efr JOIN function_roles fr ON efr.function_role_id = fr.id WHERE efr.employee_id = e.id AND (efr.start_date IS NULL OR efr.start_date <= '${escapedDate}'::date) AND (efr.end_date IS NULL OR efr.end_date >= '${escapedDate}'::date) AND fr.role_type = '${escapeSQL(roleTypes[1])}' LIMIT 1))`
     case "shiftCode": return "MIN(s.shift_code)"
     case "isRemote": return "MIN(s.is_remote::int)"
     default: return "e.name"
@@ -390,13 +425,13 @@ function buildDailyFilterConditions(
     if (filter.groupIds && filter.groupIds.length > 0) {
       sqlGroupConditions.push(Prisma.sql`EXISTS (
         SELECT 1 FROM employee_groups eg2
-        WHERE eg2.employee_id = e.id AND eg2.end_date IS NULL AND eg2.group_id = ANY(${filter.groupIds})
+        WHERE eg2.employee_id = e.id AND (eg2.start_date <= ${dateStr}::date) AND (eg2.end_date IS NULL OR eg2.end_date >= ${dateStr}::date) AND eg2.group_id = ANY(${filter.groupIds})
       )`)
     }
     if (filter.unassigned) {
       sqlGroupConditions.push(Prisma.sql`NOT EXISTS (
         SELECT 1 FROM employee_groups eg2
-        WHERE eg2.employee_id = e.id AND eg2.end_date IS NULL
+        WHERE eg2.employee_id = e.id AND (eg2.start_date <= ${dateStr}::date) AND (eg2.end_date IS NULL OR eg2.end_date >= ${dateStr}::date)
       )`)
     }
     if (sqlGroupConditions.length > 0) {
@@ -426,7 +461,9 @@ function buildDailyFilterConditions(
     conditions.push(Prisma.sql`EXISTS (
       SELECT 1 FROM employee_function_roles efr
       JOIN function_roles fr ON efr.function_role_id = fr.id
-      WHERE efr.employee_id = e.id AND efr.end_date IS NULL
+      WHERE efr.employee_id = e.id
+        AND (efr.start_date IS NULL OR efr.start_date <= ${dateStr}::date)
+        AND (efr.end_date IS NULL OR efr.end_date >= ${dateStr}::date)
         AND fr.role_type = ${roleTypes[0]}
         AND fr.role_name = ANY(${filter.supervisorRoleNames})
     )`)
@@ -437,7 +474,9 @@ function buildDailyFilterConditions(
     conditions.push(Prisma.sql`EXISTS (
       SELECT 1 FROM employee_function_roles efr
       JOIN function_roles fr ON efr.function_role_id = fr.id
-      WHERE efr.employee_id = e.id AND efr.end_date IS NULL
+      WHERE efr.employee_id = e.id
+        AND (efr.start_date IS NULL OR efr.start_date <= ${dateStr}::date)
+        AND (efr.end_date IS NULL OR efr.end_date >= ${dateStr}::date)
         AND fr.role_type = ${roleTypes[1]}
         AND fr.role_name = ANY(${filter.businessRoleNames})
     )`)
@@ -500,7 +539,7 @@ export async function getShiftsForDaily(
   const whereClause = Prisma.sql`WHERE ${Prisma.join(conditions, " AND ")}`
 
   // ソート式構築
-  const sortExpr = getDailySortExpression(sortBy, roleTypes)
+  const sortExpr = getDailySortExpression(sortBy, roleTypes, dateStr)
   const nullsHandling = sortOrder === "asc" ? "NULLS LAST" : "NULLS FIRST"
   // セカンダリソートとして常に e.name ASC を追加
   const orderByRaw = sortBy === "employeeName"
@@ -512,7 +551,7 @@ export async function getShiftsForDaily(
     prisma.$queryRaw<{ id: string }[]>(Prisma.sql`
       SELECT e.id
       FROM employees e
-      LEFT JOIN employee_groups eg ON e.id = eg.employee_id AND eg.end_date IS NULL
+      LEFT JOIN employee_groups eg ON e.id = eg.employee_id AND (eg.start_date <= ${dateStr}::date) AND (eg.end_date IS NULL OR eg.end_date >= ${dateStr}::date)
       LEFT JOIN groups g ON eg.group_id = g.id
       ${shiftJoin}
       ${whereClause}
@@ -525,7 +564,7 @@ export async function getShiftsForDaily(
       ? prisma.$queryRaw<{ count: bigint }[]>(Prisma.sql`
           SELECT COUNT(DISTINCT e.id) as count
           FROM employees e
-          LEFT JOIN employee_groups eg ON e.id = eg.employee_id AND eg.end_date IS NULL
+          LEFT JOIN employee_groups eg ON e.id = eg.employee_id AND (eg.start_date <= ${dateStr}::date) AND (eg.end_date IS NULL OR eg.end_date >= ${dateStr}::date)
           ${shiftJoin}
           ${whereClause}
         `)
@@ -543,13 +582,23 @@ export async function getShiftsForDaily(
         include: {
           groups: {
             include: { group: true },
-            where: { endDate: null },
+            where: {
+              startDate: { lte: targetDate },
+              OR: [{ endDate: null }, { endDate: { gte: targetDate } }],
+            },
           },
           shifts: {
             where: { shiftDate: targetDate },
           },
           functionRoles: {
-            where: { endDate: null },
+            where: {
+              OR: [
+                { startDate: null, endDate: null },
+                { startDate: null, endDate: { gte: targetDate } },
+                { startDate: { lte: targetDate }, endDate: null },
+                { startDate: { lte: targetDate }, endDate: { gte: targetDate } },
+              ],
+            },
             include: { functionRole: true },
           },
         },
@@ -674,7 +723,7 @@ export async function getDailyFilterOptions(
       return prisma.$queryRaw<{ id: string; name: string }[]>(Prisma.sql`
         SELECT DISTINCT e.id, e.name
         FROM employees e
-        LEFT JOIN employee_groups eg ON e.id = eg.employee_id AND eg.end_date IS NULL
+        LEFT JOIN employee_groups eg ON e.id = eg.employee_id AND (eg.start_date <= ${dateStr}::date) AND (eg.end_date IS NULL OR eg.end_date >= ${dateStr}::date)
         LEFT JOIN groups g ON eg.group_id = g.id
         ${shiftJoin}
         ${whereClause}
@@ -688,7 +737,7 @@ export async function getDailyFilterOptions(
       return prisma.$queryRaw<{ id: number; name: string }[]>(Prisma.sql`
         SELECT DISTINCT g.id, g.name
         FROM employees e
-        LEFT JOIN employee_groups eg ON e.id = eg.employee_id AND eg.end_date IS NULL
+        LEFT JOIN employee_groups eg ON e.id = eg.employee_id AND (eg.start_date <= ${dateStr}::date) AND (eg.end_date IS NULL OR eg.end_date >= ${dateStr}::date)
         LEFT JOIN groups g ON eg.group_id = g.id
         ${shiftJoin}
         ${whereClause}
@@ -704,7 +753,7 @@ export async function getDailyFilterOptions(
         SELECT EXISTS (
           SELECT 1
           FROM employees e
-          LEFT JOIN employee_groups eg ON e.id = eg.employee_id AND eg.end_date IS NULL
+          LEFT JOIN employee_groups eg ON e.id = eg.employee_id AND (eg.start_date <= ${dateStr}::date) AND (eg.end_date IS NULL OR eg.end_date >= ${dateStr}::date)
           ${shiftJoin}
           ${whereClause}
           AND eg.employee_id IS NULL
@@ -718,7 +767,7 @@ export async function getDailyFilterOptions(
       return prisma.$queryRaw<{ shift_code: string }[]>(Prisma.sql`
         SELECT DISTINCT s2.shift_code
         FROM employees e
-        LEFT JOIN employee_groups eg ON e.id = eg.employee_id AND eg.end_date IS NULL
+        LEFT JOIN employee_groups eg ON e.id = eg.employee_id AND (eg.start_date <= ${dateStr}::date) AND (eg.end_date IS NULL OR eg.end_date >= ${dateStr}::date)
         ${shiftJoin}
         INNER JOIN shifts s2 ON e.id = s2.employee_id AND s2.shift_date = ${dateStr}::date
         ${whereClause}
@@ -733,9 +782,9 @@ export async function getDailyFilterOptions(
       return prisma.$queryRaw<{ role_name: string }[]>(Prisma.sql`
         SELECT DISTINCT fr.role_name
         FROM employees e
-        LEFT JOIN employee_groups eg ON e.id = eg.employee_id AND eg.end_date IS NULL
+        LEFT JOIN employee_groups eg ON e.id = eg.employee_id AND (eg.start_date <= ${dateStr}::date) AND (eg.end_date IS NULL OR eg.end_date >= ${dateStr}::date)
         ${shiftJoin}
-        INNER JOIN employee_function_roles efr ON efr.employee_id = e.id AND efr.end_date IS NULL
+        INNER JOIN employee_function_roles efr ON efr.employee_id = e.id AND (efr.start_date IS NULL OR efr.start_date <= ${dateStr}::date) AND (efr.end_date IS NULL OR efr.end_date >= ${dateStr}::date)
         INNER JOIN function_roles fr ON efr.function_role_id = fr.id AND fr.role_type = ${roleTypes[0]}
         ${whereClause}
         ORDER BY fr.role_name
@@ -748,9 +797,9 @@ export async function getDailyFilterOptions(
       return prisma.$queryRaw<{ role_name: string }[]>(Prisma.sql`
         SELECT DISTINCT fr.role_name
         FROM employees e
-        LEFT JOIN employee_groups eg ON e.id = eg.employee_id AND eg.end_date IS NULL
+        LEFT JOIN employee_groups eg ON e.id = eg.employee_id AND (eg.start_date <= ${dateStr}::date) AND (eg.end_date IS NULL OR eg.end_date >= ${dateStr}::date)
         ${shiftJoin}
-        INNER JOIN employee_function_roles efr ON efr.employee_id = e.id AND efr.end_date IS NULL
+        INNER JOIN employee_function_roles efr ON efr.employee_id = e.id AND (efr.start_date IS NULL OR efr.start_date <= ${dateStr}::date) AND (efr.end_date IS NULL OR efr.end_date >= ${dateStr}::date)
         INNER JOIN function_roles fr ON efr.function_role_id = fr.id AND fr.role_type = ${roleTypes[1]}
         ${whereClause}
         ORDER BY fr.role_name

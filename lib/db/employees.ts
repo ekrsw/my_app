@@ -1,6 +1,25 @@
 import { prisma } from "@/lib/prisma"
+import { getTodayJST } from "@/lib/date-utils"
 import type { EmployeeFilterParams, PaginationParams, PaginatedResult } from "@/types"
 import type { EmployeeWithGroups, EmployeeWithDetails } from "@/types/employees"
+
+/** EmployeeGroup 用 Prisma where 条件（startDate NOT NULL） */
+function currentGroupDateWhere(today: Date) {
+  return {
+    startDate: { lte: today },
+    OR: [{ endDate: null }, { endDate: { gte: today } }],
+  }
+}
+
+/** EmployeeFunctionRole 用 Prisma where 条件（startDate nullable） */
+function currentRoleDateWhere(today: Date) {
+  return {
+    AND: [
+      { OR: [{ startDate: null }, { startDate: { lte: today } }] },
+      { OR: [{ endDate: null }, { endDate: { gte: today } }] },
+    ],
+  }
+}
 
 export async function getEmployees(
   filter: EmployeeFilterParams = {},
@@ -8,9 +27,7 @@ export async function getEmployees(
 ): Promise<PaginatedResult<EmployeeWithGroups>> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const where: any = {}
-  // @db.Date カラムとの比較は UTC 基準のため、ローカル日付を UTC midnight に変換
-  const now = new Date()
-  const today = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()))
+  const today = getTodayJST()
 
   const conditions: object[] = []
 
@@ -26,10 +43,10 @@ export async function getEmployees(
   // グループフィルター（OR結合）
   const groupConditions: object[] = []
   if (filter.groupIds?.length) {
-    groupConditions.push({ groups: { some: { groupId: { in: filter.groupIds }, endDate: null } } })
+    groupConditions.push({ groups: { some: { groupId: { in: filter.groupIds }, ...currentGroupDateWhere(today) } } })
   }
   if (filter.noGroup) {
-    groupConditions.push({ groups: { none: { endDate: null } } })
+    groupConditions.push({ groups: { none: currentGroupDateWhere(today) } })
   }
   if (groupConditions.length === 1) conditions.push(groupConditions[0])
   else if (groupConditions.length > 1) conditions.push({ OR: groupConditions })
@@ -37,10 +54,10 @@ export async function getEmployees(
   // ロールフィルター（OR結合）
   const roleConditions: object[] = []
   if (filter.roleIds?.length) {
-    roleConditions.push({ functionRoles: { some: { functionRoleId: { in: filter.roleIds }, endDate: null } } })
+    roleConditions.push({ functionRoles: { some: { functionRoleId: { in: filter.roleIds }, ...currentRoleDateWhere(today) } } })
   }
   if (filter.roleUnassigned) {
-    roleConditions.push({ functionRoles: { none: { endDate: null } } })
+    roleConditions.push({ functionRoles: { none: currentRoleDateWhere(today) } })
   }
   if (roleConditions.length === 1) conditions.push(roleConditions[0])
   else if (roleConditions.length > 1) conditions.push({ OR: roleConditions })
@@ -64,7 +81,10 @@ export async function getEmployees(
       include: {
         groups: {
           include: { group: true },
-          where: { endDate: null },
+          where: {
+            startDate: { lte: today },
+            OR: [{ endDate: null }, { endDate: { gte: today } }],
+          },
         },
       },
       orderBy: [{ name: "asc" }],
@@ -114,11 +134,15 @@ export async function getEmployeeById(id: string): Promise<EmployeeWithDetails |
 }
 
 export async function getAllEmployees() {
+  const today = getTodayJST()
   return prisma.employee.findMany({
     include: {
       groups: {
         include: { group: true },
-        where: { endDate: null },
+        where: {
+          startDate: { lte: today },
+          OR: [{ endDate: null }, { endDate: { gte: today } }],
+        },
       },
     },
     orderBy: [{ name: "asc" }],
@@ -128,19 +152,18 @@ export async function getAllEmployees() {
 export async function getEmployeesForExport(
   filter: { groupId?: number; activeOnly?: boolean } = {}
 ) {
+  const today = getTodayJST()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const where: any = {}
   const conditions: object[] = []
 
   if (filter.groupId) {
     conditions.push({
-      groups: { some: { groupId: filter.groupId, endDate: null } },
+      groups: { some: { groupId: filter.groupId, ...currentGroupDateWhere(today) } },
     })
   }
 
   if (filter.activeOnly) {
-    const now = new Date()
-    const today = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()))
     conditions.push({
       OR: [
         { terminationDate: null },
@@ -158,7 +181,10 @@ export async function getEmployeesForExport(
     include: {
       groups: {
         include: { group: true },
-        where: { endDate: null },
+        where: {
+          startDate: { lte: today },
+          OR: [{ endDate: null }, { endDate: { gte: today } }],
+        },
       },
     },
     orderBy: [{ name: "asc" }],
