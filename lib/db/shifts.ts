@@ -4,11 +4,13 @@ import type { ShiftFilterParams, ShiftDailyFilterParams, ShiftDailyRow, Paginate
 import type { ShiftCalendarData, ShiftCalendarPaginatedResult, ShiftDailyPaginatedResult, DailyFilterOptions } from "@/types/shifts"
 import { toDateString, getTodayJST } from "@/lib/date-utils"
 
-/** EmployeeGroup 用 Prisma where 条件（startDate NOT NULL） */
+/** EmployeeGroup 用 Prisma where 条件（startDate nullable） */
 function currentGroupDateWhere(today: Date) {
   return {
-    startDate: { lte: today },
-    OR: [{ endDate: null }, { endDate: { gte: today } }],
+    AND: [
+      { OR: [{ startDate: null }, { startDate: { lte: today } }] },
+      { OR: [{ endDate: null }, { endDate: { gte: today } }] },
+    ],
   }
 }
 
@@ -85,10 +87,7 @@ export async function getShiftsForCalendar(
     include: {
       groups: {
         include: { group: true },
-        where: {
-          startDate: { lte: today },
-          OR: [{ endDate: null }, { endDate: { gte: today } }],
-        },
+        where: currentGroupDateWhere(today),
       },
       shifts: {
         where: {
@@ -269,10 +268,7 @@ export async function getShiftsForCalendarPaginated(
           include: {
             groups: {
               include: { group: true },
-              where: {
-                startDate: { lte: today },
-                OR: [{ endDate: null }, { endDate: { gte: today } }],
-              },
+              where: currentGroupDateWhere(today),
             },
             shifts: {
               where: {

@@ -3,11 +3,13 @@ import { getTodayJST } from "@/lib/date-utils"
 import type { EmployeeFilterParams, PaginationParams, PaginatedResult } from "@/types"
 import type { EmployeeWithGroups, EmployeeWithDetails } from "@/types/employees"
 
-/** EmployeeGroup 用 Prisma where 条件（startDate NOT NULL） */
+/** EmployeeGroup 用 Prisma where 条件（startDate nullable） */
 function currentGroupDateWhere(today: Date) {
   return {
-    startDate: { lte: today },
-    OR: [{ endDate: null }, { endDate: { gte: today } }],
+    AND: [
+      { OR: [{ startDate: null }, { startDate: { lte: today } }] },
+      { OR: [{ endDate: null }, { endDate: { gte: today } }] },
+    ],
   }
 }
 
@@ -81,10 +83,7 @@ export async function getEmployees(
       include: {
         groups: {
           include: { group: true },
-          where: {
-            startDate: { lte: today },
-            OR: [{ endDate: null }, { endDate: { gte: today } }],
-          },
+          where: currentGroupDateWhere(today),
         },
       },
       orderBy: [{ name: "asc" }],
@@ -139,10 +138,7 @@ export async function getAllEmployees() {
     include: {
       groups: {
         include: { group: true },
-        where: {
-          startDate: { lte: today },
-          OR: [{ endDate: null }, { endDate: { gte: today } }],
-        },
+        where: currentGroupDateWhere(today),
       },
     },
     orderBy: [{ name: "asc" }],
@@ -181,10 +177,7 @@ export async function getEmployeesForExport(
     include: {
       groups: {
         include: { group: true },
-        where: {
-          startDate: { lte: today },
-          OR: [{ endDate: null }, { endDate: { gte: today } }],
-        },
+        where: currentGroupDateWhere(today),
       },
     },
     orderBy: [{ name: "asc" }],
