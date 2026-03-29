@@ -60,12 +60,6 @@ export function EmployeeFilters({
 
   return (
     <div className="flex flex-wrap items-center gap-4">
-      <Input
-        placeholder="名前で検索..."
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        className="w-64"
-      />
       <GroupMultiSelect
         groups={groups}
         selectedIds={selectedGroupIds}
@@ -77,6 +71,12 @@ export function EmployeeFilters({
         selectedIds={selectedRoleIds}
         unassigned={roleUnassigned}
         onChange={handleRoleChange}
+      />
+      <Input
+        placeholder="名前で検索..."
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        className="w-64"
       />
       <div className="flex items-center gap-2">
         <Checkbox
