@@ -3,7 +3,7 @@ import "./globals.css"
 import { Toaster } from "@/components/ui/sonner"
 
 export const metadata: Metadata = {
-  title: "CSC業務管理システム",
+  title: "CSC管理ツール",
   description: "従業員業務管理システム",
 }
 

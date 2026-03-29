@@ -38,15 +38,15 @@ export default async function DutyAssignmentsPage({ searchParams }: Props) {
   return (
     <>
       <PageHeader
-        title="割当業務管理"
+        title="業務管理"
         breadcrumbs={[
           { label: "ダッシュボード", href: "/" },
-          { label: "割当業務管理" },
+          { label: "業務管理" },
         ]}
       />
       <PageContainer>
         <div className="flex items-center justify-between mb-4">
-          <h1 className="text-2xl font-bold">割当業務管理</h1>
+          <h1 className="text-2xl font-bold">業務管理</h1>
           <div className="flex items-center gap-2">
             {isAuthenticated && (
               <DutyAssignmentForm

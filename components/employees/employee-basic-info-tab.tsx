@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Pencil } from "lucide-react"
-import { formatDate, formatDateForInput } from "@/lib/date-utils"
+import { formatDate, formatDateForInput, getTodayJST } from "@/lib/date-utils"
 import { updateEmployee } from "@/lib/actions/employee-actions"
 import { EmployeeDeleteButton } from "@/components/employees/employee-form"
 import { toast } from "sonner"
@@ -26,10 +26,17 @@ export function EmployeeBasicInfoTab({ employee, isAuthenticated }: Props) {
   const [hireDate, setHireDate] = useState(formatDateForInput(employee.hireDate))
   const [terminationDate, setTerminationDate] = useState(formatDateForInput(employee.terminationDate))
 
+  const today = getTodayJST()
+  const isCurrent = (startDate: Date | null | undefined, endDate: Date | null | undefined) => {
+    if (startDate && new Date(startDate) > today) return false
+    if (endDate && new Date(endDate) < today) return false
+    return true
+  }
+
   const isActive = !employee.terminationDate || employee.terminationDate >= new Date()
-  const currentGroups = employee.groups.filter((g) => !g.endDate)
-  const currentRoles = employee.functionRoles.filter((r) => !r.endDate)
-  const currentPositions = employee.positions.filter((p) => !p.endDate)
+  const currentGroups = employee.groups.filter((g) => isCurrent(g.startDate, g.endDate))
+  const currentRoles = employee.functionRoles.filter((r) => isCurrent(r.startDate, r.endDate))
+  const currentPositions = employee.positions.filter((p) => isCurrent(p.startDate, p.endDate))
 
   function handleCancel() {
     setName(employee.name)
