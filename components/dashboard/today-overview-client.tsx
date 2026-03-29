@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useMemo, useCallback, useRef, useEffect } from "react"
+import Link from "next/link"
 import { ShiftDetailDialog } from "@/components/shifts/shift-detail-dialog"
 import { ShiftForm } from "@/components/shifts/shift-form"
 import { type ShiftCodeInfo, SHIFT_CODE_MAP, getColorClasses } from "@/lib/constants"
@@ -562,7 +563,19 @@ export function TodayOverviewClient({ shifts, filterOptions, distinctRoleTypes, 
 
                   return (
                     <TableRow key={shift.id} className="cursor-pointer" onClick={() => handleRowClick(shift)}>
-                      <TableCell className="font-medium">{emp?.name ?? "-"}</TableCell>
+                      <TableCell className="font-medium">
+                      {emp ? (
+                        <Link
+                          href={`/employees/${emp.id}`}
+                          className="hover:underline hover:text-primary"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {emp.name}
+                        </Link>
+                      ) : (
+                        "-"
+                      )}
+                    </TableCell>
                       <TableCell>{groupName}</TableCell>
                       <TableCell>{businessRole}</TableCell>
                       <TableCell>{supervisorRole}</TableCell>

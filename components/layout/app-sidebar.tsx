@@ -43,7 +43,7 @@ import { Button } from "@/components/ui/button"
 const navItems = [
   { label: "ダッシュボード", href: "/", icon: LayoutDashboard },
   { label: "シフト管理", href: "/shifts", icon: Calendar },
-  { label: "割当業務管理", href: "/duty-assignments", icon: ClipboardList },
+  { label: "業務管理", href: "/duty-assignments", icon: ClipboardList },
   { label: "従業員", href: "/employees", icon: User },
 ]
 
@@ -67,7 +67,7 @@ export function AppSidebar() {
       <SidebarHeader className="border-b px-6 py-4">
         <Link href="/" className="flex items-center gap-2">
           <Calendar className="h-6 w-6" />
-          <span className="text-lg font-bold">CSC業務管理</span>
+          <span className="text-lg font-bold">CSC管理ツール</span>
         </Link>
       </SidebarHeader>
       <SidebarContent>
