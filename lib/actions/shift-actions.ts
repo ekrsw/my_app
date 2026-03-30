@@ -41,6 +41,7 @@ export async function createShift(data: {
         isRemote: parsed.data.isRemote,
       },
     })
+    revalidatePath("/")
     revalidatePath("/shifts")
     return { success: true }
   } catch (e: unknown) {
@@ -48,6 +49,64 @@ export async function createShift(data: {
       return { error: "この従業員・日付のシフトは既に存在します" }
     }
     return { error: "シフトの作成に失敗しました" }
+  }
+}
+
+export async function getShiftById(shiftId: number) {
+  return prisma.shift.findUnique({ where: { id: shiftId } })
+}
+
+export async function updateShiftFromAttendance(
+  shiftId: number,
+  historyId: number,
+  data: {
+    shiftCode?: string | null
+    startTime?: string | null
+    endTime?: string | null
+    isHoliday?: boolean
+    isRemote?: boolean
+  }
+) {
+  await requireAuth()
+  try {
+    await prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT set_config('app.skip_shift_history', 'true', true)`
+
+      await tx.shift.update({
+        where: { id: shiftId },
+        data: {
+          shiftCode: data.shiftCode,
+          startTime: data.startTime
+            ? new Date(`1970-01-01T${data.startTime}Z`)
+            : null,
+          endTime: data.endTime
+            ? new Date(`1970-01-01T${data.endTime}Z`)
+            : null,
+          isHoliday: data.isHoliday,
+          isRemote: data.isRemote,
+        },
+      })
+
+      await tx.shiftChangeHistory.update({
+        where: { id: historyId },
+        data: {
+          newShiftCode: data.shiftCode ?? null,
+          newStartTime: data.startTime
+            ? new Date(`1970-01-01T${data.startTime}Z`)
+            : null,
+          newEndTime: data.endTime
+            ? new Date(`1970-01-01T${data.endTime}Z`)
+            : null,
+          newIsHoliday: data.isHoliday ?? false,
+          newIsRemote: data.isRemote ?? false,
+        },
+      })
+    })
+    revalidatePath("/")
+    revalidatePath("/shifts")
+    return { success: true }
+  } catch {
+    return { error: "勤怠の更新に失敗しました" }
   }
 }
 
