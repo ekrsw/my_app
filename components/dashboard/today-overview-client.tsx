@@ -23,6 +23,7 @@ import { ActiveFilterTags, FilterTag } from "@/components/shifts/active-filter-t
 import { ShiftBadge } from "@/components/shifts/shift-badge"
 import { useDashboardFilters } from "@/hooks/use-dashboard-filters"
 import { ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react"
+import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
 import type { Shift, Employee, Group, EmployeeGroup, EmployeeFunctionRole, FunctionRole } from "@/app/generated/prisma/client"
 import type { DashboardFilterOptions } from "@/types"
@@ -99,6 +100,7 @@ export function TodayOverviewClient({ shifts, filterOptions, distinctRoleTypes, 
   })
 
   // --- Shift detail/edit dialog state ---
+  const [nameSearch, setNameSearch] = useState("")
   const [editOpen, setEditOpen] = useState(false)
   const [detailOpen, setDetailOpen] = useState(false)
   const [editRow, setEditRow] = useState<TodayShift | null>(null)
@@ -283,6 +285,15 @@ export function TodayOverviewClient({ shifts, filterOptions, distinctRoleTypes, 
     })
   }, [shifts, sort, distinctRoleTypes])
 
+  // --- Name search filter ---
+  const filteredShifts = useMemo(() => {
+    if (!nameSearch.trim()) return sortedShifts
+    const query = nameSearch.trim().toLowerCase()
+    return sortedShifts.filter((shift) =>
+      shift.employee?.name?.toLowerCase().includes(query)
+    )
+  }, [sortedShifts, nameSearch])
+
   // --- Filter tags ---
   const filterTags = useMemo<FilterTag[]>(() => {
     const tags: FilterTag[] = []
@@ -370,6 +381,7 @@ export function TodayOverviewClient({ shifts, filterOptions, distinctRoleTypes, 
   }, [selectedEmployeeIds, filterOptions, unassigned, groupIds, selectedShiftCodes, selectedSupervisorRoleNames, selectedBusinessRoleNames, distinctRoleTypes, isRemoteFilter, setParams])
 
   const clearAllFilters = useCallback(() => {
+    setNameSearch("")
     setParams({
       employeeIds: null,
       groupIds: null,
@@ -407,12 +419,22 @@ export function TodayOverviewClient({ shifts, filterOptions, distinctRoleTypes, 
   return (
     <Card className="h-full flex flex-col">
       <CardHeader className="flex-shrink-0">
-        <CardTitle>本日の出勤者 ({shifts.length}名)</CardTitle>
+        <div className="flex items-center justify-between gap-4">
+          <CardTitle>本日の出勤者 ({filteredShifts.length}名)</CardTitle>
+          <Input
+            placeholder="従業員名で検索..."
+            value={nameSearch}
+            onChange={(e) => setNameSearch(e.target.value)}
+            className="w-64 h-8"
+          />
+        </div>
       </CardHeader>
       <CardContent className="flex-1 flex flex-col min-h-0">
         <ActiveFilterTags tags={filterTags} onClearAll={clearAllFilters} />
         {shifts.length === 0 ? (
           <p className="text-sm text-muted-foreground">本日の出勤者はいません</p>
+        ) : filteredShifts.length === 0 ? (
+          <p className="text-sm text-muted-foreground py-4 text-center">該当する従業員が見つかりません</p>
         ) : (
           <div
             ref={scrollContainerRef}
@@ -551,7 +573,7 @@ export function TodayOverviewClient({ shifts, filterOptions, distinctRoleTypes, 
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {sortedShifts.map((shift) => {
+                {filteredShifts.map((shift) => {
                   const emp = shift.employee
                   const groupName = emp?.groups?.[0]?.group?.name ?? "-"
                   const supervisorRole = emp?.functionRoles?.find(
