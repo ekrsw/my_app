@@ -24,6 +24,7 @@ import { ShiftBadge } from "@/components/shifts/shift-badge"
 import { useDashboardFilters } from "@/hooks/use-dashboard-filters"
 import { ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react"
 import { Input } from "@/components/ui/input"
+import { Checkbox } from "@/components/ui/checkbox"
 import { cn } from "@/lib/utils"
 import type { Shift, Employee, Group, EmployeeGroup, EmployeeFunctionRole, FunctionRole } from "@/app/generated/prisma/client"
 import type { DashboardFilterOptions } from "@/types"
@@ -101,6 +102,7 @@ export function TodayOverviewClient({ shifts, filterOptions, distinctRoleTypes, 
 
   // --- Shift detail/edit dialog state ---
   const [nameSearch, setNameSearch] = useState("")
+  const [excludeNightShift, setExcludeNightShift] = useState(false)
   const [editOpen, setEditOpen] = useState(false)
   const [detailOpen, setDetailOpen] = useState(false)
   const [editRow, setEditRow] = useState<TodayShift | null>(null)
@@ -231,12 +233,14 @@ export function TodayOverviewClient({ shifts, filterOptions, distinctRoleTypes, 
   const selectedGroupValues = useMemo(() => groupIds.map(String), [groupIds])
 
   const shiftCodeOptions = useMemo(
-    () => filterOptions.shiftCodes.map((code) => ({
-      value: code,
-      label: <ShiftBadge code={code} shiftCodeMap={shiftCodeMap} />,
-      searchText: code,
-    })),
-    [filterOptions.shiftCodes]
+    () => filterOptions.shiftCodes
+      .filter((code) => !excludeNightShift || code !== "22_8")
+      .map((code) => ({
+        value: code,
+        label: <ShiftBadge code={code} shiftCodeMap={shiftCodeMap} />,
+        searchText: code,
+      })),
+    [filterOptions.shiftCodes, shiftCodeMap, excludeNightShift]
   )
 
   const supervisorRoleOptions = useMemo(
@@ -287,12 +291,16 @@ export function TodayOverviewClient({ shifts, filterOptions, distinctRoleTypes, 
 
   // --- Name search filter ---
   const filteredShifts = useMemo(() => {
-    if (!nameSearch.trim()) return sortedShifts
+    let result = sortedShifts
+    if (excludeNightShift) {
+      result = result.filter((shift) => shift.shiftCode !== "22_8")
+    }
+    if (!nameSearch.trim()) return result
     const query = nameSearch.trim().toLowerCase()
-    return sortedShifts.filter((shift) =>
+    return result.filter((shift) =>
       shift.employee?.name?.toLowerCase().includes(query)
     )
-  }, [sortedShifts, nameSearch])
+  }, [sortedShifts, nameSearch, excludeNightShift])
 
   // --- Filter tags ---
   const filterTags = useMemo<FilterTag[]>(() => {
@@ -421,12 +429,21 @@ export function TodayOverviewClient({ shifts, filterOptions, distinctRoleTypes, 
       <CardHeader className="flex-shrink-0">
         <div className="flex items-center justify-between gap-4">
           <CardTitle>本日の出勤者 ({filteredShifts.length}名)</CardTitle>
-          <Input
-            placeholder="従業員名で検索..."
-            value={nameSearch}
-            onChange={(e) => setNameSearch(e.target.value)}
-            className="w-64 h-8"
-          />
+          <div className="flex items-center gap-3">
+            <label className="flex items-center gap-1.5 text-sm cursor-pointer select-none">
+              <Checkbox
+                checked={excludeNightShift}
+                onCheckedChange={(checked) => setExcludeNightShift(!!checked)}
+              />
+              夜勤は除く
+            </label>
+            <Input
+              placeholder="従業員名で検索..."
+              value={nameSearch}
+              onChange={(e) => setNameSearch(e.target.value)}
+              className="w-64 h-8"
+            />
+          </div>
         </div>
       </CardHeader>
       <CardContent className="flex-1 flex flex-col min-h-0">
