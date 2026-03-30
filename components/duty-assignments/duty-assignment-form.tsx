@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
 import {
   Select,
   SelectContent,
@@ -119,6 +120,7 @@ export function DutyAssignmentForm({
       dutyDate: formData.get("dutyDate") as string,
       startTime: formData.get("startTime") as string,
       endTime: formData.get("endTime") as string,
+      note: (formData.get("note") as string) || undefined,
     }
 
     setLoading(true)
@@ -280,6 +282,17 @@ export function DutyAssignmentForm({
                 required
               />
             </div>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="note">備考</Label>
+            <Textarea
+              id="note"
+              name="note"
+              placeholder="備考を入力（任意）"
+              defaultValue={dutyAssignment?.note ?? ""}
+              key={`note-${dutyAssignment?.id ?? "new"}`}
+              rows={3}
+            />
           </div>
           <div className="flex justify-end gap-2">
             <Button type="submit" disabled={loading}>

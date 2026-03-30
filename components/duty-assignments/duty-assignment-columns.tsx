@@ -67,4 +67,9 @@ export const dutyAssignmentColumns: ColumnDef<DutyAssignmentWithDetails>[] = [
       return `${start} 〜 ${end}`
     },
   },
+  {
+    accessorKey: "note",
+    header: "備考",
+    cell: ({ row }) => row.original.note ?? <span className="text-muted-foreground">-</span>,
+  },
 ]

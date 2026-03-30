@@ -119,6 +119,7 @@ export const dutyAssignmentSchema = z.object({
   dutyDate: z.string().min(1, "日付は必須です"),
   startTime: z.string().min(1, "開始時刻は必須です"),
   endTime: z.string().min(1, "終了時刻は必須です"),
+  note: z.string().optional(),
 }).refine((data) => data.endTime > data.startTime, {
   message: "終了時刻は開始時刻より後にしてください",
   path: ["endTime"],
