@@ -421,13 +421,13 @@ function buildDailyFilterConditions(
     if (filter.groupIds && filter.groupIds.length > 0) {
       sqlGroupConditions.push(Prisma.sql`EXISTS (
         SELECT 1 FROM employee_groups eg2
-        WHERE eg2.employee_id = e.id AND (eg2.start_date <= ${dateStr}::date) AND (eg2.end_date IS NULL OR eg2.end_date >= ${dateStr}::date) AND eg2.group_id = ANY(${filter.groupIds})
+        WHERE eg2.employee_id = e.id AND (eg2.start_date IS NULL OR eg2.start_date <= ${dateStr}::date) AND (eg2.end_date IS NULL OR eg2.end_date >= ${dateStr}::date) AND eg2.group_id = ANY(${filter.groupIds})
       )`)
     }
     if (filter.unassigned) {
       sqlGroupConditions.push(Prisma.sql`NOT EXISTS (
         SELECT 1 FROM employee_groups eg2
-        WHERE eg2.employee_id = e.id AND (eg2.start_date <= ${dateStr}::date) AND (eg2.end_date IS NULL OR eg2.end_date >= ${dateStr}::date)
+        WHERE eg2.employee_id = e.id AND (eg2.start_date IS NULL OR eg2.start_date <= ${dateStr}::date) AND (eg2.end_date IS NULL OR eg2.end_date >= ${dateStr}::date)
       )`)
     }
     if (sqlGroupConditions.length > 0) {
@@ -547,7 +547,7 @@ export async function getShiftsForDaily(
     prisma.$queryRaw<{ id: string }[]>(Prisma.sql`
       SELECT e.id
       FROM employees e
-      LEFT JOIN employee_groups eg ON e.id = eg.employee_id AND (eg.start_date <= ${dateStr}::date) AND (eg.end_date IS NULL OR eg.end_date >= ${dateStr}::date)
+      LEFT JOIN employee_groups eg ON e.id = eg.employee_id AND (eg.start_date IS NULL OR eg.start_date <= ${dateStr}::date) AND (eg.end_date IS NULL OR eg.end_date >= ${dateStr}::date)
       LEFT JOIN groups g ON eg.group_id = g.id
       ${shiftJoin}
       ${whereClause}
@@ -560,7 +560,7 @@ export async function getShiftsForDaily(
       ? prisma.$queryRaw<{ count: bigint }[]>(Prisma.sql`
           SELECT COUNT(DISTINCT e.id) as count
           FROM employees e
-          LEFT JOIN employee_groups eg ON e.id = eg.employee_id AND (eg.start_date <= ${dateStr}::date) AND (eg.end_date IS NULL OR eg.end_date >= ${dateStr}::date)
+          LEFT JOIN employee_groups eg ON e.id = eg.employee_id AND (eg.start_date IS NULL OR eg.start_date <= ${dateStr}::date) AND (eg.end_date IS NULL OR eg.end_date >= ${dateStr}::date)
           ${shiftJoin}
           ${whereClause}
         `)
@@ -579,8 +579,10 @@ export async function getShiftsForDaily(
           groups: {
             include: { group: true },
             where: {
-              startDate: { lte: targetDate },
-              OR: [{ endDate: null }, { endDate: { gte: targetDate } }],
+              AND: [
+                { OR: [{ startDate: null }, { startDate: { lte: targetDate } }] },
+                { OR: [{ endDate: null }, { endDate: { gte: targetDate } }] },
+              ],
             },
           },
           shifts: {
@@ -719,7 +721,7 @@ export async function getDailyFilterOptions(
       return prisma.$queryRaw<{ id: string; name: string }[]>(Prisma.sql`
         SELECT DISTINCT e.id, e.name
         FROM employees e
-        LEFT JOIN employee_groups eg ON e.id = eg.employee_id AND (eg.start_date <= ${dateStr}::date) AND (eg.end_date IS NULL OR eg.end_date >= ${dateStr}::date)
+        LEFT JOIN employee_groups eg ON e.id = eg.employee_id AND (eg.start_date IS NULL OR eg.start_date <= ${dateStr}::date) AND (eg.end_date IS NULL OR eg.end_date >= ${dateStr}::date)
         LEFT JOIN groups g ON eg.group_id = g.id
         ${shiftJoin}
         ${whereClause}
@@ -733,7 +735,7 @@ export async function getDailyFilterOptions(
       return prisma.$queryRaw<{ id: number; name: string }[]>(Prisma.sql`
         SELECT DISTINCT g.id, g.name
         FROM employees e
-        LEFT JOIN employee_groups eg ON e.id = eg.employee_id AND (eg.start_date <= ${dateStr}::date) AND (eg.end_date IS NULL OR eg.end_date >= ${dateStr}::date)
+        LEFT JOIN employee_groups eg ON e.id = eg.employee_id AND (eg.start_date IS NULL OR eg.start_date <= ${dateStr}::date) AND (eg.end_date IS NULL OR eg.end_date >= ${dateStr}::date)
         LEFT JOIN groups g ON eg.group_id = g.id
         ${shiftJoin}
         ${whereClause}
@@ -749,7 +751,7 @@ export async function getDailyFilterOptions(
         SELECT EXISTS (
           SELECT 1
           FROM employees e
-          LEFT JOIN employee_groups eg ON e.id = eg.employee_id AND (eg.start_date <= ${dateStr}::date) AND (eg.end_date IS NULL OR eg.end_date >= ${dateStr}::date)
+          LEFT JOIN employee_groups eg ON e.id = eg.employee_id AND (eg.start_date IS NULL OR eg.start_date <= ${dateStr}::date) AND (eg.end_date IS NULL OR eg.end_date >= ${dateStr}::date)
           ${shiftJoin}
           ${whereClause}
           AND eg.employee_id IS NULL
@@ -763,7 +765,7 @@ export async function getDailyFilterOptions(
       return prisma.$queryRaw<{ shift_code: string }[]>(Prisma.sql`
         SELECT DISTINCT s2.shift_code
         FROM employees e
-        LEFT JOIN employee_groups eg ON e.id = eg.employee_id AND (eg.start_date <= ${dateStr}::date) AND (eg.end_date IS NULL OR eg.end_date >= ${dateStr}::date)
+        LEFT JOIN employee_groups eg ON e.id = eg.employee_id AND (eg.start_date IS NULL OR eg.start_date <= ${dateStr}::date) AND (eg.end_date IS NULL OR eg.end_date >= ${dateStr}::date)
         ${shiftJoin}
         INNER JOIN shifts s2 ON e.id = s2.employee_id AND s2.shift_date = ${dateStr}::date
         ${whereClause}
@@ -778,7 +780,7 @@ export async function getDailyFilterOptions(
       return prisma.$queryRaw<{ role_name: string }[]>(Prisma.sql`
         SELECT DISTINCT fr.role_name
         FROM employees e
-        LEFT JOIN employee_groups eg ON e.id = eg.employee_id AND (eg.start_date <= ${dateStr}::date) AND (eg.end_date IS NULL OR eg.end_date >= ${dateStr}::date)
+        LEFT JOIN employee_groups eg ON e.id = eg.employee_id AND (eg.start_date IS NULL OR eg.start_date <= ${dateStr}::date) AND (eg.end_date IS NULL OR eg.end_date >= ${dateStr}::date)
         ${shiftJoin}
         INNER JOIN employee_function_roles efr ON efr.employee_id = e.id AND (efr.start_date IS NULL OR efr.start_date <= ${dateStr}::date) AND (efr.end_date IS NULL OR efr.end_date >= ${dateStr}::date)
         INNER JOIN function_roles fr ON efr.function_role_id = fr.id AND fr.role_type = ${roleTypes[0]}
@@ -793,7 +795,7 @@ export async function getDailyFilterOptions(
       return prisma.$queryRaw<{ role_name: string }[]>(Prisma.sql`
         SELECT DISTINCT fr.role_name
         FROM employees e
-        LEFT JOIN employee_groups eg ON e.id = eg.employee_id AND (eg.start_date <= ${dateStr}::date) AND (eg.end_date IS NULL OR eg.end_date >= ${dateStr}::date)
+        LEFT JOIN employee_groups eg ON e.id = eg.employee_id AND (eg.start_date IS NULL OR eg.start_date <= ${dateStr}::date) AND (eg.end_date IS NULL OR eg.end_date >= ${dateStr}::date)
         ${shiftJoin}
         INNER JOIN employee_function_roles efr ON efr.employee_id = e.id AND (efr.start_date IS NULL OR efr.start_date <= ${dateStr}::date) AND (efr.end_date IS NULL OR efr.end_date >= ${dateStr}::date)
         INNER JOIN function_roles fr ON efr.function_role_id = fr.id AND fr.role_type = ${roleTypes[1]}
