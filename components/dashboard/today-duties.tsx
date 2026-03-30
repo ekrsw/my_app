@@ -64,13 +64,13 @@ export function TodayDuties({ duties, employees, dutyTypes, isAuthenticated, tod
           {duties.length === 0 ? (
             <p className="text-sm text-muted-foreground">本日の業務はありません</p>
           ) : (
-            <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
+            <div className="grid grid-cols-[auto_auto_1fr] gap-x-3 gap-y-1 text-sm">
               {Object.values(grouped).map(({ dutyType, assignments }, groupIdx) => {
                 const colorKey = dutyType.color
                 const palette = colorKey ? COLOR_PALETTE[colorKey] : null
                 return (
                   <React.Fragment key={dutyType.id}>
-                    <div className={cn("col-span-2 flex items-center gap-2", groupIdx > 0 && "mt-3")}>
+                    <div className={cn("col-span-3 flex items-center gap-2", groupIdx > 0 && "mt-3")}>
                       {palette && (
                         <span className={cn("inline-block h-3 w-3 rounded-full", palette.swatch)} />
                       )}
@@ -80,13 +80,18 @@ export function TodayDuties({ duties, employees, dutyTypes, isAuthenticated, tod
                       <div
                         key={assignment.id}
                         className={cn(
-                          "col-span-2 grid grid-cols-subgrid items-center",
+                          "col-span-3 grid grid-cols-subgrid items-center",
                           isAuthenticated && "cursor-pointer rounded hover:bg-accent"
                         )}
                         onClick={() => isAuthenticated && setDetailTarget(assignment)}
                       >
                         <span className="pl-5 py-0.5">
                           {assignment.employee.name}
+                        </span>
+                        <span className="text-muted-foreground">
+                          {assignment.employee.groups.length > 0
+                            ? assignment.employee.groups.map((eg) => eg.group.name).join(", ")
+                            : "-"}
                         </span>
                         <span>
                           <Badge variant="outline" className={cn(
