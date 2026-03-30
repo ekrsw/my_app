@@ -97,7 +97,13 @@ export default async function DashboardPage({ searchParams }: Props) {
               isAuthenticated={!!session?.user}
               todayDateString={todayDateString}
             />
-            <TodayAttendance changes={todayChanges} />
+            <TodayAttendance
+              changes={todayChanges}
+              employees={allEmployees.map((e) => ({ id: e.id, name: e.name }))}
+              shiftCodes={activeShiftCodes}
+              isAuthenticated={!!session?.user}
+              todayDateString={todayDateString}
+            />
           </div>
           <TodayOverviewClient
             shifts={todayShifts}
