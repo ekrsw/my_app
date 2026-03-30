@@ -11,7 +11,12 @@ export async function getTodayDutyAssignments() {
         include: {
           groups: {
             include: { group: true },
-            where: { endDate: null },
+            where: {
+              AND: [
+                { OR: [{ startDate: null }, { startDate: { lte: today } }] },
+                { OR: [{ endDate: null }, { endDate: { gte: today } }] },
+              ],
+            },
           },
         },
       },
