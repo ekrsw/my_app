@@ -93,13 +93,18 @@ export function TodayDuties({ duties, employees, dutyTypes, isAuthenticated, tod
                             ? assignment.employee.groups.map((eg) => eg.group.name).join(", ")
                             : "-"}
                         </span>
-                        <span>
+                        <span className="flex items-center gap-2">
                           <Badge variant="outline" className={cn(
                             "text-xs",
                             palette ? palette.text : ""
                           )}>
                             {formatTime(assignment.startTime)}〜{formatTime(assignment.endTime)}
                           </Badge>
+                          {assignment.note && (
+                            <span className="text-xs text-muted-foreground truncate">
+                              {assignment.note}
+                            </span>
+                          )}
                         </span>
                       </div>
                     ))}
@@ -135,6 +140,12 @@ export function TodayDuties({ duties, employees, dutyTypes, isAuthenticated, tod
                 <span>{detailTarget.employee.name}</span>
                 <span className="text-muted-foreground">時間帯</span>
                 <span>{formatTime(detailTarget.startTime)}〜{formatTime(detailTarget.endTime)}</span>
+                {detailTarget.note && (
+                  <>
+                    <span className="text-muted-foreground">備考</span>
+                    <span className="break-words">{detailTarget.note}</span>
+                  </>
+                )}
               </div>
               <div className="flex justify-end gap-2 pt-2">
                 <Button

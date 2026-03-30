@@ -11,6 +11,7 @@ export async function createDutyAssignment(data: {
   dutyDate: string
   startTime: string
   endTime: string
+  note?: string
 }) {
   await requireAuth()
   const parsed = dutyAssignmentSchema.safeParse(data)
@@ -27,6 +28,7 @@ export async function createDutyAssignment(data: {
         dutyDate: new Date(parsed.data.dutyDate),
         startTime: new Date(`1970-01-01T${parsed.data.startTime}Z`),
         endTime: new Date(`1970-01-01T${parsed.data.endTime}Z`),
+        note: parsed.data.note ?? null,
       },
     })
     revalidatePath("/duty-assignments")
@@ -48,6 +50,7 @@ export async function updateDutyAssignment(
     dutyDate: string
     startTime: string
     endTime: string
+    note?: string
   }
 ) {
   await requireAuth()
@@ -66,6 +69,7 @@ export async function updateDutyAssignment(
         dutyDate: new Date(parsed.data.dutyDate),
         startTime: new Date(`1970-01-01T${parsed.data.startTime}Z`),
         endTime: new Date(`1970-01-01T${parsed.data.endTime}Z`),
+        note: parsed.data.note ?? null,
       },
     })
     revalidatePath("/duty-assignments")

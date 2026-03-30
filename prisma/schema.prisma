@@ -241,6 +241,7 @@ model DutyAssignment {
   dutyDate   DateTime @map("duty_date") @db.Date
   startTime  DateTime @map("start_time") @db.Time(6)
   endTime    DateTime @map("end_time") @db.Time(6)
+  note       String?  @db.Text
 
   employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
   dutyType DutyType @relation(fields: [dutyTypeId], references: [id], onDelete: Restrict)
