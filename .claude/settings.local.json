@@ -120,7 +120,17 @@
       "mcp__playwright__browser_hover",
       "mcp__postgres__describe_table",
       "mcp__morphllm-fast-apply__list_allowed_directories",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(git clone:*)",
+      "Bash(./setup:*)",
+      "Bash(export:*)",
+      "Bash(~/.bashrc:*)",
+      "Bash(bun:*)",
+      "Bash(~/.claude/skills/gstack/setup:*)",
+      "Bash(cmd.exe:*)",
+      "Bash(test:*)",
+      "Bash($D variants:*)",
+      "Bash($B goto:*)"
     ]
   }
 }

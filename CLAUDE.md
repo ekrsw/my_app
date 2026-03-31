@@ -119,10 +119,16 @@ Web ブラウジングには必ず `/browse` スキルを使用すること。`m
 ### 利用可能なスキル
 `/office-hours`, `/plan-ceo-review`, `/plan-eng-review`, `/plan-design-review`, `/design-consultation`, `/design-shotgun`, `/design-html`, `/review`, `/ship`, `/land-and-deploy`, `/canary`, `/benchmark`, `/browse`, `/connect-chrome`, `/qa`, `/qa-only`, `/design-review`, `/setup-browser-cookies`, `/setup-deploy`, `/retro`, `/investigate`, `/document-release`, `/codex`, `/cso`, `/autoplan`, `/careful`, `/freeze`, `/guard`, `/unfreeze`, `/gstack-upgrade`, `/learn`
 
+### セットアップ（初回のみ）
+チームメイトが初めて利用する場合は、以下を実行してgstackをインストールする:
+```bash
+git clone --single-branch --depth 1 https://github.com/garrytan/gstack.git ~/.claude/skills/gstack && cd ~/.claude/skills/gstack && ./setup
+```
+
 ### トラブルシューティング
 gstack スキルが動作しない場合は、以下を実行してバイナリのビルドとスキルの登録を行う:
 ```bash
-cd .claude/skills/gstack && ./setup
+cd ~/.claude/skills/gstack && ./setup
 ```
 
 ## Skill routing
