@@ -56,6 +56,17 @@ export async function getShiftById(shiftId: number) {
   return prisma.shift.findUnique({ where: { id: shiftId } })
 }
 
+export async function getShiftByEmployeeAndDate(employeeId: string, shiftDate: string) {
+  return prisma.shift.findUnique({
+    where: {
+      employeeId_shiftDate: {
+        employeeId,
+        shiftDate: new Date(shiftDate),
+      },
+    },
+  })
+}
+
 export async function updateShiftFromAttendance(
   shiftId: number,
   historyId: number,

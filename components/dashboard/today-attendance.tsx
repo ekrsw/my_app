@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import {
@@ -10,19 +10,18 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
+import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { formatDate } from "@/lib/date-utils"
 import { ShiftBadge } from "@/components/shifts/shift-badge"
 import { ShiftForm } from "@/components/shifts/shift-form"
 import { AttendanceEditForm } from "@/components/dashboard/attendance-edit-form"
-import { getShiftById } from "@/lib/actions/shift-actions"
-import { ArrowRight, Plus } from "lucide-react"
+import { getShiftById, getShiftByEmployeeAndDate } from "@/lib/actions/shift-actions"
+import { ArrowRight, Plus, Search, Check, ChevronsUpDown } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
 import type { ShiftChangeHistory, Employee, EmployeeGroup, Group } from "@/app/generated/prisma/client"
@@ -54,7 +53,27 @@ export function TodayAttendance({ changes, employees, shiftCodes, isAuthenticate
   // 新規作成: 従業員選択 → ShiftForm
   const [selectEmployeeOpen, setSelectEmployeeOpen] = useState(false)
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>("")
-  const [createFormOpen, setCreateFormOpen] = useState(false)
+  const [employeeSearch, setEmployeeSearch] = useState("")
+  const [employeePopoverOpen, setEmployeePopoverOpen] = useState(false)
+  const [shiftFormOpen, setShiftFormOpen] = useState(false)
+  const [shiftFormTarget, setShiftFormTarget] = useState<{
+    id: number
+    employeeId: string | null
+    shiftDate: Date
+    shiftCode: string | null
+    startTime: Date | null
+    endTime: Date | null
+    isHoliday: boolean | null
+    isRemote: boolean
+  } | null>(null)
+
+  const filteredEmployees = useMemo(() => {
+    if (!employeeSearch) return employees
+    const lower = employeeSearch.toLowerCase()
+    return employees.filter((e) => e.name.toLowerCase().includes(lower))
+  }, [employees, employeeSearch])
+
+  const selectedEmployee = employees.find((e) => e.id === selectedEmployeeId)
 
   // 編集
   const [editTarget, setEditTarget] = useState<{
@@ -72,13 +91,21 @@ export function TodayAttendance({ changes, employees, shiftCodes, isAuthenticate
 
   function handlePlusClick() {
     setSelectedEmployeeId("")
+    setEmployeeSearch("")
     setSelectEmployeeOpen(true)
   }
 
-  function handleEmployeeConfirm() {
+  async function handleEmployeeConfirm() {
     if (!selectedEmployeeId) return
     setSelectEmployeeOpen(false)
-    setCreateFormOpen(true)
+
+    const existingShift = await getShiftByEmployeeAndDate(selectedEmployeeId, todayDateString)
+    if (existingShift) {
+      setShiftFormTarget(existingShift)
+    } else {
+      setShiftFormTarget(null)
+    }
+    setShiftFormOpen(true)
   }
 
   async function handleChangeClick(change: TodayChange) {
@@ -182,18 +209,68 @@ export function TodayAttendance({ changes, employees, shiftCodes, isAuthenticate
           <div className="space-y-4">
             <div className="space-y-2">
               <Label>従業員</Label>
-              <Select value={selectedEmployeeId} onValueChange={setSelectedEmployeeId}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="選択してください" />
-                </SelectTrigger>
-                <SelectContent>
-                  {employees.map((emp) => (
-                    <SelectItem key={emp.id} value={emp.id}>
-                      {emp.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Popover
+                open={employeePopoverOpen}
+                onOpenChange={(v) => {
+                  setEmployeePopoverOpen(v)
+                  if (!v) setEmployeeSearch("")
+                }}
+              >
+                <PopoverTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={employeePopoverOpen}
+                    className="w-full justify-between font-normal"
+                  >
+                    {selectedEmployee ? selectedEmployee.name : "従業員を選択"}
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-2" align="start">
+                  <div className="relative mb-2">
+                    <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                    <Input
+                      value={employeeSearch}
+                      onChange={(e) => setEmployeeSearch(e.target.value)}
+                      placeholder="従業員名で検索..."
+                      className="h-8 pl-7"
+                    />
+                  </div>
+                  <div className="max-h-48 overflow-y-auto">
+                    <div className="flex flex-col gap-0.5">
+                      {filteredEmployees.map((emp) => (
+                        <div
+                          key={emp.id}
+                          className={cn(
+                            "flex items-center gap-2 px-2 py-1.5 rounded cursor-pointer hover:bg-accent text-sm",
+                            emp.id === selectedEmployeeId && "bg-accent"
+                          )}
+                          onClick={() => {
+                            setSelectedEmployeeId(emp.id)
+                            setEmployeePopoverOpen(false)
+                            setEmployeeSearch("")
+                          }}
+                        >
+                          <Check
+                            className={cn(
+                              "h-3.5 w-3.5 shrink-0",
+                              emp.id === selectedEmployeeId ? "opacity-100" : "opacity-0"
+                            )}
+                          />
+                          {emp.name}
+                        </div>
+                      ))}
+                      {filteredEmployees.length === 0 && (
+                        <p className="text-sm text-muted-foreground px-2 py-1.5">
+                          該当なし
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </PopoverContent>
+              </Popover>
             </div>
             <div className="flex justify-end gap-2">
               <Button onClick={handleEmployeeConfirm} disabled={!selectedEmployeeId}>
@@ -207,10 +284,11 @@ export function TodayAttendance({ changes, employees, shiftCodes, isAuthenticate
         </DialogContent>
       </Dialog>
 
-      {/* 新規シフト作成フォーム */}
+      {/* シフト作成/編集フォーム */}
       <ShiftForm
-        open={createFormOpen}
-        onOpenChange={setCreateFormOpen}
+        open={shiftFormOpen}
+        onOpenChange={setShiftFormOpen}
+        shift={shiftFormTarget ?? undefined}
         employeeId={selectedEmployeeId}
         date={todayDateString}
         shiftCodes={shiftCodes}
