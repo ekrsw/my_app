@@ -75,6 +75,23 @@ export function TodayAttendance({ changes, employees, shiftCodes, isAuthenticate
 
   const selectedEmployee = employees.find((e) => e.id === selectedEmployeeId)
 
+  // 同一シフトの最新変更のみ編集可能にする（changedAtが最新のもの）
+  const latestChangeIdPerShift = useMemo(() => {
+    const map = new Map<number, { id: number; changedAt: Date }>()
+    for (const change of changes) {
+      const existing = map.get(change.shiftId)
+      if (!existing || new Date(change.changedAt) > new Date(existing.changedAt)) {
+        map.set(change.shiftId, { id: change.id, changedAt: change.changedAt })
+      }
+    }
+    return new Set(Array.from(map.values()).map((v) => v.id))
+  }, [changes])
+
+  function isEditable(change: TodayChange): boolean {
+    if (change.newShiftCode === null) return false
+    return latestChangeIdPerShift.has(change.id)
+  }
+
   // 編集
   const [editTarget, setEditTarget] = useState<{
     shiftId: number
@@ -110,11 +127,6 @@ export function TodayAttendance({ changes, employees, shiftCodes, isAuthenticate
 
   async function handleChangeClick(change: TodayChange) {
     if (!isAuthenticated) return
-    // 削除済みシフトは編集不可
-    if (change.newShiftCode === null) {
-      toast.error("削除済みのシフトは編集できません")
-      return
-    }
 
     const shift = await getShiftById(change.shiftId)
     if (!shift) {
@@ -159,9 +171,9 @@ export function TodayAttendance({ changes, employees, shiftCodes, isAuthenticate
                   key={change.id}
                   className={cn(
                     "flex items-start justify-between rounded-md border p-3",
-                    isAuthenticated && change.newShiftCode !== null && "cursor-pointer hover:bg-accent"
+                    isAuthenticated && isEditable(change) && "cursor-pointer hover:bg-accent"
                   )}
-                  onClick={() => handleChangeClick(change)}
+                  onClick={() => isEditable(change) && handleChangeClick(change)}
                 >
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">

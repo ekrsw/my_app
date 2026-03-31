@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef } from "react"
+import { useState, useRef, useTransition } from "react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -8,6 +8,17 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -19,7 +30,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { updateShiftFromAttendance } from "@/lib/actions/shift-actions"
+import { updateShiftFromAttendance, revertShiftFromAttendance } from "@/lib/actions/shift-actions"
 import { toast } from "sonner"
 
 type ActiveShiftCode = {
@@ -70,6 +81,8 @@ function AttendanceEditFormInner({
   const initialIsCustom = initialCode !== "" && !shiftCodes.some((sc) => sc.code === initialCode)
 
   const [loading, setLoading] = useState(false)
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
+  const [isDeleting, startDeleteTransition] = useTransition()
   const [code, setCode] = useState(initialCode)
   const [isCustom, setIsCustom] = useState(initialIsCustom)
   const [isHoliday, setIsHoliday] = useState(shift.isHoliday ?? false)
@@ -127,6 +140,18 @@ function AttendanceEditFormInner({
       toast.success("勤怠を更新しました")
       onClose()
     }
+  }
+
+  function handleDelete() {
+    startDeleteTransition(async () => {
+      const result = await revertShiftFromAttendance(shiftId, historyId)
+      if (result.error) {
+        toast.error(result.error)
+      } else {
+        toast.success("変更を取り消しました")
+        onClose()
+      }
+    })
   }
 
   const selectValue = getSelectValue(isCustom ? CUSTOM_VALUE : code || null)
@@ -209,12 +234,33 @@ function AttendanceEditFormInner({
           </div>
         </div>
         <div className="flex justify-end gap-2">
-          <Button type="submit" disabled={loading}>
+          <Button type="submit" disabled={loading || isDeleting}>
             {loading ? "保存中..." : "保存"}
           </Button>
           <Button type="button" variant="outline" onClick={onClose}>
             キャンセル
           </Button>
+          <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+            <AlertDialogTrigger asChild>
+              <Button type="button" variant="destructive" disabled={loading || isDeleting}>
+                削除
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>変更を取り消しますか？</AlertDialogTitle>
+                <AlertDialogDescription>
+                  この変更履歴を削除し、シフトを変更前の状態に戻します。
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>キャンセル</AlertDialogCancel>
+                <AlertDialogAction onClick={handleDelete} disabled={isDeleting}>
+                  取り消す
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </form>
     </>
