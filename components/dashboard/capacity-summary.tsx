@@ -1,19 +1,17 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
+import { ColumnFilterPopover } from "@/components/shifts/column-filter-popover"
+import { CheckboxListFilter } from "@/components/shifts/column-filters/checkbox-list-filter"
 import {
-  calculateCapacity,
+  calculateFilteredCapacity,
+  extractFilterOptions,
   getCapacityColor,
   getCurrentJSTTimeHHMM,
 } from "@/lib/capacity-utils"
-
-type ShiftForCapacity = {
-  employeeId: string | null
-  startTime: Date | string | null
-  endTime: Date | string | null
-}
+import type { ShiftWithDetails, CapacityFilter } from "@/lib/capacity-utils"
 
 type DutyForCapacity = {
   employeeId: string
@@ -22,8 +20,9 @@ type DutyForCapacity = {
 }
 
 type Props = {
-  shifts: ShiftForCapacity[]
+  shifts: ShiftWithDetails[]
   duties: DutyForCapacity[]
+  roleTypes: readonly [string, string]
 }
 
 const COLOR_STYLES = {
@@ -32,8 +31,12 @@ const COLOR_STYLES = {
   red: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300",
 } as const
 
-export function CapacitySummary({ shifts, duties }: Props) {
+export function CapacitySummary({ shifts, duties, roleTypes }: Props) {
   const [currentTime, setCurrentTime] = useState(getCurrentJSTTimeHHMM)
+  const [selectedGroupIds, setSelectedGroupIds] = useState<number[]>([])
+  const [selectedRoleNames, setSelectedRoleNames] = useState<Record<string, string[]>>({})
+  const [groupFilterOpen, setGroupFilterOpen] = useState(false)
+  const [roleFilterOpen, setRoleFilterOpen] = useState<Record<string, boolean>>({})
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -42,13 +45,95 @@ export function CapacitySummary({ shifts, duties }: Props) {
     return () => clearInterval(interval)
   }, [])
 
-  const { total, onDuty, available } = calculateCapacity(shifts, duties, currentTime)
+  const filterOptions = useMemo(
+    () => extractFilterOptions(shifts, currentTime),
+    [shifts, currentTime]
+  )
+
+  const filter: CapacityFilter | undefined = useMemo(() => {
+    const hasGroup = selectedGroupIds.length > 0
+    const hasRole = Object.values(selectedRoleNames).some((v) => v.length > 0)
+    if (!hasGroup && !hasRole) return undefined
+    return {
+      groupIds: hasGroup ? selectedGroupIds : undefined,
+      roleNames: hasRole ? selectedRoleNames : undefined,
+    }
+  }, [selectedGroupIds, selectedRoleNames])
+
+  const isFiltered = !!filter
+  const { total, onDuty, available } = calculateFilteredCapacity(shifts, duties, currentTime, filter)
   const color = getCapacityColor(available)
 
   return (
     <Card>
       <CardHeader className="pb-3">
-        <CardTitle className="text-base">対応可能状況</CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-base">
+            対応可能状況
+            {isFiltered && (
+              <span className="ml-2 text-xs font-normal text-muted-foreground">(フィルター中)</span>
+            )}
+          </CardTitle>
+        </div>
+        <div className="flex flex-wrap items-center gap-2 pt-1">
+          {/* グループフィルター */}
+          <ColumnFilterPopover
+            label="グループ"
+            isActive={selectedGroupIds.length > 0}
+            activeCount={selectedGroupIds.length}
+            open={groupFilterOpen}
+            onOpenChange={setGroupFilterOpen}
+          >
+            <CheckboxListFilter
+              options={filterOptions.groups.map((g) => ({
+                value: String(g.id),
+                label: g.name,
+              }))}
+              selectedValues={selectedGroupIds.map(String)}
+              onConfirm={(values) => {
+                setSelectedGroupIds(values.map(Number))
+                setGroupFilterOpen(false)
+              }}
+              onClear={() => {
+                setSelectedGroupIds([])
+                setGroupFilterOpen(false)
+              }}
+              popoverOpen={groupFilterOpen}
+            />
+          </ColumnFilterPopover>
+
+          {/* ロールフィルター（roleType ごと） */}
+          {[roleTypes[0], roleTypes[1]].map((rt) => {
+            const names = filterOptions.roles[rt]
+            if (!names || names.length === 0) return null
+            const selected = selectedRoleNames[rt] ?? []
+            const open = roleFilterOpen[rt] ?? false
+            return (
+              <ColumnFilterPopover
+                key={rt}
+                label={rt}
+                isActive={selected.length > 0}
+                activeCount={selected.length}
+                open={open}
+                onOpenChange={(o) => setRoleFilterOpen((prev) => ({ ...prev, [rt]: o }))}
+              >
+                <CheckboxListFilter
+                  options={names.map((n) => ({ value: n, label: n }))}
+                  selectedValues={selected}
+                  onConfirm={(values) => {
+                    setSelectedRoleNames((prev) => ({ ...prev, [rt]: values }))
+                    setRoleFilterOpen((prev) => ({ ...prev, [rt]: false }))
+                  }}
+                  onClear={() => {
+                    setSelectedRoleNames((prev) => ({ ...prev, [rt]: [] }))
+                    setRoleFilterOpen((prev) => ({ ...prev, [rt]: false }))
+                  }}
+                  popoverOpen={open}
+                />
+              </ColumnFilterPopover>
+            )
+          })}
+        </div>
       </CardHeader>
       <CardContent>
         <div className="flex items-center gap-4">

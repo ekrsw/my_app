@@ -5,6 +5,8 @@ import {
   isDutyActive,
   isWorkerPresent,
   calculateCapacity,
+  calculateFilteredCapacity,
+  extractFilterOptions,
   getCapacityColor,
 } from "@/lib/capacity-utils"
 
@@ -292,6 +294,149 @@ describe("calculateCapacity", () => {
     ]
     const result = calculateCapacity(shifts, [], "22:30")
     expect(result).toEqual({ total: 2, onDuty: 0, available: 2 })
+  })
+})
+
+describe("calculateFilteredCapacity", () => {
+  const groupA = { id: 1, name: "グループA" }
+  const groupB = { id: 2, name: "グループB" }
+
+  const makeShift = (
+    employeeId: string, start: string, end: string,
+    groups: Array<{ id: number; name: string }>,
+    roles: Array<{ roleType: string; roleName: string }> = []
+  ) => ({
+    employeeId,
+    startTime: `1970-01-01T${start}:00Z`,
+    endTime: `1970-01-01T${end}:00Z`,
+    groups,
+    roles,
+  })
+
+  const makeDuty = (employeeId: string, start: string, end: string) => ({
+    employeeId,
+    startTime: `1970-01-01T${start}:00Z`,
+    endTime: `1970-01-01T${end}:00Z`,
+  })
+
+  it("フィルターなし: 全員の集計", () => {
+    const shifts = [
+      makeShift("emp-1", "09:00", "17:00", [groupA]),
+      makeShift("emp-2", "09:00", "17:00", [groupB]),
+    ]
+    const result = calculateFilteredCapacity(shifts, [], "10:00")
+    expect(result).toEqual({ total: 2, onDuty: 0, available: 2 })
+  })
+
+  it("グループフィルター: 該当グループの人だけ集計", () => {
+    const shifts = [
+      makeShift("emp-1", "09:00", "17:00", [groupA]),
+      makeShift("emp-2", "09:00", "17:00", [groupA]),
+      makeShift("emp-3", "09:00", "17:00", [groupB]),
+    ]
+    const result = calculateFilteredCapacity(shifts, [], "10:00", { groupIds: [1] })
+    expect(result).toEqual({ total: 2, onDuty: 0, available: 2 })
+  })
+
+  it("ロールフィルター: 該当ロールの人だけ集計", () => {
+    const shifts = [
+      makeShift("emp-1", "09:00", "17:00", [], [{ roleType: "業務", roleName: "電話対応" }]),
+      makeShift("emp-2", "09:00", "17:00", [], [{ roleType: "業務", roleName: "窓口対応" }]),
+      makeShift("emp-3", "09:00", "17:00", [], []),
+    ]
+    const result = calculateFilteredCapacity(shifts, [], "10:00", {
+      roleNames: { "業務": ["電話対応"] },
+    })
+    expect(result).toEqual({ total: 1, onDuty: 0, available: 1 })
+  })
+
+  it("グループ + ロールの複合フィルター: AND条件", () => {
+    const shifts = [
+      makeShift("emp-1", "09:00", "17:00", [groupA], [{ roleType: "業務", roleName: "電話対応" }]),
+      makeShift("emp-2", "09:00", "17:00", [groupA], [{ roleType: "業務", roleName: "窓口対応" }]),
+      makeShift("emp-3", "09:00", "17:00", [groupB], [{ roleType: "業務", roleName: "電話対応" }]),
+    ]
+    const result = calculateFilteredCapacity(shifts, [], "10:00", {
+      groupIds: [1],
+      roleNames: { "業務": ["電話対応"] },
+    })
+    expect(result).toEqual({ total: 1, onDuty: 0, available: 1 })
+  })
+
+  it("フィルター + 当番: 当番中の人が正しくカウントされる", () => {
+    const shifts = [
+      makeShift("emp-1", "09:00", "17:00", [groupA]),
+      makeShift("emp-2", "09:00", "17:00", [groupA]),
+    ]
+    const duties = [makeDuty("emp-1", "09:00", "12:00")]
+    const result = calculateFilteredCapacity(shifts, duties, "10:00", { groupIds: [1] })
+    expect(result).toEqual({ total: 2, onDuty: 1, available: 1 })
+  })
+
+  it("該当者なしのフィルター: 全て 0", () => {
+    const shifts = [
+      makeShift("emp-1", "09:00", "17:00", [groupA]),
+    ]
+    const result = calculateFilteredCapacity(shifts, [], "10:00", { groupIds: [999] })
+    expect(result).toEqual({ total: 0, onDuty: 0, available: 0 })
+  })
+
+  it("出勤時間外の人はフィルター結果に含まれない", () => {
+    const shifts = [
+      makeShift("emp-1", "09:00", "17:00", [groupA]),
+      makeShift("emp-2", "13:00", "22:00", [groupA]),
+    ]
+    const result = calculateFilteredCapacity(shifts, [], "10:00", { groupIds: [1] })
+    expect(result.total).toBe(1)
+  })
+})
+
+describe("extractFilterOptions", () => {
+  const makeShift = (
+    employeeId: string, start: string, end: string,
+    groups: Array<{ id: number; name: string }>,
+    roles: Array<{ roleType: string; roleName: string }> = []
+  ) => ({
+    employeeId,
+    startTime: `1970-01-01T${start}:00Z`,
+    endTime: `1970-01-01T${end}:00Z`,
+    groups,
+    roles,
+  })
+
+  it("出勤中の従業員からグループとロールの選択肢を抽出する", () => {
+    const shifts = [
+      makeShift("emp-1", "09:00", "17:00", [{ id: 1, name: "A" }], [{ roleType: "監督", roleName: "主任" }]),
+      makeShift("emp-2", "09:00", "17:00", [{ id: 2, name: "B" }], [{ roleType: "業務", roleName: "電話対応" }]),
+    ]
+    const result = extractFilterOptions(shifts, "10:00")
+    expect(result.groups).toEqual([
+      { id: 1, name: "A" },
+      { id: 2, name: "B" },
+    ])
+    expect(result.roles).toEqual({
+      "監督": ["主任"],
+      "業務": ["電話対応"],
+    })
+  })
+
+  it("出勤時間外の人の選択肢は含まれない", () => {
+    const shifts = [
+      makeShift("emp-1", "09:00", "17:00", [{ id: 1, name: "A" }]),
+      makeShift("emp-2", "13:00", "22:00", [{ id: 2, name: "B" }]),
+    ]
+    const result = extractFilterOptions(shifts, "10:00")
+    expect(result.groups).toEqual([{ id: 1, name: "A" }])
+  })
+
+  it("重複は排除される", () => {
+    const shifts = [
+      makeShift("emp-1", "09:00", "17:00", [{ id: 1, name: "A" }], [{ roleType: "業務", roleName: "電話対応" }]),
+      makeShift("emp-2", "09:00", "17:00", [{ id: 1, name: "A" }], [{ roleType: "業務", roleName: "電話対応" }]),
+    ]
+    const result = extractFilterOptions(shifts, "10:00")
+    expect(result.groups).toHaveLength(1)
+    expect(result.roles["業務"]).toHaveLength(1)
   })
 })
 

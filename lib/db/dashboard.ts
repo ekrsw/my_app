@@ -298,7 +298,18 @@ export async function getYesterdayOvernightShifts() {
       isHoliday: { not: true },
     },
     include: {
-      employee: true,
+      employee: {
+        include: {
+          groups: {
+            include: { group: true },
+            where: currentGroupDateWhere(today),
+          },
+          functionRoles: {
+            where: currentRoleDateWhere(today),
+            include: { functionRole: true },
+          },
+        },
+      },
     },
   })
 

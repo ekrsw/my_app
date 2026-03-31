@@ -88,3 +88,105 @@ export function getCapacityColor(available: number): "green" | "yellow" | "red" 
   if (available >= 1) return "yellow"
   return "red"
 }
+
+export type ShiftWithDetails = {
+  employeeId: string | null
+  startTime: Date | string | null
+  endTime: Date | string | null
+  groups: Array<{ id: number; name: string }>
+  roles: Array<{ roleType: string; roleName: string }>
+}
+
+type DutyInput = {
+  employeeId: string
+  startTime: Date | string
+  endTime: Date | string
+}
+
+export type CapacityFilter = {
+  groupIds?: number[]
+  roleNames?: Record<string, string[]>  // roleType -> roleName[]
+}
+
+/** 出勤中の従業員をフィルター条件で絞り込んでキャパシティを計算 */
+export function calculateFilteredCapacity(
+  shifts: ShiftWithDetails[],
+  duties: DutyInput[],
+  currentTime: string,
+  filter?: CapacityFilter
+): { total: number; onDuty: number; available: number } {
+  // 出勤中の従業員を特定
+  const presentEmployees: Array<{ id: string; groups: Array<{ id: number }>; roles: Array<{ roleType: string; roleName: string }> }> = []
+  const seen = new Set<string>()
+  for (const shift of shifts) {
+    if (shift.employeeId && !seen.has(shift.employeeId) && isWorkerPresent(shift.startTime, shift.endTime, currentTime)) {
+      seen.add(shift.employeeId)
+      presentEmployees.push({ id: shift.employeeId, groups: shift.groups, roles: shift.roles })
+    }
+  }
+
+  // フィルター適用
+  let filtered = presentEmployees
+  if (filter?.groupIds && filter.groupIds.length > 0) {
+    const gids = new Set(filter.groupIds)
+    filtered = filtered.filter((e) => e.groups.some((g) => gids.has(g.id)))
+  }
+  if (filter?.roleNames) {
+    for (const [roleType, names] of Object.entries(filter.roleNames)) {
+      if (names.length > 0) {
+        const nameSet = new Set(names)
+        filtered = filtered.filter((e) =>
+          e.roles.some((r) => r.roleType === roleType && nameSet.has(r.roleName))
+        )
+      }
+    }
+  }
+
+  const filteredIds = new Set(filtered.map((e) => e.id))
+  const total = filteredIds.size
+
+  // 当番中
+  const onDutyIds = new Set<string>()
+  for (const duty of duties) {
+    if (filteredIds.has(duty.employeeId) && isDutyActive(duty.startTime, duty.endTime, currentTime)) {
+      onDutyIds.add(duty.employeeId)
+    }
+  }
+  const onDuty = onDutyIds.size
+
+  return { total, onDuty, available: Math.max(0, total - onDuty) }
+}
+
+/** 出勤中の従業員から、フィルター選択肢（グループ・ロール）を抽出 */
+export function extractFilterOptions(
+  shifts: ShiftWithDetails[],
+  currentTime: string
+): { groups: Array<{ id: number; name: string }>; roles: Record<string, string[]> } {
+  const groupMap = new Map<number, string>()
+  const roleMap = new Map<string, Set<string>>()  // roleType -> Set<roleName>
+  const seen = new Set<string>()
+
+  for (const shift of shifts) {
+    if (shift.employeeId && !seen.has(shift.employeeId) && isWorkerPresent(shift.startTime, shift.endTime, currentTime)) {
+      seen.add(shift.employeeId)
+      for (const g of shift.groups) {
+        groupMap.set(g.id, g.name)
+      }
+      for (const r of shift.roles) {
+        if (!roleMap.has(r.roleType)) roleMap.set(r.roleType, new Set())
+        roleMap.get(r.roleType)!.add(r.roleName)
+      }
+    }
+  }
+
+  const groups = Array.from(groupMap.entries())
+    .map(([id, name]) => ({ id, name }))
+    .sort((a, b) => a.name.localeCompare(b.name, "ja"))
+
+  const roles: Record<string, string[]> = {}
+  for (const [type, names] of roleMap) {
+    roles[type] = Array.from(names).sort((a, b) => a.localeCompare(b, "ja"))
+  }
+
+  return { groups, roles }
+}

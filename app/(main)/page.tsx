@@ -97,11 +97,15 @@ export default async function DashboardPage({ searchParams }: Props) {
               employeeId: s.employeeId,
               startTime: s.startTime,
               endTime: s.endTime,
+              groups: s.employee?.groups.map((eg) => ({ id: eg.group.id, name: eg.group.name })) ?? [],
+              roles: s.employee?.functionRoles.filter((efr) => efr.functionRole).map((efr) => ({ roleType: efr.functionRole!.roleType, roleName: efr.functionRole!.roleName })) ?? [],
             })),
             ...overnightShifts.map((s) => ({
               employeeId: s.employeeId,
               startTime: s.startTime,
               endTime: s.endTime,
+              groups: s.employee?.groups.map((eg) => ({ id: eg.group.id, name: eg.group.name })) ?? [],
+              roles: s.employee?.functionRoles.filter((efr) => efr.functionRole).map((efr) => ({ roleType: efr.functionRole!.roleType, roleName: efr.functionRole!.roleName })) ?? [],
             })),
           ]}
           duties={todayDuties.map((d) => ({
@@ -109,6 +113,7 @@ export default async function DashboardPage({ searchParams }: Props) {
             startTime: d.startTime,
             endTime: d.endTime,
           }))}
+          roleTypes={distinctRoleTypes}
         />
         <div className="mt-6 grid gap-6 lg:grid-cols-[2fr_3fr]">
           <div className="flex flex-col gap-6">
