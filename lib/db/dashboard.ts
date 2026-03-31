@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma"
 import { getTodayJST } from "@/lib/date-utils"
+import { getTimeHHMM } from "@/lib/capacity-utils"
 import type { DashboardOverviewFilter, DashboardFilterOptions } from "@/types"
 
 /** EmployeeGroup 用 Prisma where 条件（startDate nullable） */
@@ -278,5 +279,32 @@ export async function getTodayShiftChangeHistory() {
       },
     },
     orderBy: { changedAt: "desc" },
+  })
+}
+
+/**
+ * 前日の夜勤シフト（日跨ぎで現在も勤務中のもの）を取得する。
+ * endTime の HH:mm が startTime の HH:mm より小さいシフトを夜勤とみなす。
+ */
+export async function getYesterdayOvernightShifts() {
+  const today = getTodayJST()
+  const yesterday = new Date(today.getTime() - 24 * 60 * 60 * 1000)
+
+  const yesterdayShifts = await prisma.shift.findMany({
+    where: {
+      shiftDate: yesterday,
+      startTime: { not: null },
+      endTime: { not: null },
+      isHoliday: { not: true },
+    },
+    include: {
+      employee: true,
+    },
+  })
+
+  // endTime < startTime のシフトのみ返す（日跨ぎ夜勤）
+  return yesterdayShifts.filter((s) => {
+    if (!s.startTime || !s.endTime) return false
+    return getTimeHHMM(s.startTime) > getTimeHHMM(s.endTime)
   })
 }

@@ -137,7 +137,8 @@
       "Bash(cmd.exe:*)",
       "Bash(test:*)",
       "Bash($D variants:*)",
-      "Bash($B goto:*)"
+      "Bash($B goto:*)",
+      "Bash(ls /Users/ekoresawa/project/my_app/app/\\\\\\(main\\\\\\)/page.tsx)"
     ]
   }
 }

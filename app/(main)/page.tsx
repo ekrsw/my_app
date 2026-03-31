@@ -3,10 +3,12 @@ import { PageContainer } from "@/components/layout/page-container"
 import { TodayOverviewClient } from "@/components/dashboard/today-overview-client"
 import { TodayDuties } from "@/components/dashboard/today-duties"
 import { TodayAttendance } from "@/components/dashboard/today-attendance"
+import { CapacitySummary } from "@/components/dashboard/capacity-summary"
 import {
   getTodayOverview,
   getDashboardFilterOptions,
   getTodayShiftChangeHistory,
+  getYesterdayOvernightShifts,
 } from "@/lib/db/dashboard"
 import { getTodayDutyAssignments } from "@/lib/db/duty-assignments"
 import { getActiveDutyTypes } from "@/lib/db/duty-types"
@@ -60,7 +62,7 @@ export default async function DashboardPage({ searchParams }: Props) {
   const todayMonth = todayJST.getUTCMonth() + 1
   const todayDateString = format(todayJST, "yyyy-MM-dd")
 
-  const [todayShifts, todayDuties, todayChanges, filterOptions, roles, session, activeShiftCodes, shiftIdsWithHistorySet, latestHistoryEntries, dutyTypes, allEmployees] =
+  const [todayShifts, todayDuties, todayChanges, filterOptions, roles, session, activeShiftCodes, shiftIdsWithHistorySet, latestHistoryEntries, dutyTypes, allEmployees, overnightShifts] =
     await Promise.all([
       getTodayOverview(filter),
       getTodayDutyAssignments(),
@@ -73,6 +75,7 @@ export default async function DashboardPage({ searchParams }: Props) {
       getLatestShiftHistoryEntries(todayYear, todayMonth),
       getActiveDutyTypes(),
       getAllEmployees(),
+      getYesterdayOvernightShifts(),
     ])
 
   // ロールタイプからカラム名を決定（shift-daily-viewと同じロジック）
@@ -88,7 +91,26 @@ export default async function DashboardPage({ searchParams }: Props) {
         breadcrumbs={[{ label: "ダッシュボード" }]}
       />
       <PageContainer>
-        <div className="grid gap-6 lg:grid-cols-[2fr_3fr]">
+        <CapacitySummary
+          shifts={[
+            ...todayShifts.map((s) => ({
+              employeeId: s.employeeId,
+              startTime: s.startTime,
+              endTime: s.endTime,
+            })),
+            ...overnightShifts.map((s) => ({
+              employeeId: s.employeeId,
+              startTime: s.startTime,
+              endTime: s.endTime,
+            })),
+          ]}
+          duties={todayDuties.map((d) => ({
+            employeeId: d.employeeId,
+            startTime: d.startTime,
+            endTime: d.endTime,
+          }))}
+        />
+        <div className="mt-6 grid gap-6 lg:grid-cols-[2fr_3fr]">
           <div className="flex flex-col gap-6">
             <TodayDuties
               duties={todayDuties}

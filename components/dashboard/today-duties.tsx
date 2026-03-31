@@ -12,15 +12,9 @@ import {
 } from "@/components/ui/dialog"
 import { DutyAssignmentForm } from "@/components/duty-assignments/duty-assignment-form"
 import { COLOR_PALETTE } from "@/lib/constants"
-import { cn } from "@/lib/utils"
+import { cn, formatTime } from "@/lib/utils"
 import { Plus } from "lucide-react"
 import type { DutyAssignmentWithDetails } from "@/types/duties"
-
-function formatTime(d: Date | string | null): string {
-  if (!d) return "-"
-  const iso = typeof d === "string" ? d : d.toISOString()
-  return iso.substring(11, 16)
-}
 
 type Props = {
   duties: DutyAssignmentWithDetails[]
