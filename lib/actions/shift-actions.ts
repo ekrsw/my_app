@@ -67,6 +67,46 @@ export async function getShiftByEmployeeAndDate(employeeId: string, shiftDate: s
   })
 }
 
+export async function revertShiftFromAttendance(
+  shiftId: number,
+  historyId: number,
+) {
+  await requireAuth()
+  try {
+    const history = await prisma.shiftChangeHistory.findUnique({
+      where: { id: historyId },
+    })
+    if (!history) {
+      return { error: "変更履歴が見つかりません" }
+    }
+
+    await prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT set_config('app.skip_shift_history', 'true', true)`
+
+      await tx.shift.update({
+        where: { id: shiftId },
+        data: {
+          shiftCode: history.shiftCode,
+          startTime: history.startTime,
+          endTime: history.endTime,
+          isHoliday: history.isHoliday ?? false,
+          isRemote: history.isRemote ?? false,
+        },
+      })
+
+      await tx.shiftChangeHistory.delete({
+        where: { id: historyId },
+      })
+    })
+    revalidatePath("/")
+    revalidatePath("/shifts")
+    revalidatePath("/shifts/history")
+    return { success: true }
+  } catch {
+    return { error: "変更の取消に失敗しました" }
+  }
+}
+
 export async function updateShiftFromAttendance(
   shiftId: number,
   historyId: number,
