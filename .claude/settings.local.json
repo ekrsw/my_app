@@ -120,7 +120,15 @@
       "mcp__playwright__browser_hover",
       "mcp__postgres__describe_table",
       "mcp__morphllm-fast-apply__list_allowed_directories",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(git clone:*)",
+      "Read(//Users/ekoresawa/.claude/skills/gstack/**)",
+      "Bash(./setup)",
+      "Bash(bash)",
+      "Bash(export PATH=\"$HOME/.bun/bin:$PATH\")",
+      "Bash(cp -Rf ~/.claude/skills/gstack /Users/ekoresawa/project/my_app/.claude/skills/gstack)",
+      "Bash(rm -rf /Users/ekoresawa/project/my_app/.claude/skills/gstack/.git)",
+      "Bash(mkdir -p /Users/ekoresawa/project/my_app/.claude/skills)"
     ]
   }
 }
