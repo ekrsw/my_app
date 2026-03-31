@@ -79,11 +79,8 @@ export function TodayDuties({ duties, employees, dutyTypes, isAuthenticated, tod
                     {assignments.map((assignment) => (
                       <div
                         key={assignment.id}
-                        className={cn(
-                          "col-span-3 grid grid-cols-subgrid items-center",
-                          isAuthenticated && "cursor-pointer rounded hover:bg-accent"
-                        )}
-                        onClick={() => isAuthenticated && setDetailTarget(assignment)}
+                        className="col-span-3 grid grid-cols-subgrid items-center cursor-pointer rounded hover:bg-accent"
+                        onClick={() => setDetailTarget(assignment)}
                       >
                         <span className="pl-5 py-0.5">
                           {assignment.employee.name}
@@ -147,17 +144,19 @@ export function TodayDuties({ duties, employees, dutyTypes, isAuthenticated, tod
                   </>
                 )}
               </div>
-              <div className="flex justify-end gap-2 pt-2">
-                <Button
-                  size="sm"
-                  onClick={() => {
-                    setDetailTarget(null)
-                    setEditTarget(detailTarget)
-                  }}
-                >
-                  編集
-                </Button>
-              </div>
+              {isAuthenticated && (
+                <div className="flex justify-end gap-2 pt-2">
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      setDetailTarget(null)
+                      setEditTarget(detailTarget)
+                    }}
+                  >
+                    編集
+                  </Button>
+                </div>
+              )}
             </div>
           )}
         </DialogContent>
