@@ -161,10 +161,11 @@ describe("calculateCapacity", () => {
     endTime: `1970-01-01T${end}:00Z`,
   })
 
-  const makeDuty = (employeeId: string, start: string, end: string) => ({
+  const makeDuty = (employeeId: string, start: string, end: string, reducesCapacity = true) => ({
     employeeId,
     startTime: `1970-01-01T${start}:00Z`,
     endTime: `1970-01-01T${end}:00Z`,
+    reducesCapacity,
   })
 
   it("通常ケース: 出勤中の人から当番中を引いた数が対応可能", () => {
@@ -295,6 +296,32 @@ describe("calculateCapacity", () => {
     const result = calculateCapacity(shifts, [], "22:30")
     expect(result).toEqual({ total: 2, onDuty: 0, available: 2 })
   })
+
+  it("reducesCapacity=false の当番は控除しない", () => {
+    const shifts = [
+      makeShift("emp-1", "09:00", "17:00"),
+      makeShift("emp-2", "09:00", "17:00"),
+    ]
+    const duties = [
+      makeDuty("emp-1", "09:00", "12:00", false),  // 控除しない（直着当番等）
+    ]
+    const result = calculateCapacity(shifts, duties, "10:00")
+    expect(result).toEqual({ total: 2, onDuty: 0, available: 2 })
+  })
+
+  it("reducesCapacity=true の当番のみ控除する", () => {
+    const shifts = [
+      makeShift("emp-1", "09:00", "17:00"),
+      makeShift("emp-2", "09:00", "17:00"),
+      makeShift("emp-3", "09:00", "17:00"),
+    ]
+    const duties = [
+      makeDuty("emp-1", "09:00", "12:00", true),   // 控除する（資料作成等）
+      makeDuty("emp-2", "09:00", "12:00", false),  // 控除しない（直着当番等）
+    ]
+    const result = calculateCapacity(shifts, duties, "10:00")
+    expect(result).toEqual({ total: 3, onDuty: 1, available: 2 })
+  })
 })
 
 describe("calculateFilteredCapacity", () => {
@@ -313,10 +340,11 @@ describe("calculateFilteredCapacity", () => {
     roles,
   })
 
-  const makeDuty = (employeeId: string, start: string, end: string) => ({
+  const makeDuty = (employeeId: string, start: string, end: string, reducesCapacity = true) => ({
     employeeId,
     startTime: `1970-01-01T${start}:00Z`,
     endTime: `1970-01-01T${end}:00Z`,
+    reducesCapacity,
   })
 
   it("フィルターなし: 全員の集計", () => {
@@ -388,6 +416,18 @@ describe("calculateFilteredCapacity", () => {
     ]
     const result = calculateFilteredCapacity(shifts, [], "10:00", { groupIds: [1] })
     expect(result.total).toBe(1)
+  })
+
+  it("reducesCapacity=false の当番はフィルター結果でも控除しない", () => {
+    const shifts = [
+      makeShift("emp-1", "09:00", "17:00", [groupA]),
+      makeShift("emp-2", "09:00", "17:00", [groupA]),
+    ]
+    const duties = [
+      makeDuty("emp-1", "09:00", "12:00", false),
+    ]
+    const result = calculateFilteredCapacity(shifts, duties, "10:00", { groupIds: [1] })
+    expect(result).toEqual({ total: 2, onDuty: 0, available: 2 })
   })
 })
 

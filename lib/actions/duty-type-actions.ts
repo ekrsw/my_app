@@ -13,6 +13,7 @@ export async function createDutyType(formData: FormData) {
     color: formData.get("color") || null,
     isActive: formData.get("isActive") === "true",
     sortOrder: formData.get("sortOrder"),
+    reducesCapacity: formData.get("reducesCapacity") === "true",
   })
 
   if (!parsed.success) {
@@ -27,6 +28,7 @@ export async function createDutyType(formData: FormData) {
         color: parsed.data.color ?? null,
         isActive: parsed.data.isActive,
         sortOrder: parsed.data.sortOrder,
+        reducesCapacity: parsed.data.reducesCapacity,
       },
     })
     revalidatePath("/duty-types")
@@ -47,6 +49,7 @@ export async function updateDutyType(id: number, formData: FormData) {
     color: formData.get("color") || null,
     isActive: formData.get("isActive") === "true",
     sortOrder: formData.get("sortOrder"),
+    reducesCapacity: formData.get("reducesCapacity") === "true",
   })
 
   if (!parsed.success) {
@@ -62,6 +65,7 @@ export async function updateDutyType(id: number, formData: FormData) {
         color: parsed.data.color ?? null,
         isActive: parsed.data.isActive,
         sortOrder: parsed.data.sortOrder,
+        reducesCapacity: parsed.data.reducesCapacity,
       },
     })
     revalidatePath("/duty-types")

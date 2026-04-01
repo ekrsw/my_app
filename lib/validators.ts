@@ -109,6 +109,7 @@ export const dutyTypeSchema = z.object({
   color: z.string().max(20).nullable().optional(),
   isActive: z.boolean().default(true),
   sortOrder: z.coerce.number().int().min(0, "0以上の数値を入力してください").default(0),
+  reducesCapacity: z.boolean().default(true),
 })
 export type DutyTypeFormData = z.infer<typeof dutyTypeSchema>
 

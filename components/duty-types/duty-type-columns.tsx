@@ -12,6 +12,7 @@ export type DutyTypeRow = {
   color: string | null
   isActive: boolean | null
   sortOrder: number
+  reducesCapacity: boolean
 }
 
 export const dutyTypeColumns: ColumnDef<DutyTypeRow>[] = [
@@ -49,6 +50,15 @@ export const dutyTypeColumns: ColumnDef<DutyTypeRow>[] = [
   {
     accessorKey: "sortOrder",
     header: "表示順",
+  },
+  {
+    accessorKey: "reducesCapacity",
+    header: "控除",
+    cell: ({ getValue }) => (
+      <Badge variant={getValue<boolean>() ? "default" : "outline"}>
+        {getValue<boolean>() ? "控除" : "対応可"}
+      </Badge>
+    ),
   },
   {
     accessorKey: "isActive",
