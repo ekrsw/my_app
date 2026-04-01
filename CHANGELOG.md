@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.0.2] - 2026-04-02
+
+### Changed
+- 業務割当の深夜跨ぎ対応: 終了時刻が開始時刻より前でも登録可能に変更（例: 22:00〜08:00）
+
 ## [0.1.0.1] - 2026-03-31
 
 ### Added
