@@ -226,8 +226,9 @@ model DutyType {
   code      String    @unique @db.VarChar(20)
   name      String    @db.VarChar(50)
   color     String?   @db.VarChar(20)
-  isActive  Boolean?  @default(true) @map("is_active")
-  sortOrder Int       @default(0) @map("sort_order")
+  isActive         Boolean?  @default(true) @map("is_active")
+  sortOrder        Int       @default(0) @map("sort_order")
+  reducesCapacity  Boolean   @default(true) @map("reduces_capacity")
 
   dutyAssignments       DutyAssignment[]
 

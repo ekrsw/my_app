@@ -51,13 +51,12 @@ export function isWorkerPresent(
   return isTimeInRange(start, getTimeHHMM(endTime), now)
 }
 
-/** キャパシティを計算。出勤中・当番中ともにリアルタイム判定 */
+/** キャパシティを計算。出勤中・当番中ともにリアルタイム判定。reducesCapacity=false の当番は控除しない */
 export function calculateCapacity(
   shifts: Array<{ employeeId: string | null; startTime: Date | string | null; endTime: Date | string | null }>,
-  duties: Array<{ employeeId: string; startTime: Date | string; endTime: Date | string }>,
+  duties: DutyInput[],
   currentTime: string
 ): { total: number; onDuty: number; available: number } {
-  // 現在時刻に出勤中の従業員をカウント
   const presentEmployeeIds = new Set<string>()
   for (const shift of shifts) {
     if (shift.employeeId && isWorkerPresent(shift.startTime, shift.endTime, currentTime)) {
@@ -66,10 +65,9 @@ export function calculateCapacity(
   }
   const total = presentEmployeeIds.size
 
-  // 現在時刻に当番中の従業員をカウント（出勤中の人のみ）
   const onDutyEmployeeIds = new Set<string>()
   for (const duty of duties) {
-    if (presentEmployeeIds.has(duty.employeeId) && isDutyActive(duty.startTime, duty.endTime, currentTime)) {
+    if (duty.reducesCapacity && presentEmployeeIds.has(duty.employeeId) && isDutyActive(duty.startTime, duty.endTime, currentTime)) {
       onDutyEmployeeIds.add(duty.employeeId)
     }
   }
@@ -97,10 +95,11 @@ export type ShiftWithDetails = {
   roles: Array<{ roleType: string; roleName: string }>
 }
 
-type DutyInput = {
+export type DutyInput = {
   employeeId: string
   startTime: Date | string
   endTime: Date | string
+  reducesCapacity: boolean
 }
 
 export type CapacityFilter = {
@@ -145,10 +144,10 @@ export function calculateFilteredCapacity(
   const filteredIds = new Set(filtered.map((e) => e.id))
   const total = filteredIds.size
 
-  // 当番中
+  // 当番中（reducesCapacity=true のもののみ控除）
   const onDutyIds = new Set<string>()
   for (const duty of duties) {
-    if (filteredIds.has(duty.employeeId) && isDutyActive(duty.startTime, duty.endTime, currentTime)) {
+    if (duty.reducesCapacity && filteredIds.has(duty.employeeId) && isDutyActive(duty.startTime, duty.endTime, currentTime)) {
       onDutyIds.add(duty.employeeId)
     }
   }

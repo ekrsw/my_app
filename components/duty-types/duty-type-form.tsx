@@ -37,6 +37,7 @@ type DutyTypeFormProps = {
     color: string | null
     isActive: boolean | null
     sortOrder: number
+    reducesCapacity: boolean
   }
   open?: boolean
   onOpenChange?: (open: boolean) => void
@@ -51,6 +52,7 @@ export function DutyTypeForm({ dutyType, open: controlledOpen, onOpenChange }: D
   const [loading, setLoading] = useState(false)
   const [deleteLoading, setDeleteLoading] = useState(false)
   const [isActive, setIsActive] = useState(dutyType?.isActive ?? true)
+  const [reducesCapacity, setReducesCapacity] = useState(dutyType?.reducesCapacity ?? true)
   const [selectedColor, setSelectedColor] = useState<string | null>(dutyType?.color ?? null)
   const isEdit = !!dutyType
 
@@ -59,12 +61,14 @@ export function DutyTypeForm({ dutyType, open: controlledOpen, onOpenChange }: D
     setPrevOpen(open)
     if (open) {
       setIsActive(dutyType?.isActive ?? true)
+      setReducesCapacity(dutyType?.reducesCapacity ?? true)
       setSelectedColor(dutyType?.color ?? null)
     }
   }
 
   async function handleSubmit(formData: FormData) {
     formData.set("isActive", String(isActive))
+    formData.set("reducesCapacity", String(reducesCapacity))
     if (selectedColor) {
       formData.set("color", selectedColor)
     } else {
@@ -182,6 +186,19 @@ export function DutyTypeForm({ dutyType, open: controlledOpen, onOpenChange }: D
               key={`sort-${dutyType?.id ?? "new"}`}
               min={0}
             />
+          </div>
+          <div className="flex items-center gap-2">
+            <Checkbox
+              id="reducesCapacity"
+              checked={reducesCapacity}
+              onCheckedChange={(v) => setReducesCapacity(v === true)}
+            />
+            <Label htmlFor="reducesCapacity" className="flex flex-col">
+              <span>対応可能人員から控除する</span>
+              <span className="text-xs font-normal text-muted-foreground">
+                チェック時、この業務の当番中は対応可能人員に含めません
+              </span>
+            </Label>
           </div>
           <div className="flex items-center gap-2">
             <Checkbox

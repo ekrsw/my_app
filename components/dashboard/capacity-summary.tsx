@@ -17,6 +17,7 @@ type DutyForCapacity = {
   employeeId: string
   startTime: Date | string
   endTime: Date | string
+  reducesCapacity: boolean
 }
 
 type Props = {

@@ -112,6 +112,7 @@ export default async function DashboardPage({ searchParams }: Props) {
             employeeId: d.employeeId,
             startTime: d.startTime,
             endTime: d.endTime,
+            reducesCapacity: d.dutyType.reducesCapacity,
           }))}
           roleTypes={distinctRoleTypes}
         />
