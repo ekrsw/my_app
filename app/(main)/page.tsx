@@ -10,7 +10,7 @@ import {
   getTodayShiftChangeHistory,
   getYesterdayOvernightShifts,
 } from "@/lib/db/dashboard"
-import { getTodayDutyAssignments } from "@/lib/db/duty-assignments"
+import { getTodayDutyAssignments, getYesterdayOvernightDutyAssignments } from "@/lib/db/duty-assignments"
 import { getActiveDutyTypes } from "@/lib/db/duty-types"
 import { getAllEmployees } from "@/lib/db/employees"
 import { getFunctionRoles } from "@/lib/db/roles"
@@ -62,7 +62,7 @@ export default async function DashboardPage({ searchParams }: Props) {
   const todayMonth = todayJST.getUTCMonth() + 1
   const todayDateString = format(todayJST, "yyyy-MM-dd")
 
-  const [todayShifts, todayDuties, todayChanges, filterOptions, roles, session, activeShiftCodes, shiftIdsWithHistorySet, latestHistoryEntries, dutyTypes, allEmployees, overnightShifts] =
+  const [todayShifts, todayDuties, todayChanges, filterOptions, roles, session, activeShiftCodes, shiftIdsWithHistorySet, latestHistoryEntries, dutyTypes, allEmployees, overnightShifts, overnightDuties] =
     await Promise.all([
       getTodayOverview(filter),
       getTodayDutyAssignments(),
@@ -76,6 +76,7 @@ export default async function DashboardPage({ searchParams }: Props) {
       getActiveDutyTypes(),
       getAllEmployees(),
       getYesterdayOvernightShifts(),
+      getYesterdayOvernightDutyAssignments(),
     ])
 
   // ロールタイプからカラム名を決定（shift-daily-viewと同じロジック）
@@ -108,12 +109,20 @@ export default async function DashboardPage({ searchParams }: Props) {
               roles: s.employee?.functionRoles.filter((efr) => efr.functionRole).map((efr) => ({ roleType: efr.functionRole!.roleType, roleName: efr.functionRole!.roleName })) ?? [],
             })),
           ]}
-          duties={todayDuties.map((d) => ({
-            employeeId: d.employeeId,
-            startTime: d.startTime,
-            endTime: d.endTime,
-            reducesCapacity: d.dutyType.reducesCapacity,
-          }))}
+          duties={[
+            ...todayDuties.map((d) => ({
+              employeeId: d.employeeId,
+              startTime: d.startTime,
+              endTime: d.endTime,
+              reducesCapacity: d.dutyType.reducesCapacity,
+            })),
+            ...overnightDuties.map((d) => ({
+              employeeId: d.employeeId,
+              startTime: d.startTime,
+              endTime: d.endTime,
+              reducesCapacity: d.dutyType.reducesCapacity,
+            })),
+          ]}
           roleTypes={distinctRoleTypes}
         />
         <div className="mt-6 grid gap-6 lg:grid-cols-[2fr_3fr]">
