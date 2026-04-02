@@ -160,9 +160,18 @@ export const shiftCodeCsvRowSchema = z.object({
   sortOrder: z.coerce.number().int().min(0, "0以上の数値を入力してください"),
 })
 
+export const roleCsvRowSchema = z.object({
+  employeeName: z.string().min(1, "従業員名は必須です"),
+  roleCode: z.string().min(1, "ロールコードは必須です").max(20, "20文字以内で入力してください"),
+  isPrimary: z.boolean(),
+  startDate: z.string().nullable(),
+  endDate: z.string().nullable(),
+})
+
 export type EmployeeCsvRow = z.infer<typeof employeeCsvRowSchema>
 export type ShiftCsvRow = z.infer<typeof shiftCsvRowSchema>
 export type ShiftCodeCsvRow = z.infer<typeof shiftCodeCsvRowSchema>
+export type RoleCsvRow = z.infer<typeof roleCsvRowSchema>
 
 // 履歴編集スキーマ
 export const groupHistoryEditSchema = z.object({
