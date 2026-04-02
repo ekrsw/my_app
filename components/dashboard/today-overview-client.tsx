@@ -22,6 +22,8 @@ import { ToggleFilter } from "@/components/shifts/column-filters/toggle-filter"
 import { ActiveFilterTags, FilterTag } from "@/components/shifts/active-filter-tags"
 import { ShiftBadge } from "@/components/shifts/shift-badge"
 import { useDashboardFilters } from "@/hooks/use-dashboard-filters"
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
+import { TimelineHeatmap } from "@/components/dashboard/timeline-heatmap"
 import { ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -29,7 +31,7 @@ import { cn } from "@/lib/utils"
 import type { Shift, Employee, Group, EmployeeGroup, EmployeeFunctionRole, FunctionRole } from "@/app/generated/prisma/client"
 import type { DashboardFilterOptions } from "@/types"
 
-type TodayShift = Shift & {
+export type TodayShift = Shift & {
   employee: (Employee & {
     groups: (EmployeeGroup & { group: Group })[]
     functionRoles: (EmployeeFunctionRole & { functionRole: FunctionRole | null })[]
@@ -453,6 +455,15 @@ export function TodayOverviewClient({ shifts, filterOptions, distinctRoleTypes, 
         ) : filteredShifts.length === 0 ? (
           <p className="text-sm text-muted-foreground py-4 text-center">該当する従業員が見つかりません</p>
         ) : (
+          <Tabs defaultValue="timeline" className="flex-1 flex flex-col min-h-0">
+            <TabsList className="mb-2">
+              <TabsTrigger value="timeline">タイムライン</TabsTrigger>
+              <TabsTrigger value="list">リスト</TabsTrigger>
+            </TabsList>
+            <TabsContent value="timeline" className="flex-1 min-h-0">
+              <TimelineHeatmap shifts={filteredShifts} />
+            </TabsContent>
+            <TabsContent value="list" className="flex-1 min-h-0">
           <div
             ref={scrollContainerRef}
             className="rounded-md border overflow-auto [&_[data-slot=table-container]]:overflow-visible"
@@ -632,6 +643,8 @@ export function TodayOverviewClient({ shifts, filterOptions, distinctRoleTypes, 
               </TableBody>
             </Table>
           </div>
+            </TabsContent>
+          </Tabs>
         )}
       </CardContent>
 
