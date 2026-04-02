@@ -9,3 +9,13 @@
 **Context:** フェーズ1（キャパシティダッシュボード）でリアルタイムの人員状況可視化を実装済み。フェーズ2ではこの基盤上に、対応不可イベントの記録機能を追加する。デザインドキュメント（Approach C）の「インシデントログ」部分を参照。
 
 **Depends on:** フェーズ1（キャパシティサマリー）の完成と運用開始
+
+## リファクタ: CSVパーサーのconvertDate共通化
+
+**What:** `lib/csv/parse-employee-csv.ts` と `lib/csv/parse-shift-csv.ts` と `lib/csv/parse-role-csv.ts` に重複している `convertDate` 関数を `lib/csv/utils.ts` 等に共通化する
+
+**Why:** 同一ロジックが3ファイルに重複しており、日付フォーマット対応の追加時に3箇所修正が必要になる
+
+**Effort:** S | **Priority:** P3 | **Risk:** Low
+
+**Context:** 各パーサーはスタンドアロン設計で動作しており、共通化しなくても即座に問題にはならない。ただし今後インポート機能が増えるたびに重複が増える
