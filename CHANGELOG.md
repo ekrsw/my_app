@@ -9,6 +9,9 @@ All notable changes to this project will be documented in this file.
 - ダッシュボードの「当番中」ラベルを「他業務中」に変更
 - ダッシュボードのカードタイトルを「対応可能状況」から「現在の対応可能状況」に変更
 
+### Fixed
+- 前日の深夜跨ぎ業務割当が翌日のキャパシティ計算に含まれない問題を修正
+
 ## [0.1.0.1] - 2026-03-31
 
 ### Added
