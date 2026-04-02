@@ -153,6 +153,164 @@ export async function updateEmployeeRole(
   }
 }
 
+export type RoleImportRow = {
+  rowIndex: number
+  employeeName: string
+  roleCode: string
+  isPrimary: boolean
+  startDate: string | null
+  endDate: string | null
+}
+
+export type RoleImportResult = {
+  success: boolean
+  created: number
+  errors: Array<{ rowIndex: number; error: string }>
+}
+
+export async function importRoleAssignments(
+  rows: RoleImportRow[]
+): Promise<RoleImportResult> {
+  await requireAuth()
+  let created = 0
+  const errors: Array<{ rowIndex: number; error: string }> = []
+
+  try {
+    await prisma.$transaction(async (tx) => {
+      // 在籍従業員のみ取得（退職済みを除外）
+      const allEmployees = await tx.employee.findMany({
+        where: { terminationDate: null },
+        select: { id: true, name: true },
+      })
+
+      // 名前→{id, count} マップ構築
+      const nameCountMap = new Map<string, number>()
+      const nameIdMap = new Map<string, string>()
+      for (const emp of allEmployees) {
+        const count = nameCountMap.get(emp.name) || 0
+        nameCountMap.set(emp.name, count + 1)
+        nameIdMap.set(emp.name, emp.id)
+      }
+
+      // アクティブなFunctionRoleのみ取得
+      const allRoles = await tx.functionRole.findMany({
+        where: { isActive: true },
+      })
+      const roleCodeMap = new Map(
+        allRoles.map((r) => [r.roleCode, { id: r.id, roleType: r.roleType }])
+      )
+
+      // 既存アクティブ割当を取得
+      const activeAssignments = await tx.employeeFunctionRole.findMany({
+        where: { endDate: null },
+        select: { employeeId: true, roleType: true },
+      })
+      const activeAssignmentSet = new Set(
+        activeAssignments
+          .filter((a) => a.employeeId !== null)
+          .map((a) => `${a.employeeId}-${a.roleType}`)
+      )
+
+      // CSV内重複チェック用
+      const csvSeenSet = new Set<string>()
+
+      // 事前バリデーション
+      for (const row of rows) {
+        // 従業員名存在チェック
+        if (!nameCountMap.has(row.employeeName)) {
+          errors.push({
+            rowIndex: row.rowIndex,
+            error: `従業員が見つかりません: ${row.employeeName}`,
+          })
+          continue
+        }
+
+        // 同姓同名チェック
+        if ((nameCountMap.get(row.employeeName) || 0) > 1) {
+          errors.push({
+            rowIndex: row.rowIndex,
+            error: `同名の従業員が複数います: ${row.employeeName}`,
+          })
+          continue
+        }
+
+        // ロールコード存在チェック
+        const roleInfo = roleCodeMap.get(row.roleCode)
+        if (!roleInfo) {
+          errors.push({
+            rowIndex: row.rowIndex,
+            error: `存在しないロールコード: ${row.roleCode}`,
+          })
+          continue
+        }
+
+        const employeeId = nameIdMap.get(row.employeeName)!
+        const assignmentKey = `${employeeId}-${roleInfo.roleType}`
+
+        // 既存アクティブ割当とのroleType衝突チェック
+        if (activeAssignmentSet.has(assignmentKey)) {
+          errors.push({
+            rowIndex: row.rowIndex,
+            error: `既に同タイプのロールが割当済み: ${row.employeeName}, タイプ${roleInfo.roleType}`,
+          })
+          continue
+        }
+
+        // CSV内重複チェック
+        if (csvSeenSet.has(assignmentKey)) {
+          errors.push({
+            rowIndex: row.rowIndex,
+            error: `CSV内で重複: ${row.employeeName}, タイプ${roleInfo.roleType}`,
+          })
+          continue
+        }
+        csvSeenSet.add(assignmentKey)
+      }
+
+      // エラー行を除外して登録
+      const errorRowIndices = new Set(errors.map((e) => e.rowIndex))
+
+      for (const row of rows) {
+        if (errorRowIndices.has(row.rowIndex)) continue
+
+        const employeeId = nameIdMap.get(row.employeeName)!
+        const roleInfo = roleCodeMap.get(row.roleCode)!
+
+        try {
+          await tx.employeeFunctionRole.create({
+            data: {
+              employeeId,
+              functionRoleId: roleInfo.id,
+              roleType: roleInfo.roleType,
+              isPrimary: row.isPrimary,
+              startDate: row.startDate ? new Date(row.startDate) : null,
+              endDate: row.endDate ? new Date(row.endDate) : null,
+            },
+          })
+          created++
+        } catch {
+          errors.push({
+            rowIndex: row.rowIndex,
+            error: "割当の作成に失敗しました",
+          })
+        }
+      }
+    })
+
+    revalidatePath("/roles")
+    revalidatePath("/employees")
+    return { success: errors.length === 0, created, errors }
+  } catch {
+    return {
+      success: false,
+      created: 0,
+      errors: errors.length > 0
+        ? errors
+        : [{ rowIndex: 0, error: "インポートに失敗しました" }],
+    }
+  }
+}
+
 export async function unassignRole(id: number) {
   await requireAuth()
   try {

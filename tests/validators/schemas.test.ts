@@ -8,6 +8,7 @@ import {
   roleAssignmentSchema,
   shiftCodeSchema,
   dutyAssignmentSchema,
+  roleCsvRowSchema,
 } from "@/lib/validators"
 
 describe("Zod Validation Schemas", () => {
@@ -478,6 +479,46 @@ describe("Zod Validation Schemas", () => {
         ...validData,
         note: "テスト備考",
       })
+      expect(result.success).toBe(true)
+    })
+  })
+
+  describe("roleCsvRowSchema", () => {
+    const validData = {
+      employeeName: "山田太郎",
+      roleCode: "LEADER",
+      isPrimary: true,
+      startDate: "2026-04-01",
+      endDate: null,
+    }
+
+    it("should accept valid role CSV data", () => {
+      const result = roleCsvRowSchema.safeParse(validData)
+      expect(result.success).toBe(true)
+    })
+
+    it("should reject empty employeeName", () => {
+      const result = roleCsvRowSchema.safeParse({ ...validData, employeeName: "" })
+      expect(result.success).toBe(false)
+    })
+
+    it("should reject empty roleCode", () => {
+      const result = roleCsvRowSchema.safeParse({ ...validData, roleCode: "" })
+      expect(result.success).toBe(false)
+    })
+
+    it("should reject roleCode over 20 characters", () => {
+      const result = roleCsvRowSchema.safeParse({ ...validData, roleCode: "A".repeat(21) })
+      expect(result.success).toBe(false)
+    })
+
+    it("should accept null dates", () => {
+      const result = roleCsvRowSchema.safeParse({ ...validData, startDate: null, endDate: null })
+      expect(result.success).toBe(true)
+    })
+
+    it("should accept string dates", () => {
+      const result = roleCsvRowSchema.safeParse({ ...validData, startDate: "2026-04-01", endDate: "2027-03-31" })
       expect(result.success).toBe(true)
     })
   })
