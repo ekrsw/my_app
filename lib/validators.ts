@@ -121,8 +121,8 @@ export const dutyAssignmentSchema = z.object({
   startTime: z.string().min(1, "開始時刻は必須です"),
   endTime: z.string().min(1, "終了時刻は必須です"),
   note: z.string().optional(),
-}).refine((data) => data.endTime > data.startTime, {
-  message: "終了時刻は開始時刻より後にしてください",
+}).refine((data) => data.endTime !== data.startTime, {
+  message: "終了時刻は開始時刻と異なる値にしてください",
   path: ["endTime"],
 })
 export type DutyAssignmentFormData = z.infer<typeof dutyAssignmentSchema>

@@ -7,6 +7,7 @@ import {
   functionRoleSchema,
   roleAssignmentSchema,
   shiftCodeSchema,
+  dutyAssignmentSchema,
 } from "@/lib/validators"
 
 describe("Zod Validation Schemas", () => {
@@ -421,6 +422,63 @@ describe("Zod Validation Schemas", () => {
         color: "a".repeat(21),
       })
       expect(result.success).toBe(false)
+    })
+  })
+
+  describe("dutyAssignmentSchema", () => {
+    const validData = {
+      employeeId: "550e8400-e29b-41d4-a716-446655440000",
+      dutyTypeId: 1,
+      dutyDate: "2026-04-01",
+      startTime: "09:00",
+      endTime: "17:00",
+    }
+
+    it("通常の業務割当を受け入れる", () => {
+      const result = dutyAssignmentSchema.safeParse(validData)
+      expect(result.success).toBe(true)
+    })
+
+    it("深夜跨ぎの業務割当を受け入れる（例: 22:00〜08:00）", () => {
+      const result = dutyAssignmentSchema.safeParse({
+        ...validData,
+        startTime: "22:00",
+        endTime: "08:00",
+      })
+      expect(result.success).toBe(true)
+    })
+
+    it("開始時刻と終了時刻が同じ場合は拒否する", () => {
+      const result = dutyAssignmentSchema.safeParse({
+        ...validData,
+        startTime: "09:00",
+        endTime: "09:00",
+      })
+      expect(result.success).toBe(false)
+    })
+
+    it("開始時刻が空の場合は拒否する", () => {
+      const result = dutyAssignmentSchema.safeParse({
+        ...validData,
+        startTime: "",
+      })
+      expect(result.success).toBe(false)
+    })
+
+    it("終了時刻が空の場合は拒否する", () => {
+      const result = dutyAssignmentSchema.safeParse({
+        ...validData,
+        endTime: "",
+      })
+      expect(result.success).toBe(false)
+    })
+
+    it("noteはオプション", () => {
+      const result = dutyAssignmentSchema.safeParse({
+        ...validData,
+        note: "テスト備考",
+      })
+      expect(result.success).toBe(true)
     })
   })
 })
