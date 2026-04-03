@@ -168,6 +168,11 @@ export function TodayOverviewClient({ shifts, filterOptions, distinctRoleTypes, 
   const [businessPopoverOpen, setBusinessPopoverOpen] = useState(false)
   const [twPopoverOpen, setTwPopoverOpen] = useState(false)
 
+  // タイムラインビュー用ポップオーバーstate（リストビューと独立）
+  const [tlGroupPopoverOpen, setTlGroupPopoverOpen] = useState(false)
+  const [tlSupervisorPopoverOpen, setTlSupervisorPopoverOpen] = useState(false)
+  const [tlBusinessPopoverOpen, setTlBusinessPopoverOpen] = useState(false)
+
   // --- Filter handlers ---
   const handleEmployeeIdsConfirm = useCallback((ids: string[]) => {
     setParams({ employeeIds: ids.length > 0 ? ids.join(",") : null })
@@ -185,11 +190,13 @@ export function TodayOverviewClient({ shifts, filterOptions, distinctRoleTypes, 
       unassigned: specialChecked ? "true" : null,
     })
     setGroupPopoverOpen(false)
+    setTlGroupPopoverOpen(false)
   }, [setParams])
 
   const handleGroupClear = useCallback(() => {
     setParams({ groupIds: null, unassigned: null })
     setGroupPopoverOpen(false)
+    setTlGroupPopoverOpen(false)
   }, [setParams])
 
   const handleShiftCodesConfirm = useCallback((codes: string[]) => {
@@ -205,21 +212,25 @@ export function TodayOverviewClient({ shifts, filterOptions, distinctRoleTypes, 
   const handleSupervisorRoleConfirm = useCallback((names: string[]) => {
     setParams({ supervisorRoleNames: names.length > 0 ? names.join(",") : null })
     setSupervisorPopoverOpen(false)
+    setTlSupervisorPopoverOpen(false)
   }, [setParams])
 
   const handleSupervisorRoleClear = useCallback(() => {
     setParams({ supervisorRoleNames: null })
     setSupervisorPopoverOpen(false)
+    setTlSupervisorPopoverOpen(false)
   }, [setParams])
 
   const handleBusinessRoleConfirm = useCallback((names: string[]) => {
     setParams({ businessRoleNames: names.length > 0 ? names.join(",") : null })
     setBusinessPopoverOpen(false)
+    setTlBusinessPopoverOpen(false)
   }, [setParams])
 
   const handleBusinessRoleClear = useCallback(() => {
     setParams({ businessRoleNames: null })
     setBusinessPopoverOpen(false)
+    setTlBusinessPopoverOpen(false)
   }, [setParams])
 
   const handleTwFilterChange = useCallback((checked: boolean) => {
@@ -427,7 +438,7 @@ export function TodayOverviewClient({ shifts, filterOptions, distinctRoleTypes, 
   }, [sort, toggleSort])
 
   return (
-    <Card className="h-full flex flex-col">
+    <Card className="h-full flex flex-col min-w-0">
       <CardHeader className="flex-shrink-0">
         <div className="flex items-center justify-between gap-4">
           <CardTitle>本日の出勤者 ({filteredShifts.length}名)</CardTitle>
@@ -461,7 +472,30 @@ export function TodayOverviewClient({ shifts, filterOptions, distinctRoleTypes, 
               <TabsTrigger value="list">リスト</TabsTrigger>
             </TabsList>
             <TabsContent value="timeline" className="flex-1 min-h-0">
-              <TimelineHeatmap shifts={filteredShifts} />
+              <TimelineHeatmap
+                shifts={filteredShifts}
+                distinctRoleTypes={distinctRoleTypes}
+                groupOptions={groupOptions}
+                selectedGroupValues={selectedGroupValues}
+                unassigned={unassigned}
+                groupPopoverOpen={tlGroupPopoverOpen}
+                onGroupPopoverOpenChange={setTlGroupPopoverOpen}
+                onGroupConfirm={handleGroupConfirm}
+                onGroupClear={handleGroupClear}
+                hasUnassigned={filterOptions.hasUnassigned}
+                businessRoleOptions={businessRoleOptions}
+                selectedBusinessRoleNames={selectedBusinessRoleNames}
+                businessPopoverOpen={tlBusinessPopoverOpen}
+                onBusinessPopoverOpenChange={setTlBusinessPopoverOpen}
+                onBusinessRoleConfirm={handleBusinessRoleConfirm}
+                onBusinessRoleClear={handleBusinessRoleClear}
+                supervisorRoleOptions={supervisorRoleOptions}
+                selectedSupervisorRoleNames={selectedSupervisorRoleNames}
+                supervisorPopoverOpen={tlSupervisorPopoverOpen}
+                onSupervisorPopoverOpenChange={setTlSupervisorPopoverOpen}
+                onSupervisorRoleConfirm={handleSupervisorRoleConfirm}
+                onSupervisorRoleClear={handleSupervisorRoleClear}
+              />
             </TabsContent>
             <TabsContent value="list" className="flex-1 min-h-0">
           <div

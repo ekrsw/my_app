@@ -1,9 +1,11 @@
 "use client"
 
-import { useMemo, useState, useEffect, useRef } from "react"
+import { ReactNode, useMemo, useState, useEffect, useRef } from "react"
 import Link from "next/link"
 import { getTimeHHMM, getCurrentJSTTimeHHMM } from "@/lib/capacity-utils"
 import { cn } from "@/lib/utils"
+import { ColumnFilterPopover } from "@/components/shifts/column-filter-popover"
+import { CheckboxListFilter } from "@/components/shifts/column-filters/checkbox-list-filter"
 import type { TodayShift } from "@/components/dashboard/today-overview-client"
 
 /** 8:00〜21:30 の30分刻みスロット（28個） */
@@ -41,11 +43,60 @@ export function isPresent(
 /** 時間ラベル（08, 09, ... 21）*/
 const HOUR_LABELS = Array.from({ length: 14 }, (_, i) => i + 8)
 
+type FilterOption = { value: string; label: ReactNode; searchText?: string }
+
 type Props = {
   shifts: TodayShift[]
+  distinctRoleTypes: readonly [string, string]
+  // グループフィルター
+  groupOptions: FilterOption[]
+  selectedGroupValues: string[]
+  unassigned: boolean
+  groupPopoverOpen: boolean
+  onGroupPopoverOpenChange: (open: boolean) => void
+  onGroupConfirm: (ids: string[], specialChecked?: boolean) => void
+  onGroupClear: () => void
+  hasUnassigned: boolean
+  // 業務ロールフィルター
+  businessRoleOptions: FilterOption[]
+  selectedBusinessRoleNames: string[]
+  businessPopoverOpen: boolean
+  onBusinessPopoverOpenChange: (open: boolean) => void
+  onBusinessRoleConfirm: (names: string[]) => void
+  onBusinessRoleClear: () => void
+  // 監督ロールフィルター
+  supervisorRoleOptions: FilterOption[]
+  selectedSupervisorRoleNames: string[]
+  supervisorPopoverOpen: boolean
+  onSupervisorPopoverOpenChange: (open: boolean) => void
+  onSupervisorRoleConfirm: (names: string[]) => void
+  onSupervisorRoleClear: () => void
 }
 
-export function TimelineHeatmap({ shifts }: Props) {
+export function TimelineHeatmap({
+  shifts,
+  distinctRoleTypes,
+  groupOptions,
+  selectedGroupValues,
+  unassigned,
+  groupPopoverOpen,
+  onGroupPopoverOpenChange,
+  onGroupConfirm,
+  onGroupClear,
+  hasUnassigned,
+  businessRoleOptions,
+  selectedBusinessRoleNames,
+  businessPopoverOpen,
+  onBusinessPopoverOpenChange,
+  onBusinessRoleConfirm,
+  onBusinessRoleClear,
+  supervisorRoleOptions,
+  selectedSupervisorRoleNames,
+  supervisorPopoverOpen,
+  onSupervisorPopoverOpenChange,
+  onSupervisorRoleConfirm,
+  onSupervisorRoleClear,
+}: Props) {
   const [currentTime, setCurrentTime] = useState(getCurrentJSTTimeHHMM)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const [maxHeight, setMaxHeight] = useState<number>(600)
@@ -105,11 +156,70 @@ export function TimelineHeatmap({ shifts }: Props) {
   }, [currentTime])
 
   return (
-    <div
-      ref={scrollContainerRef}
-      className="rounded-md border overflow-auto"
-      style={{ maxHeight }}
-    >
+    <div className="flex flex-col gap-2">
+      {/* フィルターツールバー */}
+      <div className="flex items-center gap-3 text-sm flex-wrap">
+        <ColumnFilterPopover
+          label="グループ"
+          isActive={selectedGroupValues.length > 0 || unassigned}
+          activeCount={selectedGroupValues.length + (unassigned ? 1 : 0)}
+          open={groupPopoverOpen}
+          onOpenChange={onGroupPopoverOpenChange}
+        >
+          <CheckboxListFilter
+            options={groupOptions}
+            selectedValues={selectedGroupValues}
+            onConfirm={onGroupConfirm}
+            onClear={onGroupClear}
+            popoverOpen={groupPopoverOpen}
+            specialOption={hasUnassigned || unassigned ? {
+              value: "unassigned",
+              label: "未所属",
+              checked: unassigned,
+            } : undefined}
+            searchPlaceholder="グループ名で検索..."
+          />
+        </ColumnFilterPopover>
+        <ColumnFilterPopover
+          label={distinctRoleTypes[1]}
+          isActive={selectedBusinessRoleNames.length > 0}
+          activeCount={selectedBusinessRoleNames.length}
+          open={businessPopoverOpen}
+          onOpenChange={onBusinessPopoverOpenChange}
+        >
+          <CheckboxListFilter
+            options={businessRoleOptions}
+            selectedValues={selectedBusinessRoleNames}
+            onConfirm={onBusinessRoleConfirm}
+            onClear={onBusinessRoleClear}
+            popoverOpen={businessPopoverOpen}
+            searchPlaceholder={`${distinctRoleTypes[1]}で検索...`}
+          />
+        </ColumnFilterPopover>
+        <ColumnFilterPopover
+          label={distinctRoleTypes[0]}
+          isActive={selectedSupervisorRoleNames.length > 0}
+          activeCount={selectedSupervisorRoleNames.length}
+          open={supervisorPopoverOpen}
+          onOpenChange={onSupervisorPopoverOpenChange}
+        >
+          <CheckboxListFilter
+            options={supervisorRoleOptions}
+            selectedValues={selectedSupervisorRoleNames}
+            onConfirm={onSupervisorRoleConfirm}
+            onClear={onSupervisorRoleClear}
+            popoverOpen={supervisorPopoverOpen}
+            searchPlaceholder={`${distinctRoleTypes[0]}で検索...`}
+          />
+        </ColumnFilterPopover>
+      </div>
+
+      {/* ヒートマップテーブル */}
+      <div
+        ref={scrollContainerRef}
+        className="rounded-md border overflow-auto"
+        style={{ maxHeight }}
+      >
       <table className="border-collapse text-xs">
         {/* ヘッダー: 2行構成 */}
         <thead className="sticky top-0 z-20">
@@ -219,6 +329,7 @@ export function TimelineHeatmap({ shifts }: Props) {
           </tr>
         </tfoot>
       </table>
+      </div>
     </div>
   )
 }
