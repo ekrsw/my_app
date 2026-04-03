@@ -92,41 +92,41 @@ export default async function DashboardPage({ searchParams }: Props) {
         breadcrumbs={[{ label: "ダッシュボード" }]}
       />
       <PageContainer>
-        <CapacitySummary
-          shifts={[
-            ...todayShifts.map((s) => ({
-              employeeId: s.employeeId,
-              startTime: s.startTime,
-              endTime: s.endTime,
-              groups: s.employee?.groups.map((eg) => ({ id: eg.group.id, name: eg.group.name })) ?? [],
-              roles: s.employee?.functionRoles.filter((efr) => efr.functionRole).map((efr) => ({ roleType: efr.functionRole!.roleType, roleName: efr.functionRole!.roleName })) ?? [],
-            })),
-            ...overnightShifts.map((s) => ({
-              employeeId: s.employeeId,
-              startTime: s.startTime,
-              endTime: s.endTime,
-              groups: s.employee?.groups.map((eg) => ({ id: eg.group.id, name: eg.group.name })) ?? [],
-              roles: s.employee?.functionRoles.filter((efr) => efr.functionRole).map((efr) => ({ roleType: efr.functionRole!.roleType, roleName: efr.functionRole!.roleName })) ?? [],
-            })),
-          ]}
-          duties={[
-            ...todayDuties.map((d) => ({
-              employeeId: d.employeeId,
-              startTime: d.startTime,
-              endTime: d.endTime,
-              reducesCapacity: d.dutyType.reducesCapacity,
-            })),
-            ...overnightDuties.map((d) => ({
-              employeeId: d.employeeId,
-              startTime: d.startTime,
-              endTime: d.endTime,
-              reducesCapacity: d.dutyType.reducesCapacity,
-            })),
-          ]}
-          roleTypes={distinctRoleTypes}
-        />
-        <div className="mt-6 grid gap-6 lg:grid-cols-[2fr_3fr]">
+        <div className="grid gap-6 lg:grid-cols-[2fr_3fr]">
           <div className="flex flex-col gap-6">
+            <CapacitySummary
+              shifts={[
+                ...todayShifts.map((s) => ({
+                  employeeId: s.employeeId,
+                  startTime: s.startTime,
+                  endTime: s.endTime,
+                  groups: s.employee?.groups.map((eg) => ({ id: eg.group.id, name: eg.group.name })) ?? [],
+                  roles: s.employee?.functionRoles.filter((efr) => efr.functionRole).map((efr) => ({ roleType: efr.functionRole!.roleType, roleName: efr.functionRole!.roleName })) ?? [],
+                })),
+                ...overnightShifts.map((s) => ({
+                  employeeId: s.employeeId,
+                  startTime: s.startTime,
+                  endTime: s.endTime,
+                  groups: s.employee?.groups.map((eg) => ({ id: eg.group.id, name: eg.group.name })) ?? [],
+                  roles: s.employee?.functionRoles.filter((efr) => efr.functionRole).map((efr) => ({ roleType: efr.functionRole!.roleType, roleName: efr.functionRole!.roleName })) ?? [],
+                })),
+              ]}
+              duties={[
+                ...todayDuties.map((d) => ({
+                  employeeId: d.employeeId,
+                  startTime: d.startTime,
+                  endTime: d.endTime,
+                  reducesCapacity: d.dutyType.reducesCapacity,
+                })),
+                ...overnightDuties.map((d) => ({
+                  employeeId: d.employeeId,
+                  startTime: d.startTime,
+                  endTime: d.endTime,
+                  reducesCapacity: d.dutyType.reducesCapacity,
+                })),
+              ]}
+              roleTypes={distinctRoleTypes}
+            />
             <TodayDuties
               duties={todayDuties}
               employees={allEmployees.map((e) => ({ id: e.id, name: e.name }))}
