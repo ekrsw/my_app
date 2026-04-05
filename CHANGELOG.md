@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.0.1] - 2026-04-06
+
+### Changed
+- 月次カレンダーのセル表示をバッジ（テキスト付き）から色付きドットに変更し、セル幅内に収まるように改善
+
 ## [0.2.0.0] - 2026-04-06
 
 ### Added
