@@ -307,18 +307,23 @@ export function TodayOverviewClient({ shifts, overnightShifts, filterOptions, di
     })
   }, [shifts, sort, distinctRoleTypes])
 
-  // --- Name search filter ---
+  // --- Night shift filter (名前検索とは別に適用) ---
+  const nightShiftFiltered = useMemo(() => {
+    if (!excludeNightShift) return sortedShifts
+    return sortedShifts.filter((shift) => shift.shiftCode !== "22_8")
+  }, [sortedShifts, excludeNightShift])
+
+  // --- Name search filter (リストビュー用) ---
   const filteredShifts = useMemo(() => {
-    let result = sortedShifts
-    if (excludeNightShift) {
-      result = result.filter((shift) => shift.shiftCode !== "22_8")
-    }
-    if (!nameSearch.trim()) return result
+    if (!nameSearch.trim()) return nightShiftFiltered
     const query = nameSearch.trim().toLowerCase()
-    return result.filter((shift) =>
+    return nightShiftFiltered.filter((shift) =>
       shift.employee?.name?.toLowerCase().includes(query)
     )
-  }, [sortedShifts, nameSearch, excludeNightShift])
+  }, [nightShiftFiltered, nameSearch])
+
+  // --- 夜勤含むモードでの空状態判定（タイムラインにovernightShiftsがある場合も考慮） ---
+  const hasAnyContent = filteredShifts.length > 0 || (!excludeNightShift && overnightShifts.length > 0)
 
   // --- Filter tags ---
   const filterTags = useMemo<FilterTag[]>(() => {
@@ -466,9 +471,9 @@ export function TodayOverviewClient({ shifts, overnightShifts, filterOptions, di
       </CardHeader>
       <CardContent className="flex-1 flex flex-col min-h-0">
         <ActiveFilterTags tags={filterTags} onClearAll={clearAllFilters} />
-        {shifts.length === 0 ? (
+        {shifts.length === 0 && overnightShifts.length === 0 ? (
           <p className="text-sm text-muted-foreground">本日の出勤者はいません</p>
-        ) : filteredShifts.length === 0 ? (
+        ) : !hasAnyContent ? (
           <p className="text-sm text-muted-foreground py-4 text-center">該当する従業員が見つかりません</p>
         ) : (
           <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
@@ -478,7 +483,7 @@ export function TodayOverviewClient({ shifts, overnightShifts, filterOptions, di
             </TabsList>
             <TabsContent value="timeline" className="flex-1 min-h-0">
               <TimelineHeatmap
-                shifts={filteredShifts}
+                shifts={nightShiftFiltered}
                 overnightShifts={excludeNightShift ? [] : overnightShifts}
                 showFullDay={!excludeNightShift}
                 nameSearch={nameSearch}
