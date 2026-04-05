@@ -228,7 +228,7 @@ model DutyType {
   color     String?   @db.VarChar(20)
   isActive         Boolean?  @default(true) @map("is_active")
   sortOrder        Int       @default(0) @map("sort_order")
-  reducesCapacity  Boolean   @default(true) @map("reduces_capacity")
+  defaultReducesCapacity  Boolean   @default(true) @map("default_reduces_capacity")
 
   dutyAssignments       DutyAssignment[]
 
@@ -242,7 +242,8 @@ model DutyAssignment {
   dutyDate   DateTime @map("duty_date") @db.Date
   startTime  DateTime @map("start_time") @db.Time(6)
   endTime    DateTime @map("end_time") @db.Time(6)
-  note       String?  @db.Text
+  note              String?  @db.Text
+  reducesCapacity   Boolean  @default(true) @map("reduces_capacity")
 
   employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
   dutyType DutyType @relation(fields: [dutyTypeId], references: [id], onDelete: Restrict)

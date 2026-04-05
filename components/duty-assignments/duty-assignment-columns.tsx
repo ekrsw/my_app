@@ -1,6 +1,7 @@
 "use client"
 
 import { ColumnDef } from "@tanstack/react-table"
+import { Badge } from "@/components/ui/badge"
 import { COLOR_PALETTE } from "@/lib/constants"
 import { cn } from "@/lib/utils"
 import type { DutyAssignmentWithDetails } from "@/types/duties"
@@ -66,6 +67,15 @@ export const dutyAssignmentColumns: ColumnDef<DutyAssignmentWithDetails>[] = [
       const end = formatTime(row.original.endTime)
       return `${start} 〜 ${end}`
     },
+  },
+  {
+    accessorKey: "reducesCapacity",
+    header: "控除",
+    cell: ({ row }) => (
+      <Badge variant={row.original.reducesCapacity ? "default" : "outline"}>
+        {row.original.reducesCapacity ? "控除" : "対応可"}
+      </Badge>
+    ),
   },
   {
     accessorKey: "note",

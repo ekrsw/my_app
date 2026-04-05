@@ -19,7 +19,7 @@ import type { DutyAssignmentWithDetails } from "@/types/duties"
 type Props = {
   duties: DutyAssignmentWithDetails[]
   employees: { id: string; name: string }[]
-  dutyTypes: { id: number; code: string; name: string }[]
+  dutyTypes: { id: number; code: string; name: string; defaultReducesCapacity: boolean }[]
   isAuthenticated: boolean
   todayDateString: string
 }
@@ -131,6 +131,8 @@ export function TodayDuties({ duties, employees, dutyTypes, isAuthenticated, tod
                 <span>{detailTarget.employee.name}</span>
                 <span className="text-muted-foreground">時間帯</span>
                 <span>{formatTime(detailTarget.startTime)}〜{formatTime(detailTarget.endTime)}</span>
+                <span className="text-muted-foreground">控除</span>
+                <span>{detailTarget.reducesCapacity ? "対応可能人員から控除" : "控除しない"}</span>
                 {detailTarget.note && (
                   <>
                     <span className="text-muted-foreground">備考</span>

@@ -8,7 +8,7 @@ import { DutyAssignmentForm } from "./duty-assignment-form"
 import type { DutyAssignmentWithDetails } from "@/types/duties"
 
 type Employee = { id: string; name: string }
-type DutyType = { id: number; code: string; name: string }
+type DutyType = { id: number; code: string; name: string; defaultReducesCapacity: boolean }
 
 type Props = {
   data: DutyAssignmentWithDetails[]

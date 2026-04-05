@@ -29,6 +29,7 @@ import {
   updateDutyAssignment,
   deleteDutyAssignment,
 } from "@/lib/actions/duty-assignment-actions"
+import { Checkbox } from "@/components/ui/checkbox"
 import { toast } from "sonner"
 import { Plus, Search, Check, ChevronsUpDown } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -46,7 +47,7 @@ import {
 import type { DutyAssignmentWithDetails } from "@/types/duties"
 
 type Employee = { id: string; name: string }
-type DutyType = { id: number; code: string; name: string }
+type DutyType = { id: number; code: string; name: string; defaultReducesCapacity: boolean }
 
 type DutyAssignmentFormProps = {
   employees: Employee[]
@@ -88,6 +89,7 @@ export function DutyAssignmentForm({
   const [selectedDutyTypeId, setSelectedDutyTypeId] = useState(
     dutyAssignment?.dutyTypeId?.toString() ?? ""
   )
+  const [reducesCapacity, setReducesCapacity] = useState(dutyAssignment?.reducesCapacity ?? true)
   const [employeeSearch, setEmployeeSearch] = useState("")
   const [employeePopoverOpen, setEmployeePopoverOpen] = useState(false)
   const isEdit = !!dutyAssignment
@@ -98,6 +100,15 @@ export function DutyAssignmentForm({
     if (open) {
       setSelectedEmployeeId(dutyAssignment?.employeeId ?? "")
       setSelectedDutyTypeId(dutyAssignment?.dutyTypeId?.toString() ?? "")
+      setReducesCapacity(dutyAssignment?.reducesCapacity ?? true)
+    }
+  }
+
+  function handleDutyTypeChange(value: string) {
+    setSelectedDutyTypeId(value)
+    const dt = dutyTypes.find((d) => d.id.toString() === value)
+    if (dt) {
+      setReducesCapacity(dt.defaultReducesCapacity)
     }
   }
 
@@ -121,6 +132,7 @@ export function DutyAssignmentForm({
       startTime: formData.get("startTime") as string,
       endTime: formData.get("endTime") as string,
       note: (formData.get("note") as string) || undefined,
+      reducesCapacity,
     }
 
     setLoading(true)
@@ -233,7 +245,7 @@ export function DutyAssignmentForm({
           </div>
           <div className="space-y-2">
             <Label>業務種別 *</Label>
-            <Select value={selectedDutyTypeId} onValueChange={setSelectedDutyTypeId}>
+            <Select value={selectedDutyTypeId} onValueChange={handleDutyTypeChange}>
               <SelectTrigger>
                 <SelectValue placeholder="業務種別を選択" />
               </SelectTrigger>
@@ -293,6 +305,19 @@ export function DutyAssignmentForm({
               key={`note-${dutyAssignment?.id ?? "new"}`}
               rows={3}
             />
+          </div>
+          <div className="flex items-center gap-2">
+            <Checkbox
+              id="reducesCapacity"
+              checked={reducesCapacity}
+              onCheckedChange={(v) => setReducesCapacity(v === true)}
+            />
+            <Label htmlFor="reducesCapacity" className="flex flex-col">
+              <span>対応可能人員から控除する</span>
+              <span className="text-xs font-normal text-muted-foreground">
+                チェック時、この業務の当番中は対応可能人員に含めません
+              </span>
+            </Label>
           </div>
           <div className="flex justify-end gap-2">
             <Button type="submit" disabled={loading}>
