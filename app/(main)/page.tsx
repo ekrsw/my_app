@@ -116,13 +116,13 @@ export default async function DashboardPage({ searchParams }: Props) {
                   employeeId: d.employeeId,
                   startTime: d.startTime,
                   endTime: d.endTime,
-                  reducesCapacity: d.dutyType.reducesCapacity,
+                  reducesCapacity: d.reducesCapacity,
                 })),
                 ...overnightDuties.map((d) => ({
                   employeeId: d.employeeId,
                   startTime: d.startTime,
                   endTime: d.endTime,
-                  reducesCapacity: d.dutyType.reducesCapacity,
+                  reducesCapacity: d.reducesCapacity,
                 })),
               ]}
               roleTypes={distinctRoleTypes}
@@ -130,7 +130,7 @@ export default async function DashboardPage({ searchParams }: Props) {
             <TodayDuties
               duties={todayDuties}
               employees={allEmployees.map((e) => ({ id: e.id, name: e.name }))}
-              dutyTypes={dutyTypes.map((dt) => ({ id: dt.id, code: dt.code, name: dt.name }))}
+              dutyTypes={dutyTypes.map((dt) => ({ id: dt.id, code: dt.code, name: dt.name, defaultReducesCapacity: dt.defaultReducesCapacity }))}
               isAuthenticated={!!session?.user}
               todayDateString={todayDateString}
             />

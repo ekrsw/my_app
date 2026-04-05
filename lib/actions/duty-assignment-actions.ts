@@ -14,6 +14,7 @@ type DutyAssignmentInput = {
   startTime: string
   endTime: string
   note?: string
+  reducesCapacity?: boolean
 }
 
 function validateAndParseDutyAssignment(data: DutyAssignmentInput) {
@@ -29,6 +30,7 @@ function validateAndParseDutyAssignment(data: DutyAssignmentInput) {
       startTime: new Date(`1970-01-01T${parsed.data.startTime}Z`),
       endTime: new Date(`1970-01-01T${parsed.data.endTime}Z`),
       note: parsed.data.note ?? null,
+      reducesCapacity: parsed.data.reducesCapacity,
       dutyStartHHMM: parsed.data.startTime.substring(0, 5),
       dutyEndHHMM: parsed.data.endTime.substring(0, 5),
     },
@@ -71,6 +73,7 @@ export async function createDutyAssignment(data: DutyAssignmentInput) {
           startTime: parsed.startTime,
           endTime: parsed.endTime,
           note: parsed.note,
+          reducesCapacity: parsed.reducesCapacity,
         },
       })
     })
@@ -128,6 +131,7 @@ export async function updateDutyAssignment(
           startTime: parsed.startTime,
           endTime: parsed.endTime,
           note: parsed.note,
+          reducesCapacity: parsed.reducesCapacity,
         },
       })
     })

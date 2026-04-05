@@ -60,6 +60,57 @@ describe("DutyAssignment Actions — シフト整合性バリデーション", (
       expect(assignments).toHaveLength(1)
     })
 
+    it("reducesCapacity を明示的に指定 → 保存される", async () => {
+      await prisma.shift.create({
+        data: {
+          employeeId,
+          shiftDate: new Date("2026-04-10"),
+          shiftCode: "A",
+          startTime: new Date("1970-01-01T09:00:00Z"),
+          endTime: new Date("1970-01-01T17:00:00Z"),
+        },
+      })
+
+      const result = await createDutyAssignment({
+        employeeId,
+        dutyTypeId,
+        dutyDate: "2026-04-10",
+        startTime: "10:00",
+        endTime: "12:00",
+        reducesCapacity: false,
+      })
+
+      expect(result).toEqual({ success: true })
+
+      const assignment = await prisma.dutyAssignment.findFirst()
+      expect(assignment?.reducesCapacity).toBe(false)
+    })
+
+    it("reducesCapacity 省略時 → デフォルトtrue", async () => {
+      await prisma.shift.create({
+        data: {
+          employeeId,
+          shiftDate: new Date("2026-04-10"),
+          shiftCode: "A",
+          startTime: new Date("1970-01-01T09:00:00Z"),
+          endTime: new Date("1970-01-01T17:00:00Z"),
+        },
+      })
+
+      const result = await createDutyAssignment({
+        employeeId,
+        dutyTypeId,
+        dutyDate: "2026-04-10",
+        startTime: "10:00",
+        endTime: "12:00",
+      })
+
+      expect(result).toEqual({ success: true })
+
+      const assignment = await prisma.dutyAssignment.findFirst()
+      expect(assignment?.reducesCapacity).toBe(true)
+    })
+
     it("シフト未登録日 → エラー", async () => {
       const result = await createDutyAssignment({
         employeeId,
@@ -179,6 +230,45 @@ describe("DutyAssignment Actions — シフト整合性バリデーション", (
         where: { id: assignment.id },
       })
       expect(updated).not.toBeNull()
+    })
+
+    it("reducesCapacity を更新 → 反映される", async () => {
+      await prisma.shift.create({
+        data: {
+          employeeId,
+          shiftDate: new Date("2026-04-10"),
+          shiftCode: "A",
+          startTime: new Date("1970-01-01T09:00:00Z"),
+          endTime: new Date("1970-01-01T17:00:00Z"),
+        },
+      })
+
+      const assignment = await prisma.dutyAssignment.create({
+        data: {
+          employeeId,
+          dutyTypeId,
+          dutyDate: new Date("2026-04-10"),
+          startTime: new Date("1970-01-01T10:00:00Z"),
+          endTime: new Date("1970-01-01T12:00:00Z"),
+          reducesCapacity: true,
+        },
+      })
+
+      const result = await updateDutyAssignment(assignment.id, {
+        employeeId,
+        dutyTypeId,
+        dutyDate: "2026-04-10",
+        startTime: "10:00",
+        endTime: "12:00",
+        reducesCapacity: false,
+      })
+
+      expect(result).toEqual({ success: true })
+
+      const updated = await prisma.dutyAssignment.findUnique({
+        where: { id: assignment.id },
+      })
+      expect(updated?.reducesCapacity).toBe(false)
     })
   })
 })

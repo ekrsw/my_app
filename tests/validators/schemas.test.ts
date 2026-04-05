@@ -481,6 +481,25 @@ describe("Zod Validation Schemas", () => {
       })
       expect(result.success).toBe(true)
     })
+
+    it("reducesCapacity=false を受け入れる", () => {
+      const result = dutyAssignmentSchema.safeParse({
+        ...validData,
+        reducesCapacity: false,
+      })
+      expect(result.success).toBe(true)
+      if (result.success) {
+        expect(result.data.reducesCapacity).toBe(false)
+      }
+    })
+
+    it("reducesCapacity 省略時はデフォルトtrue", () => {
+      const result = dutyAssignmentSchema.safeParse(validData)
+      expect(result.success).toBe(true)
+      if (result.success) {
+        expect(result.data.reducesCapacity).toBe(true)
+      }
+    })
   })
 
   describe("roleCsvRowSchema", () => {

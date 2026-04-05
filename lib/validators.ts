@@ -109,7 +109,7 @@ export const dutyTypeSchema = z.object({
   color: z.string().max(20).nullable().optional(),
   isActive: z.boolean().default(true),
   sortOrder: z.coerce.number().int().min(0, "0以上の数値を入力してください").default(0),
-  reducesCapacity: z.boolean().default(true),
+  defaultReducesCapacity: z.boolean().default(true),
 })
 export type DutyTypeFormData = z.infer<typeof dutyTypeSchema>
 
@@ -121,6 +121,7 @@ export const dutyAssignmentSchema = z.object({
   startTime: z.string().min(1, "開始時刻は必須です"),
   endTime: z.string().min(1, "終了時刻は必須です"),
   note: z.string().optional(),
+  reducesCapacity: z.boolean().default(true),
 }).refine((data) => data.endTime !== data.startTime, {
   message: "終了時刻は開始時刻と異なる値にしてください",
   path: ["endTime"],
