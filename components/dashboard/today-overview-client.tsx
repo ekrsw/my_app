@@ -15,11 +15,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { ColumnFilterPopover } from "@/components/shifts/column-filter-popover"
-import { EmployeeCheckboxFilter } from "@/components/shifts/column-filters/employee-checkbox-filter"
-import { CheckboxListFilter } from "@/components/shifts/column-filters/checkbox-list-filter"
-import { ToggleFilter } from "@/components/shifts/column-filters/toggle-filter"
-import { ActiveFilterTags, FilterTag } from "@/components/shifts/active-filter-tags"
+import { ColumnFilterPopover } from "@/components/common/filters/column-filter-popover"
+import { EmployeeCheckboxFilter } from "@/components/common/filters/employee-checkbox-filter"
+import { CheckboxListFilter } from "@/components/common/filters/checkbox-list-filter"
+import { ToggleFilter } from "@/components/common/filters/toggle-filter"
+import { ActiveFilterTags, FilterTag } from "@/components/common/filters/active-filter-tags"
 import { ShiftBadge } from "@/components/shifts/shift-badge"
 import { useDashboardFilters } from "@/hooks/use-dashboard-filters"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"

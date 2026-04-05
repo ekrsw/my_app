@@ -16,8 +16,8 @@ import { Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
 import { StickyHorizontalScrollbar } from "@/components/ui/sticky-horizontal-scrollbar"
-import { ColumnFilterPopover } from "@/components/shifts/column-filter-popover"
-import { EmployeeCheckboxFilter } from "@/components/shifts/column-filters/employee-checkbox-filter"
+import { ColumnFilterPopover } from "@/components/common/filters/column-filter-popover"
+import { EmployeeCheckboxFilter } from "@/components/common/filters/employee-checkbox-filter"
 import { useQueryParams } from "@/hooks/use-query-params"
 
 type ShiftCalendarProps = {

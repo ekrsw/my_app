@@ -4,8 +4,8 @@ import { ReactNode, useMemo, useState, useEffect, useRef } from "react"
 import Link from "next/link"
 import { getTimeHHMM, getCurrentJSTTimeHHMM } from "@/lib/capacity-utils"
 import { cn } from "@/lib/utils"
-import { ColumnFilterPopover } from "@/components/shifts/column-filter-popover"
-import { CheckboxListFilter } from "@/components/shifts/column-filters/checkbox-list-filter"
+import { ColumnFilterPopover } from "@/components/common/filters/column-filter-popover"
+import { CheckboxListFilter } from "@/components/common/filters/checkbox-list-filter"
 import type { TodayShift } from "@/components/dashboard/today-overview-client"
 
 /** 8:00〜21:30 の30分刻みスロット（28個） */

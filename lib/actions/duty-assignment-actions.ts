@@ -167,3 +167,19 @@ class ShiftValidationError extends Error {
     this.name = "ShiftValidationError"
   }
 }
+
+import { getDutyAssignmentsForDaily } from "@/lib/db/duty-assignments"
+import type { DutyDailyFilterParams, DutyDailyPaginatedResult } from "@/types/duties"
+
+/** 日次ビューの追加データ読み込み（無限スクロール用） */
+export async function loadMoreDutyDailyData(
+  params: DutyDailyFilterParams,
+  cursor: number
+): Promise<DutyDailyPaginatedResult> {
+  const safeCursor = Math.max(0, Math.floor(Number(cursor) || 0))
+  const safeDate = new Date(params.date)
+  if (isNaN(safeDate.getTime())) {
+    return { data: [], total: 0, hasMore: false, nextCursor: null }
+  }
+  return getDutyAssignmentsForDaily({ ...params, date: safeDate }, { cursor: safeCursor })
+}
