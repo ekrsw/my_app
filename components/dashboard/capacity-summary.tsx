@@ -3,8 +3,8 @@
 import { useState, useEffect, useMemo } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
-import { ColumnFilterPopover } from "@/components/shifts/column-filter-popover"
-import { CheckboxListFilter } from "@/components/shifts/column-filters/checkbox-list-filter"
+import { ColumnFilterPopover } from "@/components/common/filters/column-filter-popover"
+import { CheckboxListFilter } from "@/components/common/filters/checkbox-list-filter"
 import {
   calculateFilteredCapacity,
   extractFilterOptions,

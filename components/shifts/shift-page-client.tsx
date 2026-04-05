@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useCallback, useMemo, useEffect } from "react"
-import { ActiveFilterTags, type FilterTag } from "./active-filter-tags"
+import { ActiveFilterTags, type FilterTag } from "@/components/common/filters/active-filter-tags"
 import { useQueryParams } from "@/hooks/use-query-params"
 import { Button } from "@/components/ui/button"
 import { ShiftCalendar } from "./shift-calendar"
