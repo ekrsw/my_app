@@ -8,16 +8,24 @@ import { ColumnFilterPopover } from "@/components/common/filters/column-filter-p
 import { CheckboxListFilter } from "@/components/common/filters/checkbox-list-filter"
 import type { TodayShift } from "@/components/dashboard/today-overview-client"
 
-/** 8:00〜21:30 の30分刻みスロット（28個） */
-const TIME_SLOTS: string[] = []
-for (let h = 8; h < 22; h++) {
-  for (let m = 0; m < 60; m += 30) {
-    TIME_SLOTS.push(`${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`)
+/** 指定範囲の30分刻みスロットを生成 */
+export function generateTimeSlots(startHour: number, endHour: number): string[] {
+  const slots: string[] = []
+  for (let h = startHour; h < endHour; h++) {
+    for (let m = 0; m < 60; m += 30) {
+      slots.push(`${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`)
+    }
   }
+  return slots
 }
 
+/** 8:00〜21:30 の30分刻みスロット（28個） */
+const TIME_SLOTS_DAY = generateTimeSlots(8, 22)
+/** 0:00〜23:30 の30分刻みスロット（48個） */
+const TIME_SLOTS_FULL = generateTimeSlots(0, 24)
+
 /**
- * ヒートマップ用の在席判定。
+ * ヒートマップ用の在席判定（今日のシフト）。
  * isWorkerPresent (capacity-utils) とは異なるセマンティクス:
  * - 通常シフト: start <= slot < end（終業時刻のスロットは不在扱い）
  * - 深夜跨ぎシフト(end < start): slot >= start のみ（翌日側は今日の出勤者に含めない）
@@ -40,13 +48,39 @@ export function isPresent(
   return slot >= start
 }
 
+/**
+ * 前日夜勤の在席判定（翌日=今日の0:00〜endTime部分のみ）。
+ * 前日の深夜跨ぎシフト(例: 22:00-08:00)の今日側(0:00-08:00)を表示する。
+ */
+export function isPresentOvernight(
+  endTime: Date | string | null,
+  slot: string
+): boolean {
+  if (!endTime) return false
+  const end = getTimeHHMM(endTime)
+  return slot < end
+}
+
 /** 時間ラベル（08, 09, ... 21）*/
-const HOUR_LABELS = Array.from({ length: 14 }, (_, i) => i + 8)
+const HOUR_LABELS_DAY = Array.from({ length: 14 }, (_, i) => i + 8)
+/** 時間ラベル（00, 01, ... 23）*/
+const HOUR_LABELS_FULL = Array.from({ length: 24 }, (_, i) => i)
 
 type FilterOption = { value: string; label: ReactNode; searchText?: string }
 
+type MergedRow = {
+  employeeId: string
+  employeeName: string
+  employee: TodayShift["employee"]
+  presence: boolean[]
+}
+
 type Props = {
   shifts: TodayShift[]
+  overnightShifts?: TodayShift[]
+  showFullDay?: boolean
+  nameSearch?: string
+  onRowCountChange?: (count: number) => void
   distinctRoleTypes: readonly [string, string]
   // グループフィルター
   groupOptions: FilterOption[]
@@ -75,6 +109,10 @@ type Props = {
 
 export function TimelineHeatmap({
   shifts,
+  overnightShifts = [],
+  showFullDay = false,
+  nameSearch = "",
+  onRowCountChange,
   distinctRoleTypes,
   groupOptions,
   selectedGroupValues,
@@ -100,6 +138,9 @@ export function TimelineHeatmap({
   const [currentTime, setCurrentTime] = useState(getCurrentJSTTimeHHMM)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const [maxHeight, setMaxHeight] = useState<number>(600)
+
+  const timeSlots = showFullDay ? TIME_SLOTS_FULL : TIME_SLOTS_DAY
+  const hourLabels = showFullDay ? HOUR_LABELS_FULL : HOUR_LABELS_DAY
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -129,31 +170,91 @@ export function TimelineHeatmap({
     }
   })
 
-  const grid = useMemo(
-    () =>
-      shifts.map((shift) => ({
-        shift,
-        presence: TIME_SLOTS.map((slot) =>
-          isPresent(shift.startTime, shift.endTime, slot)
-        ),
-      })),
-    [shifts]
-  )
+  // 従業員単位でマージしたグリッド
+  const mergedGrid = useMemo<MergedRow[]>(() => {
+    const employeeMap = new Map<string, {
+      employee: TodayShift["employee"]
+      todayPresence: boolean[]
+      overnightPresence: boolean[]
+    }>()
+
+    // 今日のシフト
+    for (const shift of shifts) {
+      const empId = shift.employee?.id
+      if (!empId) continue
+      const presence = timeSlots.map((slot) =>
+        isPresent(shift.startTime, shift.endTime, slot)
+      )
+      employeeMap.set(empId, {
+        employee: shift.employee,
+        todayPresence: presence,
+        overnightPresence: timeSlots.map(() => false),
+      })
+    }
+
+    // 前日夜勤（showFullDay=trueの時のみマージ）
+    if (showFullDay) {
+      for (const shift of overnightShifts) {
+        const empId = shift.employee?.id
+        if (!empId) continue
+        const overnightPresence = timeSlots.map((slot) =>
+          isPresentOvernight(shift.endTime, slot)
+        )
+        const existing = employeeMap.get(empId)
+        if (existing) {
+          existing.overnightPresence = overnightPresence
+        } else {
+          employeeMap.set(empId, {
+            employee: shift.employee,
+            todayPresence: timeSlots.map(() => false),
+            overnightPresence,
+          })
+        }
+      }
+    }
+
+    // OR結合して最終グリッドを生成
+    const rows: MergedRow[] = []
+    for (const [empId, data] of employeeMap) {
+      rows.push({
+        employeeId: empId,
+        employeeName: data.employee?.name ?? "",
+        employee: data.employee,
+        presence: data.todayPresence.map((today, i) => today || data.overnightPresence[i]),
+      })
+    }
+
+    return rows.sort((a, b) => a.employeeName.localeCompare(b.employeeName, "ja"))
+  }, [shifts, overnightShifts, showFullDay, timeSlots])
+
+  // 名前検索フィルタ
+  const filteredGrid = useMemo(() => {
+    if (!nameSearch.trim()) return mergedGrid
+    const query = nameSearch.trim().toLowerCase()
+    return mergedGrid.filter((row) =>
+      row.employeeName.toLowerCase().includes(query)
+    )
+  }, [mergedGrid, nameSearch])
+
+  // 親に行数を通知
+  useEffect(() => {
+    onRowCountChange?.(filteredGrid.length)
+  }, [filteredGrid.length, onRowCountChange])
 
   const slotCounts = useMemo(
     () =>
-      TIME_SLOTS.map((_, i) =>
-        grid.reduce((count, row) => count + (row.presence[i] ? 1 : 0), 0)
+      timeSlots.map((_, i) =>
+        filteredGrid.reduce((count, row) => count + (row.presence[i] ? 1 : 0), 0)
       ),
-    [grid]
+    [filteredGrid, timeSlots]
   )
 
   const currentSlotIndex = useMemo(() => {
-    for (let i = TIME_SLOTS.length - 1; i >= 0; i--) {
-      if (currentTime >= TIME_SLOTS[i]) return i
+    for (let i = timeSlots.length - 1; i >= 0; i--) {
+      if (currentTime >= timeSlots[i]) return i
     }
     return -1
-  }, [currentTime])
+  }, [currentTime, timeSlots])
 
   return (
     <div className="flex flex-col gap-2">
@@ -231,8 +332,8 @@ export function TimelineHeatmap({
             >
               従業員名
             </th>
-            {HOUR_LABELS.map((hour) => {
-              const slotIdx = (hour - 8) * 2
+            {hourLabels.map((hour) => {
+              const slotIdx = (hour - hourLabels[0]) * 2
               const isCurrent =
                 currentSlotIndex === slotIdx || currentSlotIndex === slotIdx + 1
               return (
@@ -251,7 +352,7 @@ export function TimelineHeatmap({
           </tr>
           {/* 2行目: :00 / :30 サブラベル */}
           <tr>
-            {TIME_SLOTS.map((slot, i) => {
+            {timeSlots.map((slot, i) => {
               const isCurrent = i === currentSlotIndex
               return (
                 <th
@@ -270,10 +371,10 @@ export function TimelineHeatmap({
         </thead>
 
         <tbody>
-          {grid.map(({ shift, presence }) => {
-            const emp = shift.employee
+          {filteredGrid.map((row) => {
+            const emp = row.employee
             return (
-              <tr key={shift.id} className="border-t border-border">
+              <tr key={row.employeeId} className="border-t border-border">
                 <td className="sticky left-0 z-10 bg-background px-3 py-1 font-medium whitespace-nowrap shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)]">
                   {emp ? (
                     <Link
@@ -286,7 +387,7 @@ export function TimelineHeatmap({
                     "-"
                   )}
                 </td>
-                {presence.map((present, i) => (
+                {row.presence.map((present, i) => (
                   <td
                     key={i}
                     className={cn(
