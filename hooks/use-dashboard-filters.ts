@@ -12,6 +12,7 @@ const FILTER_KEYS = [
   "supervisorRoleNames",
   "businessRoleNames",
   "isRemote",
+  "excludeNightShift",
 ] as const
 
 export function useDashboardFilters() {
