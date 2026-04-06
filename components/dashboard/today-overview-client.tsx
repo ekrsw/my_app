@@ -65,6 +65,7 @@ type ActiveShiftCode = {
 
 type Props = {
   shifts: TodayShift[]
+  overnightShifts: TodayShift[]
   filterOptions: DashboardFilterOptions
   distinctRoleTypes: readonly [string, string]
   isAuthenticated?: boolean
@@ -74,7 +75,7 @@ type Props = {
   todayDateString: string
 }
 
-export function TodayOverviewClient({ shifts, filterOptions, distinctRoleTypes, isAuthenticated, shiftCodes: shiftCodesData, shiftIdsWithHistory, shiftLatestHistory, todayDateString }: Props) {
+export function TodayOverviewClient({ shifts, overnightShifts, filterOptions, distinctRoleTypes, isAuthenticated, shiftCodes: shiftCodesData, shiftIdsWithHistory, shiftLatestHistory, todayDateString }: Props) {
   const { setParams, getParam } = useDashboardFilters()
 
   // --- Dynamic height calculation (same pattern as shift-calendar) ---
@@ -101,6 +102,10 @@ export function TodayOverviewClient({ shifts, filterOptions, distinctRoleTypes, 
       observer.disconnect()
     }
   })
+
+  // --- Tab and timeline row count state ---
+  const [activeTab, setActiveTab] = useState("timeline")
+  const [timelineRowCount, setTimelineRowCount] = useState<number | null>(null)
 
   // --- Shift detail/edit dialog state ---
   const [nameSearch, setNameSearch] = useState("")
@@ -302,18 +307,23 @@ export function TodayOverviewClient({ shifts, filterOptions, distinctRoleTypes, 
     })
   }, [shifts, sort, distinctRoleTypes])
 
-  // --- Name search filter ---
+  // --- Night shift filter (名前検索とは別に適用) ---
+  const nightShiftFiltered = useMemo(() => {
+    if (!excludeNightShift) return sortedShifts
+    return sortedShifts.filter((shift) => shift.shiftCode !== "22_8")
+  }, [sortedShifts, excludeNightShift])
+
+  // --- Name search filter (リストビュー用) ---
   const filteredShifts = useMemo(() => {
-    let result = sortedShifts
-    if (excludeNightShift) {
-      result = result.filter((shift) => shift.shiftCode !== "22_8")
-    }
-    if (!nameSearch.trim()) return result
+    if (!nameSearch.trim()) return nightShiftFiltered
     const query = nameSearch.trim().toLowerCase()
-    return result.filter((shift) =>
+    return nightShiftFiltered.filter((shift) =>
       shift.employee?.name?.toLowerCase().includes(query)
     )
-  }, [sortedShifts, nameSearch, excludeNightShift])
+  }, [nightShiftFiltered, nameSearch])
+
+  // --- 夜勤含むモードでの空状態判定（タイムラインにovernightShiftsがある場合も考慮） ---
+  const hasAnyContent = filteredShifts.length > 0 || (!excludeNightShift && overnightShifts.length > 0)
 
   // --- Filter tags ---
   const filterTags = useMemo<FilterTag[]>(() => {
@@ -441,7 +451,7 @@ export function TodayOverviewClient({ shifts, filterOptions, distinctRoleTypes, 
     <Card className="h-full flex flex-col min-w-0">
       <CardHeader className="flex-shrink-0">
         <div className="flex items-center justify-between gap-4">
-          <CardTitle>本日の出勤者 ({filteredShifts.length}名)</CardTitle>
+          <CardTitle>本日の出勤者 ({activeTab === "timeline" && timelineRowCount !== null ? timelineRowCount : filteredShifts.length}名)</CardTitle>
           <div className="flex items-center gap-3">
             <label className="flex items-center gap-1.5 text-sm cursor-pointer select-none">
               <Checkbox
@@ -461,19 +471,23 @@ export function TodayOverviewClient({ shifts, filterOptions, distinctRoleTypes, 
       </CardHeader>
       <CardContent className="flex-1 flex flex-col min-h-0">
         <ActiveFilterTags tags={filterTags} onClearAll={clearAllFilters} />
-        {shifts.length === 0 ? (
+        {shifts.length === 0 && overnightShifts.length === 0 ? (
           <p className="text-sm text-muted-foreground">本日の出勤者はいません</p>
-        ) : filteredShifts.length === 0 ? (
+        ) : !hasAnyContent ? (
           <p className="text-sm text-muted-foreground py-4 text-center">該当する従業員が見つかりません</p>
         ) : (
-          <Tabs defaultValue="timeline" className="flex-1 flex flex-col min-h-0">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
             <TabsList className="mb-2">
               <TabsTrigger value="timeline">タイムライン</TabsTrigger>
               <TabsTrigger value="list">リスト</TabsTrigger>
             </TabsList>
             <TabsContent value="timeline" className="flex-1 min-h-0">
               <TimelineHeatmap
-                shifts={filteredShifts}
+                shifts={nightShiftFiltered}
+                overnightShifts={excludeNightShift ? [] : overnightShifts}
+                showFullDay={!excludeNightShift}
+                nameSearch={nameSearch}
+                onRowCountChange={setTimelineRowCount}
                 distinctRoleTypes={distinctRoleTypes}
                 groupOptions={groupOptions}
                 selectedGroupValues={selectedGroupValues}

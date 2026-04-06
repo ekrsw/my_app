@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useCallback, useRef, useEffect, useId } from "react"
 import type { DutyCalendarData, DutyCalendarCell } from "@/types/duties"
-import { COLOR_PALETTE, getColorClasses } from "@/lib/constants"
+import { COLOR_PALETTE } from "@/lib/constants"
 import {
   getDaysInMonth,
   getDayOfWeekJa,
@@ -27,21 +27,16 @@ type DutyMonthlyCalendarProps = {
 
 const MAX_BADGES = 3
 
-function DutyBadge({ cell }: { cell: DutyCalendarCell }) {
-  const colors = getColorClasses(cell.dutyTypeColor)
-  const fallback = COLOR_PALETTE["gray"]
-
-  const textClass = colors?.text ?? fallback.text
-  const bgClass = colors?.bg ?? fallback.bg
+function DutyDot({ cell }: { cell: DutyCalendarCell }) {
+  const swatchClass = cell.dutyTypeColor
+    ? COLOR_PALETTE[cell.dutyTypeColor]?.swatch ?? COLOR_PALETTE["gray"].swatch
+    : COLOR_PALETTE["gray"].swatch
 
   return (
     <span
-      className={cn("inline-flex items-center gap-0.5 rounded-full px-1 text-[9px] font-medium leading-tight", bgClass, textClass)}
+      className={cn("inline-block h-3 w-3 rounded-full shrink-0", swatchClass)}
       title={`${cell.dutyTypeName} (${cell.startTime}-${cell.endTime})`}
-    >
-      <span className={cn("inline-block h-1.5 w-1.5 rounded-full shrink-0", colors ? colors.bg.replace("bg-", "bg-") : fallback.swatch)} />
-      {cell.dutyTypeCode}
-    </span>
+    />
   )
 }
 
@@ -72,11 +67,11 @@ function CellContent({
   return (
     <button
       type="button"
-      className="flex h-full w-full flex-col items-center justify-center gap-0 px-0.5 py-0.5"
+      className="flex h-full w-full flex-wrap items-center justify-center gap-1 px-1 py-1"
       onClick={() => onCellClick(dateStr)}
     >
       {visible.map((cell) => (
-        <DutyBadge key={cell.id} cell={cell} />
+        <DutyDot key={cell.id} cell={cell} />
       ))}
       {remaining > 0 && (
         <span className="text-[8px] text-muted-foreground leading-tight">

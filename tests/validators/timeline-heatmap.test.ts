@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest"
-import { isPresent } from "@/components/dashboard/timeline-heatmap"
+import { isPresent, isPresentOvernight, generateTimeSlots } from "@/components/dashboard/timeline-heatmap"
 
 // Prisma @db.Time(6) は 1970-01-01T{HH:mm:ss}Z 形式のDateオブジェクト
 // getTimeHHMM はISOの11-16文字目(UTC部分)を抽出する
@@ -72,5 +72,46 @@ describe("isPresent (ヒートマップ用在席判定)", () => {
       expect(isPresent(time("09:00"), null, "09:00")).toBe(true)
       expect(isPresent(time("09:00"), null, "21:30")).toBe(true)
     })
+  })
+})
+
+describe("isPresentOvernight (前日夜勤の在席判定)", () => {
+  it("endTime=08:00: 0:00-07:30はtrue, 08:00以降はfalse", () => {
+    expect(isPresentOvernight(time("08:00"), "00:00")).toBe(true)
+    expect(isPresentOvernight(time("08:00"), "04:00")).toBe(true)
+    expect(isPresentOvernight(time("08:00"), "07:30")).toBe(true)
+    expect(isPresentOvernight(time("08:00"), "08:00")).toBe(false)
+    expect(isPresentOvernight(time("08:00"), "12:00")).toBe(false)
+  })
+
+  it("endTime=06:00: 0:00-05:30はtrue, 06:00以降はfalse", () => {
+    expect(isPresentOvernight(time("06:00"), "00:00")).toBe(true)
+    expect(isPresentOvernight(time("06:00"), "05:30")).toBe(true)
+    expect(isPresentOvernight(time("06:00"), "06:00")).toBe(false)
+  })
+
+  it("endTime=00:00: すべてfalse（slot < '00:00' は成立しない）", () => {
+    expect(isPresentOvernight(time("00:00"), "00:00")).toBe(false)
+    expect(isPresentOvernight(time("00:00"), "08:00")).toBe(false)
+  })
+
+  it("endTime=null: false", () => {
+    expect(isPresentOvernight(null, "04:00")).toBe(false)
+  })
+})
+
+describe("generateTimeSlots", () => {
+  it("8:00-22:00で28スロット生成", () => {
+    const slots = generateTimeSlots(8, 22)
+    expect(slots).toHaveLength(28)
+    expect(slots[0]).toBe("08:00")
+    expect(slots[slots.length - 1]).toBe("21:30")
+  })
+
+  it("0:00-24:00で48スロット生成", () => {
+    const slots = generateTimeSlots(0, 24)
+    expect(slots).toHaveLength(48)
+    expect(slots[0]).toBe("00:00")
+    expect(slots[slots.length - 1]).toBe("23:30")
   })
 })

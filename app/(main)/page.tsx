@@ -144,6 +144,7 @@ export default async function DashboardPage({ searchParams }: Props) {
           </div>
           <TodayOverviewClient
             shifts={todayShifts}
+            overnightShifts={overnightShifts}
             filterOptions={filterOptions}
             distinctRoleTypes={distinctRoleTypes}
             isAuthenticated={!!session?.user}
