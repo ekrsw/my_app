@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.1.2] - 2026-04-06
+
+### Fixed
+- シフト更新・削除後にダッシュボード（`/`）が自動更新されない問題を修正。`updateShift` および `deleteShift` に `revalidatePath("/")` を追加
+
 ## [0.2.1.1] - 2026-04-06
 
 ### Changed
