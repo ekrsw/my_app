@@ -43,3 +43,35 @@
 **Effort:** S | **Priority:** P3 | **Risk:** Low
 
 **Context:** 各パーサーはスタンドアロン設計で動作しており、共通化しなくても即座に問題にはならない。ただし今後インポート機能が増えるたびに重複が増える
+
+## リファクタ: timeToInput関数の共通化
+
+**What:** `timeToInput`関数（Date→"HH:mm"文字列変換の4行関数）を `lib/date-utils.ts` に移動し、全ファイルから参照する。
+
+**Why:** 現在5ファイル（duty-assignment-form.tsx, attendance-edit-form.tsx, shift-form.tsx, shift-bulk-editor.tsx, shift-code-form.tsx）に同一実装が重複しており、今後のファイルでも6個目、7個目と増え続ける。
+
+**Pros:** DRY原則遵守、将来のバグ修正が1箇所で済む。
+
+**Cons:** 5ファイルのimportを修正する必要がある（小さい変更）。
+
+**Context:** `lib/date-utils.ts` には既に `formatTime` (Date→"HH:mm") が存在するが、これは `date-fns` 依存でUTCオフセット補正あり。`timeToInput` は `d.toISOString().substring(11, 16)` の単純版で別物。`timeToInput` をそのまま `lib/date-utils.ts` に `export` するだけでよい。
+
+**Effort:** S (human) → S (CC+gstack) | **Priority:** P3 | **Risk:** Low
+
+**Depends on:** なし（独立したリファクタ）
+
+## バグ: bulkUpdateShifts・restoreShiftVersionのダッシュボードキャッシュ未無効化
+
+**What:** `bulkUpdateShifts`（lib/actions/shift-actions.ts:274付近）と `restoreShiftVersion`（同:334付近）に `revalidatePath("/")` が欠落しており、一括更新・バージョン復元後にダッシュボード（`/`）が古いデータを表示し続ける可能性がある。
+
+**Why:** `updateShift`・`deleteShift` と同様、シフト変更操作はダッシュボードのキャッシュも無効化すべき。Adversarial review (v0.2.1.2) で発見。
+
+**Pros:** ダッシュボードの表示が一括更新・復元操作後もリアルタイムに反映される。
+
+**Cons:** 変更は2行追加のみで軽微。
+
+**Context:** `updateShift`/`deleteShift` には v0.2.1.2 で `revalidatePath("/")` を追加済み。`bulkUpdateShifts`（複数シフト一括更新）と `restoreShiftVersion`（シフト履歴からの復元）も同様の修正が必要。
+
+**Effort:** XS (human) → XS (CC+gstack) | **Priority:** P2 | **Risk:** Low
+
+**Depends on:** なし（独立した修正）

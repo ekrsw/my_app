@@ -197,6 +197,7 @@ export async function updateShift(
         },
       })
     })
+    revalidatePath("/")
     revalidatePath("/shifts")
     return { success: true }
   } catch {
@@ -217,6 +218,7 @@ export async function deleteShift(id: number) {
   await requireAuth()
   try {
     await prisma.shift.delete({ where: { id } })
+    revalidatePath("/")
     revalidatePath("/shifts")
     revalidatePath("/shifts/history")
     return { success: true }
