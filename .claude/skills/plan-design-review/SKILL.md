@@ -1,0 +1,1 @@
+/Users/ekoresawa/project/my_app/.claude/skills/gstack/plan-design-review/SKILL.md
