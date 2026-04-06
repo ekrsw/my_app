@@ -109,7 +109,7 @@ export function TodayOverviewClient({ shifts, overnightShifts, filterOptions, di
 
   // --- Shift detail/edit dialog state ---
   const [nameSearch, setNameSearch] = useState("")
-  const [excludeNightShift, setExcludeNightShift] = useState(false)
+  const excludeNightShift = getParam("excludeNightShift") === "true"
   const [editOpen, setEditOpen] = useState(false)
   const [detailOpen, setDetailOpen] = useState(false)
   const [editRow, setEditRow] = useState<TodayShift | null>(null)
@@ -421,6 +421,7 @@ export function TodayOverviewClient({ shifts, overnightShifts, filterOptions, di
       supervisorRoleNames: null,
       businessRoleNames: null,
       isRemote: null,
+      excludeNightShift: null,
     })
   }, [setParams])
 
@@ -456,7 +457,7 @@ export function TodayOverviewClient({ shifts, overnightShifts, filterOptions, di
             <label className="flex items-center gap-1.5 text-sm cursor-pointer select-none">
               <Checkbox
                 checked={excludeNightShift}
-                onCheckedChange={(checked) => setExcludeNightShift(!!checked)}
+                onCheckedChange={(checked) => setParams({ excludeNightShift: checked ? "true" : null })}
               />
               夜勤は除く
             </label>
