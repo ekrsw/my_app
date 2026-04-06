@@ -540,6 +540,91 @@ describe("calculateFilteredCapacity - SV人数カウント", () => {
   })
 })
 
+describe("calculateFilteredCapacity - isYesterdayOvernight フラグ", () => {
+  const makeShift = (
+    employeeId: string, start: string, end: string,
+    groups: Array<{ id: number; name: string }> = [],
+    roles: Array<{ roleType: string; roleName: string }> = []
+  ) => ({
+    employeeId,
+    startTime: `1970-01-01T${start}:00Z`,
+    endTime: `1970-01-01T${end}:00Z`,
+    groups,
+    roles,
+  })
+
+  it("昨日の夜勤（22:00-08:00）は22:05にはカウントしない", () => {
+    const shifts = [
+      { ...makeShift("emp-1", "22:00", "08:00"), isYesterdayOvernight: true },
+    ]
+    const result = calculateFilteredCapacity(shifts, [], "22:05")
+    expect(result.total).toBe(0)
+  })
+
+  it("昨日の夜勤（22:00-08:00）は04:00にはカウントする", () => {
+    const shifts = [
+      { ...makeShift("emp-1", "22:00", "08:00"), isYesterdayOvernight: true },
+    ]
+    const result = calculateFilteredCapacity(shifts, [], "04:00")
+    expect(result.total).toBe(1)
+  })
+
+  it("昨日の夜勤（22:00-08:00）は08:00（終了時刻）にはカウントする", () => {
+    const shifts = [
+      { ...makeShift("emp-1", "22:00", "08:00"), isYesterdayOvernight: true },
+    ]
+    const result = calculateFilteredCapacity(shifts, [], "08:00")
+    expect(result.total).toBe(1)
+  })
+
+  it("昨日の夜勤（22:00-08:00）は08:01にはカウントしない", () => {
+    const shifts = [
+      { ...makeShift("emp-1", "22:00", "08:00"), isYesterdayOvernight: true },
+    ]
+    const result = calculateFilteredCapacity(shifts, [], "08:01")
+    expect(result.total).toBe(0)
+  })
+
+  it("昨日の夜勤者（終業済み）と今日の夜勤者が混在: 22:05は今日の夜勤者のみカウント", () => {
+    const shifts = [
+      { ...makeShift("emp-1", "22:00", "08:00"), isYesterdayOvernight: true },  // 昨日の夜勤 → 終業済み
+      makeShift("emp-2", "22:00", "08:00"),  // 今日の夜勤 → 出勤中
+    ]
+    const result = calculateFilteredCapacity(shifts, [], "22:05")
+    expect(result.total).toBe(1)
+  })
+
+  it("今日の夜勤（isYesterdayOvernight なし）は22:05にもカウントする", () => {
+    const shifts = [
+      makeShift("emp-1", "22:00", "08:00"),  // 今日の夜勤（フラグなし）
+    ]
+    const result = calculateFilteredCapacity(shifts, [], "22:05")
+    expect(result.total).toBe(1)
+  })
+})
+
+describe("extractFilterOptions - isYesterdayOvernight フラグ", () => {
+  const makeShift = (
+    employeeId: string, start: string, end: string,
+    groups: Array<{ id: number; name: string }> = []
+  ) => ({
+    employeeId,
+    startTime: `1970-01-01T${start}:00Z`,
+    endTime: `1970-01-01T${end}:00Z`,
+    groups,
+    roles: [],
+  })
+
+  it("昨日の夜勤（終業済み）の人はフィルター選択肢に含まれない", () => {
+    const shifts = [
+      { ...makeShift("emp-1", "22:00", "08:00", [{ id: 1, name: "グループA" }]), isYesterdayOvernight: true },  // 終業済み
+      makeShift("emp-2", "22:00", "08:00", [{ id: 2, name: "グループB" }]),  // 今日の夜勤 → 出勤中
+    ]
+    const result = extractFilterOptions(shifts, "22:05")
+    expect(result.groups).toEqual([{ id: 2, name: "グループB" }])
+  })
+})
+
 describe("extractFilterOptions", () => {
   const makeShift = (
     employeeId: string, start: string, end: string,

@@ -122,6 +122,7 @@ export type ShiftWithDetails = {
   endTime: Date | string | null
   groups: Array<{ id: number; name: string }>
   roles: Array<{ roleType: string; roleName: string; startDate?: Date | string | null; endDate?: Date | string | null }>
+  isYesterdayOvernight?: boolean
 }
 
 export type DutyInput = {
@@ -148,7 +149,11 @@ export function calculateFilteredCapacity(
   const presentEmployees: Array<{ id: string; groups: Array<{ id: number }>; roles: ShiftWithDetails["roles"] }> = []
   const seen = new Set<string>()
   for (const shift of shifts) {
-    if (shift.employeeId && !seen.has(shift.employeeId) && isWorkerPresent(shift.startTime, shift.endTime, currentTime)) {
+    const isPresent = shift.isYesterdayOvernight
+      ? (!!shift.endTime && currentTime <= getTimeHHMM(shift.endTime))
+      : isWorkerPresent(shift.startTime, shift.endTime, currentTime)
+
+    if (shift.employeeId && !seen.has(shift.employeeId) && isPresent) {
       seen.add(shift.employeeId)
       presentEmployees.push({ id: shift.employeeId, groups: shift.groups, roles: shift.roles })
     }
@@ -212,7 +217,10 @@ export function extractFilterOptions(
   const seen = new Set<string>()
 
   for (const shift of shifts) {
-    if (shift.employeeId && !seen.has(shift.employeeId) && isWorkerPresent(shift.startTime, shift.endTime, currentTime)) {
+    const isPresent = shift.isYesterdayOvernight
+      ? (!!shift.endTime && currentTime <= getTimeHHMM(shift.endTime))
+      : isWorkerPresent(shift.startTime, shift.endTime, currentTime)
+    if (shift.employeeId && !seen.has(shift.employeeId) && isPresent) {
       seen.add(shift.employeeId)
       for (const g of shift.groups) {
         groupMap.set(g.id, g.name)

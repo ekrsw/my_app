@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef, useTransition } from "react"
+import { useState, useEffect, useRef, useTransition, useMemo } from "react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -19,6 +19,11 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -31,8 +36,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { createShift, updateShift, deleteShift, getLatestShiftNote } from "@/lib/actions/shift-actions"
+import { createShift, updateShift, deleteShift, getLatestShiftNote, getShiftByEmployeeAndDate } from "@/lib/actions/shift-actions"
 import { toast } from "sonner"
+import { Search, Check, ChevronsUpDown } from "lucide-react"
+import { cn } from "@/lib/utils"
 
 type ActiveShiftCode = {
   id: number
@@ -61,6 +68,7 @@ type ShiftFormProps = {
   employeeId?: string
   date?: string
   shiftCodes?: ActiveShiftCode[]
+  employees?: { id: string; name: string }[]
 }
 
 function timeToInput(d: Date | string | null): string {
@@ -76,8 +84,15 @@ type ShiftFormInnerProps = Omit<ShiftFormProps, "open"> & {
   onClose: () => void
 }
 
-function ShiftFormInner({ onClose, shift, employeeId, date, shiftCodes = [] }: ShiftFormInnerProps) {
-  const initialCode = shift?.shiftCode ?? ""
+function ShiftFormInner({ onClose, shift, employeeId, date, shiftCodes = [], employees }: ShiftFormInnerProps) {
+  // employees が渡されていて employeeId が未設定のとき従業員セレクターを表示
+  const hasEmployeeSelector = !!employees && !employeeId
+
+  // resolvedShift: 初期値は shift prop。従業員選択後に既存シフトが見つかれば更新される
+  const [resolvedShift, setResolvedShift] = useState(shift ?? null)
+  const [resolvedEmployeeId, setResolvedEmployeeId] = useState(employeeId ?? "")
+
+  const initialCode = resolvedShift?.shiftCode ?? ""
   const initialIsCustom = initialCode !== "" && !shiftCodes.some((sc) => sc.code === initialCode)
 
   const [loading, setLoading] = useState(false)
@@ -85,12 +100,69 @@ function ShiftFormInner({ onClose, shift, employeeId, date, shiftCodes = [] }: S
   const [isDeleting, startDeleteTransition] = useTransition()
   const [code, setCode] = useState(initialCode)
   const [isCustom, setIsCustom] = useState(initialIsCustom)
-  const [isHoliday, setIsHoliday] = useState(shift?.isHoliday ?? false)
-  const [isRemote, setIsRemote] = useState(shift?.isRemote ?? false)
+  const [isHoliday, setIsHoliday] = useState(resolvedShift?.isHoliday ?? false)
+  const [isRemote, setIsRemote] = useState(resolvedShift?.isRemote ?? false)
   const [note, setNote] = useState("")
   const [skipHistory, setSkipHistory] = useState(false)
   const startTimeRef = useRef<HTMLInputElement>(null)
   const endTimeRef = useRef<HTMLInputElement>(null)
+
+  // 従業員セレクター用ステート
+  const [employeeSearch, setEmployeeSearch] = useState("")
+  const [employeePopoverOpen, setEmployeePopoverOpen] = useState(false)
+  const [isLoadingShift, setIsLoadingShift] = useState(false)
+
+  const filteredEmployees = useMemo(() => {
+    if (!employees) return []
+    if (!employeeSearch) return employees
+    const lower = employeeSearch.toLowerCase()
+    return employees.filter((e) => e.name.toLowerCase().includes(lower))
+  }, [employees, employeeSearch])
+
+  const selectedEmployee = employees?.find((e) => e.id === resolvedEmployeeId)
+
+  // 従業員が選択されたとき: 既存シフトを検索してフォームを更新
+  async function handleEmployeeSelect(empId: string) {
+    setResolvedEmployeeId(empId)
+    setEmployeePopoverOpen(false)
+    setEmployeeSearch("")
+
+    if (!date) return
+    setIsLoadingShift(true)
+    try {
+      const existingShift = await getShiftByEmployeeAndDate(empId, date)
+      setResolvedShift(existingShift ?? null)
+
+      const newCode = existingShift?.shiftCode ?? ""
+      const newIsCustom = newCode !== "" && !shiftCodes.some((sc) => sc.code === newCode)
+      setCode(newCode)
+      setIsCustom(newIsCustom)
+      setIsHoliday(existingShift?.isHoliday ?? false)
+      setIsRemote(existingShift?.isRemote ?? false)
+      setSkipHistory(false)
+
+      if (startTimeRef.current) {
+        startTimeRef.current.value = timeToInput(existingShift?.startTime ?? null)
+      }
+      if (endTimeRef.current) {
+        endTimeRef.current.value = timeToInput(existingShift?.endTime ?? null)
+      }
+
+      if (existingShift?.id) {
+        const n = await getLatestShiftNote(existingShift.id)
+        setNote(n ?? "")
+      } else {
+        setNote("")
+      }
+    } catch {
+      toast.error("シフト情報の取得に失敗しました")
+    } finally {
+      setIsLoadingShift(false)
+    }
+  }
+
+  // 既存シフトがあるかで編集モード判定
+  const isEdit = !!resolvedShift
 
   // 既存シフトコードがプリセットに含まれるか判定
   function getSelectValue(shiftCode: string | null): string {
@@ -99,14 +171,14 @@ function ShiftFormInner({ onClose, shift, employeeId, date, shiftCodes = [] }: S
     return CUSTOM_VALUE
   }
 
-  // 編集時のみ既存備考を取得
+  // 通常編集モード（従業員セレクター未使用）のみ、マウント時に既存備考を取得
   useEffect(() => {
-    if (shift?.id) {
+    if (shift?.id && !hasEmployeeSelector) {
       getLatestShiftNote(shift.id).then((n) => {
         if (n) setNote(n)
       })
     }
-  }, [shift?.id])
+  }, [shift?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   function handleSelectChange(value: string) {
     if (value === NONE_VALUE) {
@@ -135,12 +207,10 @@ function ShiftFormInner({ onClose, shift, employeeId, date, shiftCodes = [] }: S
     }
   }
 
-  const isEdit = !!shift
-
   function handleDelete() {
     startDeleteTransition(async () => {
-      if (!shift) return
-      const result = await deleteShift(shift.id)
+      if (!resolvedShift) return
+      const result = await deleteShift(resolvedShift.id)
       if (result.error) {
         toast.error(result.error)
       } else {
@@ -156,7 +226,7 @@ function ShiftFormInner({ onClose, shift, employeeId, date, shiftCodes = [] }: S
     setLoading(true)
 
     if (isEdit) {
-      const result = await updateShift(shift.id, {
+      const result = await updateShift(resolvedShift.id, {
         shiftCode: code || null,
         startTime: (form.get("startTime") as string) || null,
         endTime: (form.get("endTime") as string) || null,
@@ -174,7 +244,7 @@ function ShiftFormInner({ onClose, shift, employeeId, date, shiftCodes = [] }: S
       }
     } else {
       const result = await createShift({
-        employeeId: employeeId!,
+        employeeId: resolvedEmployeeId,
         shiftDate: date!,
         shiftCode: code || null,
         startTime: (form.get("startTime") as string) || null,
@@ -193,6 +263,7 @@ function ShiftFormInner({ onClose, shift, employeeId, date, shiftCodes = [] }: S
   }
 
   const selectValue = getSelectValue(isCustom ? CUSTOM_VALUE : code || null)
+  const isSaveDisabled = loading || isDeleting || isLoadingShift || (hasEmployeeSelector && !resolvedEmployeeId)
 
   return (
     <>
@@ -200,6 +271,76 @@ function ShiftFormInner({ onClose, shift, employeeId, date, shiftCodes = [] }: S
         <DialogTitle>{isEdit ? "シフト編集" : "シフト作成"}</DialogTitle>
       </DialogHeader>
       <form onSubmit={handleSubmit} className="space-y-4">
+        {/* 従業員セレクター（employees prop が渡されたときのみ表示） */}
+        {hasEmployeeSelector && (
+          <div className="space-y-2">
+            <Label>従業員</Label>
+            <Popover
+              open={employeePopoverOpen}
+              onOpenChange={(v) => {
+                setEmployeePopoverOpen(v)
+                if (!v) setEmployeeSearch("")
+              }}
+            >
+              <PopoverTrigger asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={employeePopoverOpen}
+                  className="w-full justify-between font-normal"
+                  disabled={isLoadingShift}
+                >
+                  {isLoadingShift
+                    ? "読込中..."
+                    : selectedEmployee
+                      ? selectedEmployee.name
+                      : "従業員を選択"}
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-2" align="start">
+                <div className="relative mb-2">
+                  <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                  <Input
+                    value={employeeSearch}
+                    onChange={(e) => setEmployeeSearch(e.target.value)}
+                    placeholder="従業員名で検索..."
+                    className="h-8 pl-7"
+                  />
+                </div>
+                <div className="max-h-48 overflow-y-auto">
+                  <div className="flex flex-col gap-0.5">
+                    {filteredEmployees.map((emp) => (
+                      <div
+                        key={emp.id}
+                        className={cn(
+                          "flex items-center gap-2 px-2 py-1.5 rounded cursor-pointer hover:bg-accent text-sm",
+                          emp.id === resolvedEmployeeId && "bg-accent"
+                        )}
+                        onClick={() => handleEmployeeSelect(emp.id)}
+                      >
+                        <Check
+                          className={cn(
+                            "h-3.5 w-3.5 shrink-0",
+                            emp.id === resolvedEmployeeId ? "opacity-100" : "opacity-0"
+                          )}
+                        />
+                        {emp.name}
+                      </div>
+                    ))}
+                    {filteredEmployees.length === 0 && (
+                      <p className="text-sm text-muted-foreground px-2 py-1.5">
+                        該当なし
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </PopoverContent>
+            </Popover>
+          </div>
+        )}
+
         <div className="space-y-2">
           <Label>シフトコード</Label>
           <Select value={selectValue} onValueChange={handleSelectChange}>
@@ -235,7 +376,7 @@ function ShiftFormInner({ onClose, shift, employeeId, date, shiftCodes = [] }: S
               id="startTime"
               name="startTime"
               type="time"
-              defaultValue={timeToInput(shift?.startTime ?? null)}
+              defaultValue={timeToInput(resolvedShift?.startTime ?? null)}
             />
           </div>
           <div className="space-y-2">
@@ -245,7 +386,7 @@ function ShiftFormInner({ onClose, shift, employeeId, date, shiftCodes = [] }: S
               id="endTime"
               name="endTime"
               type="time"
-              defaultValue={timeToInput(shift?.endTime ?? null)}
+              defaultValue={timeToInput(resolvedShift?.endTime ?? null)}
             />
           </div>
         </div>
@@ -292,7 +433,7 @@ function ShiftFormInner({ onClose, shift, employeeId, date, shiftCodes = [] }: S
           </>
         )}
         <div className="flex justify-end gap-2">
-          <Button type="submit" disabled={loading || isDeleting}>
+          <Button type="submit" disabled={isSaveDisabled}>
             {loading ? "保存中..." : "保存"}
           </Button>
           <Button type="button" variant="outline" onClick={onClose}>
@@ -327,7 +468,7 @@ function ShiftFormInner({ onClose, shift, employeeId, date, shiftCodes = [] }: S
   )
 }
 
-export function ShiftForm({ open, onOpenChange, shift, employeeId, date, shiftCodes = [] }: ShiftFormProps) {
+export function ShiftForm({ open, onOpenChange, shift, employeeId, date, shiftCodes = [], employees }: ShiftFormProps) {
   // ダイアログを開くたびに内部コンポーネントをリマウントするためのキー
   const [dialogKey, setDialogKey] = useState(0)
 
@@ -351,6 +492,7 @@ export function ShiftForm({ open, onOpenChange, shift, employeeId, date, shiftCo
             employeeId={employeeId}
             date={date}
             shiftCodes={shiftCodes}
+            employees={employees}
           />
         )}
       </DialogContent>
