@@ -6,6 +6,7 @@ import { useSession, signOut } from "next-auth/react"
 import {
   LayoutDashboard,
   Calendar,
+  Headset,
   User,
   UsersRound,
   Shield,
@@ -66,7 +67,7 @@ export function AppSidebar() {
     <Sidebar>
       <SidebarHeader className="border-b px-6 py-4">
         <Link href="/" className="flex items-center gap-2">
-          <Calendar className="h-6 w-6" />
+          <Headset className="h-6 w-6" />
           <span className="text-lg font-bold">CSC管理ツール</span>
         </Link>
       </SidebarHeader>

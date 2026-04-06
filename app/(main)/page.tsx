@@ -101,14 +101,14 @@ export default async function DashboardPage({ searchParams }: Props) {
                   startTime: s.startTime,
                   endTime: s.endTime,
                   groups: s.employee?.groups.map((eg) => ({ id: eg.group.id, name: eg.group.name })) ?? [],
-                  roles: s.employee?.functionRoles.filter((efr) => efr.functionRole).map((efr) => ({ roleType: efr.functionRole!.roleType, roleName: efr.functionRole!.roleName })) ?? [],
+                  roles: s.employee?.functionRoles.filter((efr) => efr.functionRole).map((efr) => ({ roleType: efr.functionRole!.roleType, roleName: efr.functionRole!.roleName, startDate: efr.startDate, endDate: efr.endDate })) ?? [],
                 })),
                 ...overnightShifts.map((s) => ({
                   employeeId: s.employeeId,
                   startTime: s.startTime,
                   endTime: s.endTime,
                   groups: s.employee?.groups.map((eg) => ({ id: eg.group.id, name: eg.group.name })) ?? [],
-                  roles: s.employee?.functionRoles.filter((efr) => efr.functionRole).map((efr) => ({ roleType: efr.functionRole!.roleType, roleName: efr.functionRole!.roleName })) ?? [],
+                  roles: s.employee?.functionRoles.filter((efr) => efr.functionRole).map((efr) => ({ roleType: efr.functionRole!.roleType, roleName: efr.functionRole!.roleName, startDate: efr.startDate, endDate: efr.endDate })) ?? [],
                 })),
               ]}
               duties={[

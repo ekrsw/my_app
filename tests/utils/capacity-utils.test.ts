@@ -353,7 +353,7 @@ describe("calculateFilteredCapacity", () => {
       makeShift("emp-2", "09:00", "17:00", [groupB]),
     ]
     const result = calculateFilteredCapacity(shifts, [], "10:00")
-    expect(result).toEqual({ total: 2, onDuty: 0, available: 2 })
+    expect(result).toMatchObject({ total: 2, onDuty: 0, available: 2 })
   })
 
   it("グループフィルター: 該当グループの人だけ集計", () => {
@@ -363,7 +363,7 @@ describe("calculateFilteredCapacity", () => {
       makeShift("emp-3", "09:00", "17:00", [groupB]),
     ]
     const result = calculateFilteredCapacity(shifts, [], "10:00", { groupIds: [1] })
-    expect(result).toEqual({ total: 2, onDuty: 0, available: 2 })
+    expect(result).toMatchObject({ total: 2, onDuty: 0, available: 2 })
   })
 
   it("ロールフィルター: 該当ロールの人だけ集計", () => {
@@ -375,7 +375,7 @@ describe("calculateFilteredCapacity", () => {
     const result = calculateFilteredCapacity(shifts, [], "10:00", {
       roleNames: { "業務": ["電話対応"] },
     })
-    expect(result).toEqual({ total: 1, onDuty: 0, available: 1 })
+    expect(result).toMatchObject({ total: 1, onDuty: 0, available: 1 })
   })
 
   it("グループ + ロールの複合フィルター: AND条件", () => {
@@ -388,7 +388,7 @@ describe("calculateFilteredCapacity", () => {
       groupIds: [1],
       roleNames: { "業務": ["電話対応"] },
     })
-    expect(result).toEqual({ total: 1, onDuty: 0, available: 1 })
+    expect(result).toMatchObject({ total: 1, onDuty: 0, available: 1 })
   })
 
   it("フィルター + 当番: 当番中の人が正しくカウントされる", () => {
@@ -398,7 +398,7 @@ describe("calculateFilteredCapacity", () => {
     ]
     const duties = [makeDuty("emp-1", "09:00", "12:00")]
     const result = calculateFilteredCapacity(shifts, duties, "10:00", { groupIds: [1] })
-    expect(result).toEqual({ total: 2, onDuty: 1, available: 1 })
+    expect(result).toMatchObject({ total: 2, onDuty: 1, available: 1 })
   })
 
   it("該当者なしのフィルター: 全て 0", () => {
@@ -406,7 +406,7 @@ describe("calculateFilteredCapacity", () => {
       makeShift("emp-1", "09:00", "17:00", [groupA]),
     ]
     const result = calculateFilteredCapacity(shifts, [], "10:00", { groupIds: [999] })
-    expect(result).toEqual({ total: 0, onDuty: 0, available: 0 })
+    expect(result).toMatchObject({ total: 0, onDuty: 0, available: 0 })
   })
 
   it("出勤時間外の人はフィルター結果に含まれない", () => {
@@ -427,7 +427,116 @@ describe("calculateFilteredCapacity", () => {
       makeDuty("emp-1", "09:00", "12:00", false),
     ]
     const result = calculateFilteredCapacity(shifts, duties, "10:00", { groupIds: [1] })
-    expect(result).toEqual({ total: 2, onDuty: 0, available: 2 })
+    expect(result).toMatchObject({ total: 2, onDuty: 0, available: 2 })
+  })
+})
+
+describe("calculateFilteredCapacity - SV人数カウント", () => {
+  // today in JST: use a fixed past date string for startDate/endDate comparisons
+  // Since getTodayJSTDateStr() uses real time, we use clearly past/future dates
+  const PAST = "2000-01-01T00:00:00.000Z"    // definitely before today
+  const FUTURE = "2099-12-31T00:00:00.000Z"   // definitely after today
+
+  const makeShiftWithRoles = (
+    employeeId: string,
+    roles: Array<{ roleType: string; roleName: string; startDate?: string | null; endDate?: string | null }>
+  ) => ({
+    employeeId,
+    startTime: "1970-01-01T09:00:00Z",
+    endTime: "1970-01-01T17:00:00Z",
+    groups: [],
+    roles,
+  })
+
+  it("SV指定なし: svTotal=0, svAvailable=0", () => {
+    const shifts = [
+      makeShiftWithRoles("emp-1", [{ roleType: "監督", roleName: "SV" }]),
+    ]
+    const result = calculateFilteredCapacity(shifts, [], "10:00")
+    expect(result).toMatchObject({ svTotal: 0, svAvailable: 0 })
+  })
+
+  it("日付なし（常時有効）のSVはカウントされる", () => {
+    const shifts = [
+      makeShiftWithRoles("emp-1", [{ roleType: "監督", roleName: "SV", startDate: null, endDate: null }]),
+      makeShiftWithRoles("emp-2", [{ roleType: "業務", roleName: "電話対応" }]),
+    ]
+    const result = calculateFilteredCapacity(shifts, [], "10:00", undefined, "SV")
+    expect(result).toMatchObject({ svTotal: 1, svAvailable: 1 })
+  })
+
+  it("startDate が今日より未来のSVはカウントされない", () => {
+    const shifts = [
+      makeShiftWithRoles("emp-1", [{ roleType: "監督", roleName: "SV", startDate: FUTURE, endDate: null }]),
+    ]
+    const result = calculateFilteredCapacity(shifts, [], "10:00", undefined, "SV")
+    expect(result).toMatchObject({ svTotal: 0, svAvailable: 0 })
+  })
+
+  it("endDate が今日より過去のSVはカウントされない", () => {
+    const shifts = [
+      makeShiftWithRoles("emp-1", [{ roleType: "監督", roleName: "SV", startDate: PAST, endDate: PAST }]),
+    ]
+    const result = calculateFilteredCapacity(shifts, [], "10:00", undefined, "SV")
+    expect(result).toMatchObject({ svTotal: 0, svAvailable: 0 })
+  })
+
+  it("startDate〜endDate が今日を含む有効期間のSVはカウントされる", () => {
+    const shifts = [
+      makeShiftWithRoles("emp-1", [{ roleType: "監督", roleName: "SV", startDate: PAST, endDate: FUTURE }]),
+    ]
+    const result = calculateFilteredCapacity(shifts, [], "10:00", undefined, "SV")
+    expect(result).toMatchObject({ svTotal: 1, svAvailable: 1 })
+  })
+
+  it("startDate が Date オブジェクト（過去）でもカウントされる", () => {
+    const shifts = [
+      makeShiftWithRoles("emp-1", [{ roleType: "監督", roleName: "SV", startDate: new Date(PAST), endDate: null }]),
+    ]
+    const result = calculateFilteredCapacity(shifts, [], "10:00", undefined, "SV")
+    expect(result).toMatchObject({ svTotal: 1, svAvailable: 1 })
+  })
+
+  it("endDate が Date オブジェクト（未来）でもカウントされる", () => {
+    const shifts = [
+      makeShiftWithRoles("emp-1", [{ roleType: "監督", roleName: "SV", startDate: null, endDate: new Date(FUTURE) }]),
+    ]
+    const result = calculateFilteredCapacity(shifts, [], "10:00", undefined, "SV")
+    expect(result).toMatchObject({ svTotal: 1, svAvailable: 1 })
+  })
+
+  it("endDate が Date オブジェクト（過去）の場合はカウントされない", () => {
+    const shifts = [
+      makeShiftWithRoles("emp-1", [{ roleType: "監督", roleName: "SV", startDate: null, endDate: new Date(PAST) }]),
+    ]
+    const result = calculateFilteredCapacity(shifts, [], "10:00", undefined, "SV")
+    expect(result).toMatchObject({ svTotal: 0, svAvailable: 0 })
+  })
+
+  it("当番中のSVは svAvailable に含まれない", () => {
+    const shifts = [
+      makeShiftWithRoles("emp-1", [{ roleType: "監督", roleName: "SV" }]),
+      makeShiftWithRoles("emp-2", [{ roleType: "監督", roleName: "SV" }]),
+    ]
+    const duties = [{
+      employeeId: "emp-1",
+      startTime: "1970-01-01T09:00:00Z",
+      endTime: "1970-01-01T17:00:00Z",
+      reducesCapacity: true,
+    }]
+    const result = calculateFilteredCapacity(shifts, duties, "10:00", undefined, "SV")
+    expect(result).toMatchObject({ svTotal: 2, svAvailable: 1 })
+  })
+
+  it("フィルター後の対象者のみSVカウント", () => {
+    const groupA = { id: 1, name: "A" }
+    const groupB = { id: 2, name: "B" }
+    const shifts = [
+      { ...makeShiftWithRoles("emp-1", [{ roleType: "監督", roleName: "SV" }]), groups: [groupA] },
+      { ...makeShiftWithRoles("emp-2", [{ roleType: "監督", roleName: "SV" }]), groups: [groupB] },
+    ]
+    const result = calculateFilteredCapacity(shifts, [], "10:00", { groupIds: [1] }, "SV")
+    expect(result).toMatchObject({ total: 1, svTotal: 1, svAvailable: 1 })
   })
 })
 

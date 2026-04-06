@@ -62,7 +62,7 @@ export function CapacitySummary({ shifts, duties, roleTypes }: Props) {
   }, [selectedGroupIds, selectedRoleNames])
 
   const isFiltered = !!filter
-  const { total, onDuty, available } = calculateFilteredCapacity(shifts, duties, currentTime, filter)
+  const { total, onDuty, available, svTotal, svAvailable } = calculateFilteredCapacity(shifts, duties, currentTime, filter, "SV")
   const color = getCapacityColor(available)
 
   return (
@@ -140,7 +140,9 @@ export function CapacitySummary({ shifts, duties, roleTypes }: Props) {
         <div className="flex items-center gap-4">
           <div className="text-center">
             <div className="text-2xl font-bold">{total}</div>
-            <div className="text-xs text-muted-foreground">出勤</div>
+            <div className="text-xs text-muted-foreground">
+              出勤<span className="ml-1">(SV: {svTotal})</span>
+            </div>
           </div>
           <div className="text-center">
             <div className="text-2xl font-bold">{onDuty}</div>
@@ -148,7 +150,9 @@ export function CapacitySummary({ shifts, duties, roleTypes }: Props) {
           </div>
           <div className={cn("rounded-lg px-4 py-2 text-center", COLOR_STYLES[color])}>
             <div className="text-2xl font-bold">{available}</div>
-            <div className="text-xs">対応可能</div>
+            <div className="text-xs">
+              対応可能<span className="ml-1">(SV: {svAvailable})</span>
+            </div>
           </div>
         </div>
       </CardContent>
