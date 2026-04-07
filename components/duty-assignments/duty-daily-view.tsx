@@ -63,17 +63,14 @@ function formatTime(d: Date | string | null): string {
 
 function getDutyTypeBadge(dutyType: { code: string; name: string; color: string | null }) {
   const palette = dutyType.color ? COLOR_PALETTE[dutyType.color] : null
-  if (palette) {
-    return (
-      <Badge variant="outline" className={cn(palette.text, palette.bg, "border-0 font-medium")}>
-        {dutyType.name}
-      </Badge>
-    )
-  }
+  const codeBadgeClass = palette
+    ? cn(palette.text, palette.bg, "rounded-sm px-1 py-0.5 text-xs font-mono font-bold")
+    : "rounded-sm px-1 py-0.5 text-xs font-mono font-bold bg-muted text-muted-foreground"
   return (
-    <Badge variant="outline" className="font-medium">
-      {dutyType.name}
-    </Badge>
+    <div className="flex items-center gap-1.5">
+      <span className={codeBadgeClass}>{dutyType.code}</span>
+      <span className="text-sm text-foreground">{dutyType.name}</span>
+    </div>
   )
 }
 
@@ -408,7 +405,7 @@ export function DutyDailyView({
       window.removeEventListener("resize", updateHeight)
       observer.disconnect()
     }
-  })
+  }, [])
 
   // --- TanStack Table setup ---
   const [sorting, setSorting] = useState<SortingState>(
@@ -560,9 +557,9 @@ export function DutyDailyView({
               <TableRow>
                 <TableCell
                   colSpan={columns.length}
-                  className="h-24 text-center"
+                  className="h-24 text-center text-muted-foreground"
                 >
-                  データがありません
+                  この日の業務割当がありません
                 </TableCell>
               </TableRow>
             )}

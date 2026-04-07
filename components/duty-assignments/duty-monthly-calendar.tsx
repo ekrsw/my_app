@@ -27,16 +27,23 @@ type DutyMonthlyCalendarProps = {
 
 const MAX_BADGES = 3
 
-function DutyDot({ cell }: { cell: DutyCalendarCell }) {
-  const swatchClass = cell.dutyTypeColor
-    ? COLOR_PALETTE[cell.dutyTypeColor]?.swatch ?? COLOR_PALETTE["gray"].swatch
-    : COLOR_PALETTE["gray"].swatch
+function DutyBadge({ cell }: { cell: DutyCalendarCell }) {
+  const palette = cell.dutyTypeColor
+    ? COLOR_PALETTE[cell.dutyTypeColor] ?? COLOR_PALETTE["gray"]
+    : COLOR_PALETTE["gray"]
 
   return (
     <span
-      className={cn("inline-block h-3 w-3 rounded-full shrink-0", swatchClass)}
+      className={cn(
+        "inline-flex items-center rounded-sm px-1 py-0.5 text-[10px] font-medium",
+        "max-w-[52px] truncate",
+        palette.bg,
+        palette.text
+      )}
       title={`${cell.dutyTypeName} (${cell.startTime}-${cell.endTime})`}
-    />
+    >
+      {cell.dutyTypeCode}
+    </span>
   )
 }
 
@@ -53,7 +60,12 @@ function CellContent({
     return (
       <button
         type="button"
-        className="flex h-full w-full items-center justify-center text-muted-foreground text-[10px]"
+        aria-label={`${dateStr} の業務割当を追加`}
+        className={cn(
+          "flex h-full w-full items-center justify-center text-muted-foreground text-[10px]",
+          "hover:bg-accent/30 transition-colors",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        )}
         onClick={() => onCellClick(dateStr)}
       >
         -
@@ -67,14 +79,22 @@ function CellContent({
   return (
     <button
       type="button"
-      className="flex h-full w-full flex-wrap items-center justify-center gap-1 px-1 py-1"
+      aria-label={`${dateStr} の業務割当を開く`}
+      className={cn(
+        "flex h-full w-full flex-col items-center justify-start gap-1 px-0.5 py-1",
+        "hover:bg-accent/30 transition-colors",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      )}
       onClick={() => onCellClick(dateStr)}
     >
       {visible.map((cell) => (
-        <DutyDot key={cell.id} cell={cell} />
+        <DutyBadge key={cell.id} cell={cell} />
       ))}
       {remaining > 0 && (
-        <span className="text-[8px] text-muted-foreground leading-tight">
+        <span
+          className="text-[9px] text-muted-foreground leading-tight"
+          aria-label={`他${remaining}件`}
+        >
           +{remaining}
         </span>
       )}
@@ -225,7 +245,7 @@ export function DutyMonthlyCalendar({
                 <div
                   key={dateStr}
                   className={cn(
-                    "min-h-[2.5rem] w-16 min-w-16 border-r",
+                    "min-h-[4rem] w-16 min-w-16 border-r",
                     weekend && "bg-red-50/50"
                   )}
                 >
