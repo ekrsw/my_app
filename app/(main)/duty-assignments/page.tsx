@@ -8,7 +8,6 @@ import {
 } from "@/lib/db/duty-assignments"
 import { getActiveDutyTypes } from "@/lib/db/duty-types"
 import { getAllEmployees } from "@/lib/db/employees"
-import { getGroups } from "@/lib/db/groups"
 import { getTodayJST } from "@/lib/date-utils"
 import { auth } from "@/auth"
 import type { DutyDailySortField, SortOrder } from "@/types/duties"
@@ -28,10 +27,9 @@ export default async function DutyAssignmentsPage({ searchParams }: Props) {
   const todayStr = today.toISOString().substring(0, 10)
 
   // フォーム用データ（両ビュー共通）
-  const [employees, dutyTypes, groups] = await Promise.all([
+  const [employees, dutyTypes] = await Promise.all([
     getAllEmployees(),
     getActiveDutyTypes(),
-    getGroups(),
   ])
 
   const employeeOptions = employees.map((e) => ({ id: e.id, name: e.name }))
@@ -41,7 +39,6 @@ export default async function DutyAssignmentsPage({ searchParams }: Props) {
     name: dt.name,
     defaultReducesCapacity: dt.defaultReducesCapacity,
   }))
-  const allGroups = groups.map((g) => ({ id: g.id, name: g.name }))
 
   if (viewMode === "daily") {
     // --- 日次ビュー ---
@@ -103,8 +100,7 @@ export default async function DutyAssignmentsPage({ searchParams }: Props) {
             dutyTypeSummary={[]}
             year={today.getUTCFullYear()}
             month={today.getUTCMonth() + 1}
-            monthlyGroupIds={[]}
-            allGroups={allGroups}
+            monthlyEmployeeIds={[]}
             employeeOptions={employeeOptions}
             dutyTypeOptions={dutyTypeOptions}
           />
@@ -118,15 +114,11 @@ export default async function DutyAssignmentsPage({ searchParams }: Props) {
   const rawMonth = typeof params.month === "string" ? parseInt(params.month, 10) : today.getUTCMonth() + 1
   const year = (Number.isFinite(rawYear) && rawYear >= 2000 && rawYear <= 2100) ? rawYear : today.getUTCFullYear()
   const month = (Number.isFinite(rawMonth) && rawMonth >= 1 && rawMonth <= 12) ? rawMonth : today.getUTCMonth() + 1
-  const monthlyGroupIds = typeof params.monthlyGroupIds === "string"
-    ? params.monthlyGroupIds.split(",").map(Number).filter(Boolean)
+  const monthlyEmployeeIds = typeof params.monthlyEmployeeIds === "string"
+    ? params.monthlyEmployeeIds.split(",").filter(Boolean)
     : []
 
-  const calendarResult = await getDutyAssignmentsForCalendar(
-    year,
-    month,
-    monthlyGroupIds.length > 0 ? monthlyGroupIds : undefined
-  )
+  const calendarResult = await getDutyAssignmentsForCalendar(year, month)
 
   return (
     <>
@@ -157,8 +149,7 @@ export default async function DutyAssignmentsPage({ searchParams }: Props) {
           dutyTypeSummary={calendarResult.dutyTypeSummary}
           year={year}
           month={month}
-          monthlyGroupIds={monthlyGroupIds}
-          allGroups={allGroups}
+          monthlyEmployeeIds={monthlyEmployeeIds}
           employeeOptions={employeeOptions}
           dutyTypeOptions={dutyTypeOptions}
         />

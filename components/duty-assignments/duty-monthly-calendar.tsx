@@ -12,7 +12,7 @@ import {
 } from "@/lib/date-utils"
 import { cn } from "@/lib/utils"
 import { ColumnFilterPopover } from "@/components/common/filters/column-filter-popover"
-import { CheckboxListFilter } from "@/components/common/filters/checkbox-list-filter"
+import { EmployeeCheckboxFilter } from "@/components/common/filters/employee-checkbox-filter"
 import { useQueryParams } from "@/hooks/use-query-params"
 import { StickyHorizontalScrollbar } from "@/components/ui/sticky-horizontal-scrollbar"
 
@@ -20,30 +20,23 @@ type DutyMonthlyCalendarProps = {
   data: DutyCalendarData[]
   year: number
   month: number
-  groupIds: number[]
-  allGroups: { id: number; name: string }[]
+  selectedEmployeeIds: string[]
   onCellClick: (dateStr: string) => void
+  employeeSearchText: string
 }
 
-const MAX_BADGES = 3
+const MAX_DOTS = 6
 
-function DutyBadge({ cell }: { cell: DutyCalendarCell }) {
+function DutyDot({ cell }: { cell: DutyCalendarCell }) {
   const palette = cell.dutyTypeColor
     ? COLOR_PALETTE[cell.dutyTypeColor] ?? COLOR_PALETTE["gray"]
     : COLOR_PALETTE["gray"]
 
   return (
     <span
-      className={cn(
-        "inline-flex items-center rounded-sm px-1 py-0.5 text-[10px] font-medium",
-        "max-w-[52px] truncate",
-        palette.bg,
-        palette.text
-      )}
+      className={cn("inline-block h-2 w-2 rounded-full flex-shrink-0", palette.swatch)}
       title={`${cell.dutyTypeName} (${cell.startTime}-${cell.endTime})`}
-    >
-      {cell.dutyTypeCode}
-    </span>
+    />
   )
 }
 
@@ -73,22 +66,22 @@ function CellContent({
     )
   }
 
-  const visible = duties.slice(0, MAX_BADGES)
-  const remaining = duties.length - MAX_BADGES
+  const visible = duties.slice(0, MAX_DOTS)
+  const remaining = duties.length - MAX_DOTS
 
   return (
     <button
       type="button"
       aria-label={`${dateStr} の業務割当を開く`}
       className={cn(
-        "flex h-full w-full flex-col items-center justify-start gap-1 px-0.5 py-1",
+        "flex h-full w-full flex-wrap items-center justify-center gap-0.5 px-1 py-1",
         "hover:bg-accent/30 transition-colors",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       )}
       onClick={() => onCellClick(dateStr)}
     >
       {visible.map((cell) => (
-        <DutyBadge key={cell.id} cell={cell} />
+        <DutyDot key={cell.id} cell={cell} />
       ))}
       {remaining > 0 && (
         <span
@@ -106,13 +99,13 @@ export function DutyMonthlyCalendar({
   data,
   year,
   month,
-  groupIds,
-  allGroups,
+  selectedEmployeeIds,
   onCellClick,
+  employeeSearchText,
 }: DutyMonthlyCalendarProps) {
   const days = useMemo(() => getDaysInMonth(year, month), [year, month])
   const { setParams } = useQueryParams()
-  const [groupPopoverOpen, setGroupPopoverOpen] = useState(false)
+  const [employeePopoverOpen, setEmployeePopoverOpen] = useState(false)
 
   const scrollContainerId = useId()
   const scrollContainerRef = useRef<HTMLDivElement>(null)
@@ -139,45 +132,38 @@ export function DutyMonthlyCalendar({
     }
   }, [])
 
-  const groupOptions = useMemo(
-    () =>
-      allGroups.map((g) => ({
-        value: String(g.id),
-        label: g.name,
-      })),
-    [allGroups]
+  const employees = useMemo(
+    () => data.map((emp) => ({ id: emp.employeeId, name: emp.employeeName })),
+    [data]
   )
 
-  const selectedGroupValues = useMemo(
-    () => groupIds.map(String),
-    [groupIds]
-  )
-
-  const handleGroupConfirm = useCallback(
-    (values: string[]) => {
-      setParams({
-        monthlyGroupIds: values.length > 0 ? values.join(",") : null,
-      })
-      setGroupPopoverOpen(false)
+  const handleEmployeeConfirm = useCallback(
+    (ids: string[]) => {
+      setParams({ monthlyEmployeeIds: ids.length > 0 ? ids.join(",") : null })
+      setEmployeePopoverOpen(false)
     },
     [setParams]
   )
 
-  const handleGroupClear = useCallback(() => {
-    setParams({ monthlyGroupIds: null })
-    setGroupPopoverOpen(false)
+  const handleEmployeeClear = useCallback(() => {
+    setParams({ monthlyEmployeeIds: null })
+    setEmployeePopoverOpen(false)
   }, [setParams])
 
   const filteredData = useMemo(() => {
-    if (groupIds.length === 0) return data
-    const groupIdSet = new Set(groupIds)
-    return data.filter((emp) => {
-      if (!emp.groupName) return false
-      return allGroups.some(
-        (g) => groupIdSet.has(g.id) && g.name === emp.groupName
+    let result = data
+    if (selectedEmployeeIds.length > 0) {
+      const idSet = new Set(selectedEmployeeIds)
+      result = result.filter((emp) => idSet.has(emp.employeeId))
+    }
+    if (employeeSearchText) {
+      const lower = employeeSearchText.toLowerCase()
+      result = result.filter((emp) =>
+        emp.employeeName.toLowerCase().includes(lower)
       )
-    })
-  }, [data, groupIds, allGroups])
+    }
+    return result
+  }, [data, selectedEmployeeIds, employeeSearchText])
 
   const calendar = (
     <div
@@ -192,18 +178,17 @@ export function DutyMonthlyCalendar({
           <div className="sticky left-0 z-30 flex w-52 min-w-52 items-center border-r bg-background px-3 text-sm font-medium">
             <ColumnFilterPopover
               label="従業員名"
-              isActive={groupIds.length > 0}
-              activeCount={groupIds.length}
-              open={groupPopoverOpen}
-              onOpenChange={setGroupPopoverOpen}
+              isActive={selectedEmployeeIds.length > 0}
+              activeCount={selectedEmployeeIds.length}
+              open={employeePopoverOpen}
+              onOpenChange={setEmployeePopoverOpen}
             >
-              <CheckboxListFilter
-                options={groupOptions}
-                selectedValues={selectedGroupValues}
-                onConfirm={handleGroupConfirm}
-                onClear={handleGroupClear}
-                popoverOpen={groupPopoverOpen}
-                searchPlaceholder="グループ検索..."
+              <EmployeeCheckboxFilter
+                employees={employees}
+                selectedIds={selectedEmployeeIds}
+                onConfirm={handleEmployeeConfirm}
+                onClear={handleEmployeeClear}
+                popoverOpen={employeePopoverOpen}
               />
             </ColumnFilterPopover>
           </div>

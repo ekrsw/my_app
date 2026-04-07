@@ -3,7 +3,8 @@
 import { useState, useCallback, useMemo, useEffect } from "react"
 import { useQueryParams } from "@/hooks/use-query-params"
 import { Button } from "@/components/ui/button"
-import { ChevronLeft, ChevronRight, Plus } from "lucide-react"
+import { Input } from "@/components/ui/input"
+import { ChevronLeft, ChevronRight, Plus, Search } from "lucide-react"
 import { DutyViewModeSelect } from "@/components/duty-assignments/duty-view-mode-select"
 import { DutyAssignmentForm } from "@/components/duty-assignments/duty-assignment-form"
 import { DutyDailyView } from "@/components/duty-assignments/duty-daily-view"
@@ -41,8 +42,7 @@ type DutyAssignmentPageClientProps = {
   dutyTypeSummary: { code: string; name: string; color: string | null; count: number }[]
   year: number
   month: number
-  monthlyGroupIds: number[]
-  allGroups: { id: number; name: string }[]
+  monthlyEmployeeIds: string[]
   // フォーム用
   employeeOptions: { id: string; name: string }[]
   dutyTypeOptions: { id: number; code: string; name: string; defaultReducesCapacity: boolean }[]
@@ -67,8 +67,7 @@ export function DutyAssignmentPageClient({
   dutyTypeSummary,
   year,
   month,
-  monthlyGroupIds,
-  allGroups,
+  monthlyEmployeeIds,
   employeeOptions,
   dutyTypeOptions,
 }: DutyAssignmentPageClientProps) {
@@ -112,6 +111,9 @@ export function DutyAssignmentPageClient({
     return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日(${dayOfWeek})`
   }, [dailyDate])
 
+  // --- 月次: 従業員名テキスト検索 ---
+  const [employeeSearchText, setEmployeeSearchText] = useState("")
+
   // --- 月次: 月ナビゲーション ---
   const navigateMonth = useCallback(
     (offset: number) => {
@@ -142,10 +144,10 @@ export function DutyAssignmentPageClient({
       if (sortBy !== "startTime") p.sortBy = sortBy
       if (sortOrder !== "asc") p.sortOrder = sortOrder
     } else {
-      if (monthlyGroupIds.length > 0) p.monthlyGroupIds = monthlyGroupIds.join(",")
+      if (monthlyEmployeeIds.length > 0) p.monthlyEmployeeIds = monthlyEmployeeIds.join(",")
     }
     return p
-  }, [viewMode, employeeIds, groupIds, dutyTypeIds, reducesCapacity, sortBy, sortOrder, monthlyGroupIds])
+  }, [viewMode, employeeIds, groupIds, dutyTypeIds, reducesCapacity, sortBy, sortOrder, monthlyEmployeeIds])
 
   // --- 月次セルクリック: 日次ビューへジャンプ ---
   const handleCellClick = useCallback(
@@ -235,18 +237,15 @@ export function DutyAssignmentPageClient({
           <Button variant="outline" size="icon" onClick={() => navigateMonth(1)} aria-label="翌月">
             <ChevronRight className="h-4 w-4" />
           </Button>
-        </div>
-        <div className="flex items-center gap-2">
-          <FilterPresetManager
-            viewMode="monthly"
-            currentParams={currentFilterParams}
-          />
-          {isAuthenticated && (
-            <Button size="sm" onClick={handleOpenNewForm}>
-              <Plus className="h-4 w-4 mr-1" />
-              新規作成
-            </Button>
-          )}
+          <div className="relative">
+            <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+            <Input
+              value={employeeSearchText}
+              onChange={(e) => setEmployeeSearchText(e.target.value)}
+              placeholder="従業員名で検索..."
+              className="w-48 pl-8"
+            />
+          </div>
         </div>
       </div>
 
@@ -256,9 +255,9 @@ export function DutyAssignmentPageClient({
         data={calendarData}
         year={year}
         month={month}
-        allGroups={allGroups}
-        groupIds={monthlyGroupIds}
+        selectedEmployeeIds={monthlyEmployeeIds}
         onCellClick={handleCellClick}
+        employeeSearchText={employeeSearchText}
       />
 
       <DutyAssignmentForm
