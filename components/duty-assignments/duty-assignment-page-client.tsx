@@ -88,6 +88,7 @@ export function DutyAssignmentPageClient({
   // --- フォームダイアログ状態 ---
   const [formOpen, setFormOpen] = useState(false)
   const [editingAssignment, setEditingAssignment] = useState<DutyAssignmentWithDetails | undefined>()
+  const [monthlySelectedDate, setMonthlySelectedDate] = useState<string | undefined>()
 
   const handleOpenNewForm = useCallback(() => {
     setEditingAssignment(undefined)
@@ -149,15 +150,11 @@ export function DutyAssignmentPageClient({
   // --- 月次セルクリック: 日次ビューへジャンプ ---
   const handleCellClick = useCallback(
     (dateStr: string) => {
-      setParams({
-        view: "daily",
-        dailyDate: dateStr,
-        year: null,
-        month: null,
-        monthlyGroupIds: null,
-      })
+      setEditingAssignment(undefined)
+      setMonthlySelectedDate(dateStr)
+      setFormOpen(true)
     },
-    [setParams]
+    []
   )
 
   // --- 日次ビュー ---
@@ -267,6 +264,7 @@ export function DutyAssignmentPageClient({
       <DutyAssignmentForm
         employees={employeeOptions}
         dutyTypes={dutyTypeOptions}
+        defaultDate={monthlySelectedDate}
         dutyAssignment={editingAssignment}
         open={formOpen}
         onOpenChange={setFormOpen}
