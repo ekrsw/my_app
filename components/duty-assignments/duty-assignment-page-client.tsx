@@ -152,11 +152,12 @@ export function DutyAssignmentPageClient({
   // --- 月次セルクリック: 日次ビューへジャンプ ---
   const handleCellClick = useCallback(
     (dateStr: string) => {
+      if (!isAuthenticated) return
       setEditingAssignment(undefined)
       setMonthlySelectedDate(dateStr)
       setFormOpen(true)
     },
-    []
+    [isAuthenticated]
   )
 
   // --- 日次ビュー ---

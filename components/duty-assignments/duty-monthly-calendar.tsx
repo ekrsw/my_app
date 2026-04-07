@@ -214,13 +214,8 @@ export function DutyMonthlyCalendar({
         {/* Body rows */}
         {filteredData.map((emp) => (
           <div key={emp.employeeId} className="flex border-b hover:bg-muted/20">
-            <div className="sticky left-0 z-10 flex w-52 min-w-52 flex-col justify-center border-r bg-background px-3 py-1 text-sm">
+            <div className="sticky left-0 z-10 flex w-52 min-w-52 items-center border-r bg-background px-3 py-1 text-sm">
               <span className="truncate font-medium">{emp.employeeName}</span>
-              {emp.groupName && (
-                <span className="truncate text-[10px] text-muted-foreground">
-                  {emp.groupName}
-                </span>
-              )}
             </div>
             {days.map((day) => {
               const dateStr = toDateString(day)
