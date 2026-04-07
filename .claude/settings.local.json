@@ -139,7 +139,8 @@
       "Bash($D variants:*)",
       "Bash($B goto:*)",
       "Bash(ls /Users/ekoresawa/project/my_app/app/\\\\\\(main\\\\\\)/page.tsx)",
-      "Skill(ship)"
+      "Skill(ship)",
+      "Bash(npx vitest:*)"
     ]
   }
 }
