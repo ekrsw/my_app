@@ -14,7 +14,7 @@ vi.mock("next/server", () => ({
 // next/navigation
 vi.mock("next/navigation", () => ({
   useSearchParams: () => new URLSearchParams(),
-  useRouter: () => ({ replace: vi.fn() }),
+  useRouter: () => ({ replace: vi.fn(), refresh: vi.fn() }),
   usePathname: () => "/duties",
 }))
 
@@ -22,6 +22,35 @@ vi.mock("next/navigation", () => ({
 vi.mock("@/components/duty-assignments/duty-assignment-form", () => ({
   DutyAssignmentForm: ({ open }: { open: boolean }) => (
     open ? <div data-testid="duty-form-dialog">ダイアログ</div> : null
+  ),
+}))
+
+// DutyCellPopover — 認証ガードの振る舞いを再現するモック
+vi.mock("@/components/duty-assignments/duty-cell-popover", () => ({
+  DutyCellPopover: ({
+    isAuthenticated,
+    onAddNew,
+    dateStr,
+    employeeId,
+    children,
+  }: {
+    isAuthenticated: boolean
+    onAddNew: (dateStr: string, employeeId: string) => void
+    dateStr: string
+    employeeId: string
+    children: React.ReactNode
+  }) => (
+    <div data-testid="cell-popover">
+      {children}
+      {isAuthenticated && (
+        <button
+          onClick={() => onAddNew(dateStr, employeeId)}
+          data-testid="popover-add-btn"
+        >
+          新規追加
+        </button>
+      )}
+    </div>
   ),
 }))
 
@@ -58,46 +87,54 @@ const BASE_PROPS = {
     {
       employeeId: "emp-1",
       employeeName: "テスト太郎",
+      groupName: null,
       duties: {},
     },
   ],
   dutyTypeSummary: [],
+  calendarTotal: 1,
+  calendarHasMore: false,
+  calendarNextCursor: null,
   year: 2026,
   month: 4,
   monthlyEmployeeIds: [],
+  monthlyGroupIds: [],
+  monthlyUnassigned: false,
+  monthlyRoleIds: [],
+  monthlyRoleUnassigned: false,
+  monthlyDutyTypeIds: [],
+  monthlyDutyUnassigned: false,
+  shiftCodeMap: {},
+  shiftCodeInfoMap: {},
+  groups: [],
+  roles: [],
   employeeOptions: [],
   dutyTypeOptions: [],
 }
 
 describe("月次カレンダー セルクリック認証ガード", () => {
-  it("未ログイン時はセルクリックでダイアログが表示されない", async () => {
-    const user = userEvent.setup()
-
+  it("未ログイン時はPopover内に新規追加ボタンが表示されない", () => {
     render(
       <DutyAssignmentPageClient {...BASE_PROPS} isAuthenticated={false} />
     )
 
-    // セルをクリック（「-」が表示されている空セル）
-    const cells = screen.getAllByRole("button", { name: /の業務割当を追加/ })
-    expect(cells.length).toBeGreaterThan(0)
-    await user.click(cells[0])
-
-    // ダイアログが表示されないことを確認
-    expect(screen.queryByTestId("duty-form-dialog")).not.toBeInTheDocument()
+    // Popoverモックは表示されるが、新規追加ボタンは非表示
+    expect(screen.queryByTestId("popover-add-btn")).not.toBeInTheDocument()
   })
 
-  it("ログイン時はセルクリックでダイアログが表示される", async () => {
+  it("ログイン時はPopover内の新規追加ボタンでダイアログが表示される", async () => {
     const user = userEvent.setup()
 
     render(
       <DutyAssignmentPageClient {...BASE_PROPS} isAuthenticated={true} />
     )
 
-    const cells = screen.getAllByRole("button", { name: /の業務割当を追加/ })
-    expect(cells.length).toBeGreaterThan(0)
-    await user.click(cells[0])
+    // 新規追加ボタンが表示されること
+    const addBtns = screen.getAllByTestId("popover-add-btn")
+    expect(addBtns.length).toBeGreaterThan(0)
+    await user.click(addBtns[0])
 
-    // ダイアログが表示されることを確認
+    // フォームダイアログが表示されること
     expect(screen.getByTestId("duty-form-dialog")).toBeInTheDocument()
   })
 })
