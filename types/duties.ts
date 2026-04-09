@@ -65,3 +65,24 @@ export type DutyDailyFilterOptions = {
   groups: { id: number; name: string }[]
   dutyTypes: { id: number; code: string; name: string; color: string | null }[]
 }
+
+export type DutyCalendarFilterParams = {
+  year: number
+  month: number
+  groupIds?: number[]
+  unassigned?: boolean
+  roleIds?: number[]
+  roleUnassigned?: boolean
+  dutyTypeIds?: number[]
+  dutyUnassigned?: boolean
+  employeeSearch?: string
+  employeeIds?: string[]
+}
+
+export type DutyCalendarPaginatedResult = {
+  data: DutyCalendarData[]
+  dutyTypeSummary: { code: string; name: string; color: string | null; count: number }[]
+  total: number
+  hasMore: boolean
+  nextCursor: number | null
+}

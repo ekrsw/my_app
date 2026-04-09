@@ -12,10 +12,15 @@ import { DutyDailyTimeline } from "@/components/duty-assignments/duty-daily-time
 import { DutyMonthlyCalendar } from "@/components/duty-assignments/duty-monthly-calendar"
 import { DutyTypeSummaryRow } from "@/components/duty-assignments/duty-type-summary-row"
 import { FilterPresetManager } from "@/components/duty-assignments/filter-preset-manager"
+import { GroupMultiSelect } from "@/components/shifts/group-multi-select"
+import { RoleMultiSelect } from "@/components/shifts/role-multi-select"
+import { DutyTypeMultiSelect } from "@/components/duty-assignments/duty-type-multi-select"
+import { loadMoreDutyCalendarData } from "@/lib/actions/duty-assignment-actions"
 import { toDateString } from "@/lib/date-utils"
 import type {
   DutyAssignmentWithDetails,
   DutyCalendarData,
+  DutyCalendarFilterParams,
   DutyDailyFilterOptions,
   DutyDailySortField,
   SortOrder,
@@ -40,9 +45,20 @@ type DutyAssignmentPageClientProps = {
   // 月次ビュー用
   calendarData: DutyCalendarData[]
   dutyTypeSummary: { code: string; name: string; color: string | null; count: number }[]
+  calendarTotal: number
+  calendarHasMore: boolean
+  calendarNextCursor: number | null
   year: number
   month: number
   monthlyEmployeeIds: string[]
+  monthlyGroupIds: number[]
+  monthlyUnassigned: boolean
+  monthlyRoleIds: number[]
+  monthlyRoleUnassigned: boolean
+  monthlyDutyTypeIds: number[]
+  monthlyDutyUnassigned: boolean
+  groups: { id: number; name: string }[]
+  roles: { id: number; roleName: string }[]
   // フォーム用
   employeeOptions: { id: string; name: string }[]
   dutyTypeOptions: { id: number; code: string; name: string; defaultReducesCapacity: boolean }[]
@@ -65,9 +81,20 @@ export function DutyAssignmentPageClient({
   sortOrder,
   calendarData,
   dutyTypeSummary,
+  calendarTotal,
+  calendarHasMore: initialCalendarHasMore,
+  calendarNextCursor: initialCalendarNextCursor,
   year,
   month,
   monthlyEmployeeIds,
+  monthlyGroupIds,
+  monthlyUnassigned,
+  monthlyRoleIds,
+  monthlyRoleUnassigned,
+  monthlyDutyTypeIds,
+  monthlyDutyUnassigned,
+  groups,
+  roles,
   employeeOptions,
   dutyTypeOptions,
 }: DutyAssignmentPageClientProps) {
@@ -111,6 +138,44 @@ export function DutyAssignmentPageClient({
     return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日(${dayOfWeek})`
   }, [dailyDate])
 
+  // --- 月次: ページネーション状態 ---
+  const [calendarRows, setCalendarRows] = useState(calendarData)
+  const [calendarHasMoreState, setCalendarHasMoreState] = useState(initialCalendarHasMore)
+  const [calendarNextCursorState, setCalendarNextCursorState] = useState(initialCalendarNextCursor)
+  const [calendarIsLoadingMore, setCalendarIsLoadingMore] = useState(false)
+
+  useEffect(() => {
+    setCalendarRows(calendarData)
+    setCalendarHasMoreState(initialCalendarHasMore)
+    setCalendarNextCursorState(initialCalendarNextCursor)
+    setCalendarIsLoadingMore(false)
+  }, [calendarData, initialCalendarHasMore, initialCalendarNextCursor])
+
+  const calendarFilter: DutyCalendarFilterParams = useMemo(() => ({
+    year,
+    month,
+    groupIds: monthlyGroupIds.length > 0 ? monthlyGroupIds : undefined,
+    unassigned: monthlyUnassigned || undefined,
+    roleIds: monthlyRoleIds.length > 0 ? monthlyRoleIds : undefined,
+    roleUnassigned: monthlyRoleUnassigned || undefined,
+    dutyTypeIds: monthlyDutyTypeIds.length > 0 ? monthlyDutyTypeIds : undefined,
+    dutyUnassigned: monthlyDutyUnassigned || undefined,
+    employeeIds: monthlyEmployeeIds.length > 0 ? monthlyEmployeeIds : undefined,
+  }), [year, month, monthlyGroupIds, monthlyUnassigned, monthlyRoleIds, monthlyRoleUnassigned, monthlyDutyTypeIds, monthlyDutyUnassigned, monthlyEmployeeIds])
+
+  const handleCalendarLoadMore = useCallback(async () => {
+    if (!calendarHasMoreState || calendarNextCursorState === null || calendarIsLoadingMore) return
+    setCalendarIsLoadingMore(true)
+    try {
+      const result = await loadMoreDutyCalendarData(calendarFilter, calendarNextCursorState)
+      setCalendarRows((prev) => [...prev, ...result.data])
+      setCalendarHasMoreState(result.hasMore)
+      setCalendarNextCursorState(result.nextCursor)
+    } finally {
+      setCalendarIsLoadingMore(false)
+    }
+  }, [calendarHasMoreState, calendarNextCursorState, calendarIsLoadingMore, calendarFilter])
+
   // --- 月次: 従業員名テキスト検索 ---
   const [employeeSearchText, setEmployeeSearchText] = useState("")
 
@@ -145,6 +210,12 @@ export function DutyAssignmentPageClient({
       if (sortOrder !== "asc") p.sortOrder = sortOrder
     } else {
       if (monthlyEmployeeIds.length > 0) p.monthlyEmployeeIds = monthlyEmployeeIds.join(",")
+      if (monthlyGroupIds.length > 0) p.monthlyGroupIds = monthlyGroupIds.join(",")
+      if (monthlyUnassigned) p.monthlyUnassigned = "true"
+      if (monthlyRoleIds.length > 0) p.monthlyRoleIds = monthlyRoleIds.join(",")
+      if (monthlyRoleUnassigned) p.monthlyRoleUnassigned = "true"
+      if (monthlyDutyTypeIds.length > 0) p.monthlyDutyTypeIds = monthlyDutyTypeIds.join(",")
+      if (monthlyDutyUnassigned) p.monthlyDutyUnassigned = "true"
     }
     return p
   }, [viewMode, employeeIds, groupIds, dutyTypeIds, reducesCapacity, sortBy, sortOrder, monthlyEmployeeIds])
@@ -248,17 +319,69 @@ export function DutyAssignmentPageClient({
             />
           </div>
         </div>
+        <div className="flex items-center gap-2">
+          <FilterPresetManager
+            viewMode="monthly"
+            currentParams={currentFilterParams}
+          />
+          {isAuthenticated && (
+            <Button size="sm" onClick={handleOpenNewForm}>
+              <Plus className="h-4 w-4 mr-1" />
+              新規作成
+            </Button>
+          )}
+        </div>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-3">
+        <GroupMultiSelect
+          groups={groups}
+          selectedIds={monthlyGroupIds}
+          unassigned={monthlyUnassigned}
+          onChange={(ids, unassigned) => {
+            setParams({
+              monthlyGroupIds: ids.length > 0 ? ids.join(",") : null,
+              monthlyUnassigned: unassigned ? "true" : null,
+            })
+          }}
+        />
+        <RoleMultiSelect
+          roles={roles}
+          selectedIds={monthlyRoleIds}
+          unassigned={monthlyRoleUnassigned}
+          onChange={(ids, roleUnassigned) => {
+            setParams({
+              monthlyRoleIds: ids.length > 0 ? ids.join(",") : null,
+              monthlyRoleUnassigned: roleUnassigned ? "true" : null,
+            })
+          }}
+        />
+        <DutyTypeMultiSelect
+          dutyTypes={dutyTypeOptions}
+          selectedIds={monthlyDutyTypeIds}
+          unassigned={monthlyDutyUnassigned}
+          onChange={(ids, unassigned) => {
+            setParams({
+              monthlyDutyTypeIds: ids.length > 0 ? ids.join(",") : null,
+              monthlyDutyUnassigned: unassigned ? "true" : null,
+            })
+          }}
+        />
       </div>
 
       <DutyTypeSummaryRow summary={dutyTypeSummary} />
 
       <DutyMonthlyCalendar
-        data={calendarData}
+        data={calendarRows}
         year={year}
         month={month}
         selectedEmployeeIds={monthlyEmployeeIds}
         onCellClick={handleCellClick}
         employeeSearchText={employeeSearchText}
+        total={calendarTotal}
+        hasMore={calendarHasMoreState}
+        isLoadingMore={calendarIsLoadingMore}
+        onLoadMore={handleCalendarLoadMore}
       />
 
       <DutyAssignmentForm

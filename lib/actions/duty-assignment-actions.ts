@@ -168,8 +168,8 @@ class ShiftValidationError extends Error {
   }
 }
 
-import { getDutyAssignmentsForDaily } from "@/lib/db/duty-assignments"
-import type { DutyDailyFilterParams, DutyDailyPaginatedResult } from "@/types/duties"
+import { getDutyAssignmentsForDaily, getDutyAssignmentsForCalendar } from "@/lib/db/duty-assignments"
+import type { DutyDailyFilterParams, DutyDailyPaginatedResult, DutyCalendarFilterParams, DutyCalendarPaginatedResult } from "@/types/duties"
 
 /** 日次ビューの追加データ読み込み（無限スクロール用） */
 export async function loadMoreDutyDailyData(
@@ -182,4 +182,13 @@ export async function loadMoreDutyDailyData(
     return { data: [], total: 0, hasMore: false, nextCursor: null }
   }
   return getDutyAssignmentsForDaily({ ...params, date: safeDate }, { cursor: safeCursor })
+}
+
+/** 月次カレンダーの追加データ読み込み（ページネーション用） */
+export async function loadMoreDutyCalendarData(
+  filter: DutyCalendarFilterParams,
+  cursor: number
+): Promise<DutyCalendarPaginatedResult> {
+  const safeCursor = Math.max(0, Math.floor(Number(cursor) || 0))
+  return getDutyAssignmentsForCalendar(filter, { cursor: safeCursor })
 }
