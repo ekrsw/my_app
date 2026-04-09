@@ -108,3 +108,19 @@
 **Effort:** XS (human) → XS (CC+gstack) | **Priority:** P2 | **Risk:** Low
 
 **Depends on:** なし（独立した修正）
+
+## リファクタ: DutyType ローカル型の共通化
+
+**What:** `DutyType = { id: number; code: string; name: string; defaultReducesCapacity: boolean; ... }` がコンポーネント4箇所（duty-assignment-form.tsx:50, duty-assignment-table.tsx:11, duty-daily-view.tsx:48, duty-assignment-page-client.tsx:68）でローカル定義されている。`types/duties.ts` に `DutyTypeOption` 型を切り出して import に統一する。
+
+**Why:** フィールド追加のたびに4箇所を同期修正する必要がある。今回のデフォルト時刻追加で顕在化。
+
+**Pros:** 型変更が1箇所で済む。型の不整合リスクがなくなる。
+
+**Cons:** 4ファイルの import 修正が必要（軽微）。
+
+**Effort:** S (human) → XS (CC+gstack) | **Priority:** P2 | **Risk:** Low
+
+**Depends on:** デフォルト時刻機能の実装完了（このPRの後）
+
+**Context:** `/plan-eng-review` (2026-04-10) の Step 0 で発見。duty-assignment-page-client.tsx の Props 型定義も dutyTypeOptions のインライン型を DutyTypeOption[] に置き換えられる。
