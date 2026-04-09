@@ -21,11 +21,38 @@ erDiagram
     external_tools ||--o{ employee_external_accounts : defines
     employees ||--o{ employee_external_accounts : has
 
+    employees ||--o{ duty_assignments : has
+    duty_types ||--o{ duty_assignments : categorizes
+
     employees ||--o{ shift_change_history : has
     employees ||--o{ employee_group_history : has
     groups ||--o{ employee_group_history : refs
     employees ||--o{ employee_function_role_history : has
     employees ||--o{ employee_position_history : has
+
+    duty_types {
+        integer id PK
+        varchar code
+        varchar name
+        varchar color
+        boolean is_active
+        integer sort_order
+        boolean default_reduces_capacity
+        varchar default_start_time
+        varchar default_end_time
+        text default_note
+    }
+
+    duty_assignments {
+        integer id PK
+        uuid employee_id FK
+        integer duty_type_id FK
+        date duty_date
+        time start_time
+        time end_time
+        text note
+        boolean reduces_capacity
+    }
 
     shift_codes {
         integer id PK
@@ -197,6 +224,8 @@ erDiagram
 | employee_function_role_history | 従業員ロール変更履歴 | 履歴 |
 | employee_position_history | 従業員役職変更履歴 | 履歴 |
 | shift_codes | シフトコードマスタ | マスタ |
+| duty_types | 業務種別マスタ | マスタ |
+| duty_assignments | 業務割当データ | データ |
 
 ---
 
@@ -858,6 +887,52 @@ EXECUTE FUNCTION record_employee_position_change();
 
 ---
 
+### 16. duty_types（業務種別マスタ）
+
+業務の種別（電話対応、会議等）を管理する。デフォルト時刻・備考を設定でき、業務割当作成時にプリフィルされる。
+
+| カラム名 | データ型 | NULL | デフォルト | 説明 |
+|---------|---------|------|-----------|------|
+| id | SERIAL | NO | auto_increment | 主キー |
+| code | VARCHAR(20) | NO | - | 業務コード（ユニーク） |
+| name | VARCHAR(50) | NO | - | 業務名 |
+| color | VARCHAR(20) | YES | - | 表示色（Tailwind色キー） |
+| is_active | BOOLEAN | YES | true | 有効フラグ |
+| sort_order | INTEGER | NO | 0 | 表示順 |
+| default_reduces_capacity | BOOLEAN | NO | true | デフォルト: 対応可能人員から控除するか |
+| default_start_time | VARCHAR(5) | YES | - | デフォルト開始時刻（HH:mm形式） |
+| default_end_time | VARCHAR(5) | YES | - | デフォルト終了時刻（HH:mm形式） |
+| default_note | TEXT | YES | - | デフォルト備考 |
+
+**制約**: PK(id), UNIQUE(code)
+
+**備考**: default_start_time / default_end_time はTIME型ではなくVARCHAR(5)でHH:mm文字列を格納する。これはシフトの実時刻ではなくフォームプリフィル用のテンプレート値であるため。
+
+---
+
+### 17. duty_assignments（業務割当データ）
+
+従業員への業務割当を管理する。
+
+| カラム名 | データ型 | NULL | デフォルト | 説明 |
+|---------|---------|------|-----------|------|
+| id | SERIAL | NO | auto_increment | 主キー |
+| employee_id | UUID | NO | - | 従業員ID |
+| duty_type_id | INTEGER | NO | - | 業務種別ID |
+| duty_date | DATE | NO | - | 業務日 |
+| start_time | TIME(6) | NO | - | 開始時刻 |
+| end_time | TIME(6) | NO | - | 終了時刻 |
+| note | TEXT | YES | - | 備考 |
+| reduces_capacity | BOOLEAN | NO | true | 対応可能人員から控除するか |
+
+**制約**:
+- PK(id)
+- FK(employee_id → employees.id) ON DELETE CASCADE
+- FK(duty_type_id → duty_types.id) ON DELETE RESTRICT
+- UNIQUE(employee_id, duty_type_id, duty_date, start_time)
+
+---
+
 ## トリガー・関数一覧
 
 | # | トリガー名 | 対象テーブル | タイミング | 関数名 | 用途 |
@@ -889,7 +964,9 @@ groups (1) ────< (N) employee_groups (N) >────(1) employees
                                                     │
                                                     ├────< (N) employee_function_role_history
                                                     │
-                                                    └────< (N) employee_position_history
+                                                    ├────< (N) employee_position_history
+                                                    │
+                                                    └────< (N) duty_assignments (N) >────(1) duty_types
 ```
 
 | 親テーブル | 子テーブル | 外部キー | 関係 | ON DELETE |
@@ -908,6 +985,8 @@ groups (1) ────< (N) employee_groups (N) >────(1) employees
 | employees | employee_position_history | employee_id | 1:N | CASCADE |
 | employees | employee_external_accounts | employee_id | 1:N | CASCADE |
 | external_tools | employee_external_accounts | external_tool_id | 1:N | SET NULL |
+| employees | duty_assignments | employee_id | 1:N | CASCADE |
+| duty_types | duty_assignments | duty_type_id | 1:N | RESTRICT |
 
 ---
 
@@ -949,3 +1028,4 @@ groups (1) ────< (N) employee_groups (N) >────(1) employees
 | v18 | 2026-03-02 | employeesを参照する全9テーブルの外部キーをON DELETE CASCADEに変更。従業員削除時に関連レコード（shifts, employee_groups, employee_positions, employee_function_roles, employee_external_accounts, shift_change_history, employee_group_history, employee_function_role_history, employee_position_history）が自動削除されるようになった |
 | v19 | 2026-03-02 | employees.idをSERIAL（INTEGER）からUUID v7に変更。カスタムPL/pgSQL関数uuid_generate_v7()を作成しDBレベルで自動生成。関連9テーブルのemployee_idもINTEGER→UUIDに変更。トリガー関数（record_employee_role_change, record_employee_position_change, record_employee_group_change）のtarget_employee_id変数をinteger→uuidに更新 |
 | v20 | 2026-03-02 | shift_codesテーブルにcolor VARCHAR(20)カラムを追加。Tailwind色キー（blue, red等）を格納し、フォームからカラースウォッチUIで選択可能に。既存9コードには現行ハードコード色をマイグレーションで設定。colorがNULLの場合はSHIFT_CODE_MAPのハードコードにフォールバック |
+| v21 | 2026-04-10 | duty_types（業務種別マスタ）、duty_assignments（業務割当データ）テーブルのドキュメントを追加。duty_typesにdefault_start_time VARCHAR(5)、default_end_time VARCHAR(5)、default_note TEXTカラムを追加。業務種別マスタにデフォルト開始時刻・終了時刻・備考を設定可能にし、業務割当作成時にプリフィルされる |

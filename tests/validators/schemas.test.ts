@@ -8,6 +8,7 @@ import {
   roleAssignmentSchema,
   shiftCodeSchema,
   dutyAssignmentSchema,
+  dutyTypeSchema,
   roleCsvRowSchema,
 } from "@/lib/validators"
 
@@ -539,6 +540,154 @@ describe("Zod Validation Schemas", () => {
     it("should accept string dates", () => {
       const result = roleCsvRowSchema.safeParse({ ...validData, startDate: "2026-04-01", endDate: "2027-03-31" })
       expect(result.success).toBe(true)
+    })
+  })
+
+  describe("dutyTypeSchema", () => {
+    const validData = {
+      code: "TEL",
+      name: "電話対応",
+      isActive: true,
+      sortOrder: 0,
+      defaultReducesCapacity: true,
+    }
+
+    it("should accept valid data without default times", () => {
+      const result = dutyTypeSchema.safeParse(validData)
+      expect(result.success).toBe(true)
+    })
+
+    it("should accept valid data with default times and note", () => {
+      const result = dutyTypeSchema.safeParse({
+        ...validData,
+        defaultStartTime: "09:00",
+        defaultEndTime: "17:00",
+        defaultNote: "メモ",
+      })
+      expect(result.success).toBe(true)
+      if (result.success) {
+        expect(result.data.defaultStartTime).toBe("09:00")
+        expect(result.data.defaultEndTime).toBe("17:00")
+        expect(result.data.defaultNote).toBe("メモ")
+      }
+    })
+
+    it("should transform empty string to null for defaultStartTime", () => {
+      const result = dutyTypeSchema.safeParse({
+        ...validData,
+        defaultStartTime: "",
+      })
+      expect(result.success).toBe(true)
+      if (result.success) {
+        expect(result.data.defaultStartTime).toBeNull()
+      }
+    })
+
+    it("should transform empty string to null for defaultEndTime", () => {
+      const result = dutyTypeSchema.safeParse({
+        ...validData,
+        defaultEndTime: "",
+      })
+      expect(result.success).toBe(true)
+      if (result.success) {
+        expect(result.data.defaultEndTime).toBeNull()
+      }
+    })
+
+    it("should transform empty string to null for defaultNote", () => {
+      const result = dutyTypeSchema.safeParse({
+        ...validData,
+        defaultNote: "",
+      })
+      expect(result.success).toBe(true)
+      if (result.success) {
+        expect(result.data.defaultNote).toBeNull()
+      }
+    })
+
+    it("should reject invalid time format (25:00)", () => {
+      const result = dutyTypeSchema.safeParse({
+        ...validData,
+        defaultStartTime: "25:00",
+      })
+      expect(result.success).toBe(false)
+    })
+
+    it("should reject invalid time format (9:00 - missing leading zero)", () => {
+      const result = dutyTypeSchema.safeParse({
+        ...validData,
+        defaultStartTime: "9:00",
+      })
+      expect(result.success).toBe(false)
+    })
+
+    it("should reject invalid time format (abc)", () => {
+      const result = dutyTypeSchema.safeParse({
+        ...validData,
+        defaultStartTime: "abc",
+      })
+      expect(result.success).toBe(false)
+    })
+
+    it("should reject invalid minute (09:60)", () => {
+      const result = dutyTypeSchema.safeParse({
+        ...validData,
+        defaultEndTime: "09:60",
+      })
+      expect(result.success).toBe(false)
+    })
+
+    it("should accept boundary time values (00:00 and 23:59)", () => {
+      const result = dutyTypeSchema.safeParse({
+        ...validData,
+        defaultStartTime: "00:00",
+        defaultEndTime: "23:59",
+      })
+      expect(result.success).toBe(true)
+    })
+
+    it("should accept start time only (no end time)", () => {
+      const result = dutyTypeSchema.safeParse({
+        ...validData,
+        defaultStartTime: "09:00",
+      })
+      expect(result.success).toBe(true)
+      if (result.success) {
+        expect(result.data.defaultStartTime).toBe("09:00")
+        expect(result.data.defaultEndTime).toBeUndefined()
+      }
+    })
+
+    it("should accept end time only (no start time)", () => {
+      const result = dutyTypeSchema.safeParse({
+        ...validData,
+        defaultEndTime: "17:00",
+      })
+      expect(result.success).toBe(true)
+      if (result.success) {
+        expect(result.data.defaultStartTime).toBeUndefined()
+        expect(result.data.defaultEndTime).toBe("17:00")
+      }
+    })
+
+    it("should reject empty code", () => {
+      const result = dutyTypeSchema.safeParse({ ...validData, code: "" })
+      expect(result.success).toBe(false)
+    })
+
+    it("should reject empty name", () => {
+      const result = dutyTypeSchema.safeParse({ ...validData, name: "" })
+      expect(result.success).toBe(false)
+    })
+
+    it("should reject code over 20 characters", () => {
+      const result = dutyTypeSchema.safeParse({ ...validData, code: "A".repeat(21) })
+      expect(result.success).toBe(false)
+    })
+
+    it("should reject name over 50 characters", () => {
+      const result = dutyTypeSchema.safeParse({ ...validData, name: "あ".repeat(51) })
+      expect(result.success).toBe(false)
     })
   })
 })

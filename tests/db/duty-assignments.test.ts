@@ -210,24 +210,48 @@ describe("getDutyAssignmentsForCalendar", () => {
   })
 
   it("従業員×日マトリクスを構築", async () => {
-    const result = await getDutyAssignmentsForCalendar(2025, 6)
+    const result = await getDutyAssignmentsForCalendar({ year: 2025, month: 6 })
     expect(result.data).toHaveLength(1)
     expect(result.data[0].employeeName).toBe("田中一郎")
     expect(Object.keys(result.data[0].duties)).toHaveLength(2)
     expect(result.data[0].duties["2025-06-01"]).toHaveLength(1)
     expect(result.data[0].duties["2025-06-15"]).toHaveLength(1)
+
+    // セルに note フィールドが含まれること
+    const cell = result.data[0].duties["2025-06-01"][0]
+    expect(cell).toHaveProperty("note")
+    expect(cell.note).toBeNull()
+  })
+
+  it("note 付き割当がセルに反映される", async () => {
+    await prisma.dutyAssignment.create({
+      data: {
+        employeeId,
+        dutyTypeId,
+        dutyDate: utcDate("2025-06-20"),
+        startTime: new Date("1970-01-01T09:00:00Z"),
+        endTime: new Date("1970-01-01T17:00:00Z"),
+        reducesCapacity: false,
+        note: "テストメモ",
+      },
+    })
+    const result = await getDutyAssignmentsForCalendar({ year: 2025, month: 6 })
+    const cell = result.data[0].duties["2025-06-20"]?.[0]
+    expect(cell).toBeDefined()
+    expect(cell.note).toBe("テストメモ")
   })
 
   it("dutyTypeSummary に集計データ", async () => {
-    const result = await getDutyAssignmentsForCalendar(2025, 6)
+    const result = await getDutyAssignmentsForCalendar({ year: 2025, month: 6 })
     expect(result.dutyTypeSummary).toHaveLength(1)
     expect(result.dutyTypeSummary[0].code).toBe("DAY")
     expect(result.dutyTypeSummary[0].count).toBe(2)
   })
 
-  it("データなしの月 → 空配列", async () => {
-    const result = await getDutyAssignmentsForCalendar(2025, 1)
-    expect(result.data).toHaveLength(0)
+  it("データなしの月 → 従業員は返るがdutiesは空", async () => {
+    const result = await getDutyAssignmentsForCalendar({ year: 2025, month: 1 })
+    expect(result.data).toHaveLength(1)
+    expect(Object.keys(result.data[0].duties)).toHaveLength(0)
     expect(result.dutyTypeSummary).toHaveLength(0)
   })
 
@@ -237,10 +261,10 @@ describe("getDutyAssignmentsForCalendar", () => {
       data: { employeeId, groupId: group.id, startDate: null, endDate: null },
     })
 
-    const result = await getDutyAssignmentsForCalendar(2025, 6, [group.id])
+    const result = await getDutyAssignmentsForCalendar({ year: 2025, month: 6, groupIds: [group.id] })
     expect(result.data).toHaveLength(1)
 
-    const resultEmpty = await getDutyAssignmentsForCalendar(2025, 6, [9999])
+    const resultEmpty = await getDutyAssignmentsForCalendar({ year: 2025, month: 6, groupIds: [9999] })
     expect(resultEmpty.data).toHaveLength(0)
   })
 })

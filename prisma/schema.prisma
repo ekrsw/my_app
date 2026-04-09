@@ -229,6 +229,9 @@ model DutyType {
   isActive         Boolean?  @default(true) @map("is_active")
   sortOrder        Int       @default(0) @map("sort_order")
   defaultReducesCapacity  Boolean   @default(true) @map("default_reduces_capacity")
+  defaultStartTime       String?   @map("default_start_time") @db.VarChar(5)
+  defaultEndTime         String?   @map("default_end_time") @db.VarChar(5)
+  defaultNote            String?   @map("default_note") @db.Text
 
   dutyAssignments       DutyAssignment[]
 
