@@ -81,9 +81,10 @@ export async function getDutyAssignmentsByDate(date: Date | null) {
 import type {
   DutyDailyFilterParams,
   DutyDailyPaginatedResult,
-  DutyCalendarResult,
   DutyCalendarData,
   DutyCalendarCell,
+  DutyCalendarFilterParams,
+  DutyCalendarPaginatedResult,
   DutyDailyFilterOptions,
 } from "@/types/duties"
 import { Prisma } from "@/app/generated/prisma/client"
@@ -220,103 +221,292 @@ export async function getDutyAssignmentsForDaily(
   }
 }
 
-/** 月次ビュー用: カレンダーデータ取得 */
-export async function getDutyAssignmentsForCalendar(
-  year: number,
-  month: number,
-  groupIds?: number[]
-): Promise<DutyCalendarResult> {
-  const startDate = new Date(Date.UTC(year, month - 1, 1))
-  const endDate = new Date(Date.UTC(year, month, 0)) // 月末日
+const DEFAULT_CALENDAR_PAGE_SIZE = 50
 
-  const whereCondition: Prisma.DutyAssignmentWhereInput = {
-    dutyDate: { gte: startDate, lte: endDate },
-    ...(groupIds && groupIds.length > 0
-      ? {
-          employee: {
-            groups: {
-              some: {
-                groupId: { in: groupIds },
-                endDate: null,
-              },
-            },
-          },
-        }
-      : {}),
+/** EmployeeGroup 用 Prisma where 条件（startDate nullable） */
+function currentGroupDateWhere(today: Date) {
+  return {
+    AND: [
+      { OR: [{ startDate: null }, { startDate: { lte: today } }] },
+      { OR: [{ endDate: null }, { endDate: { gte: today } }] },
+    ],
+  }
+}
+
+/** EmployeeFunctionRole 用 Prisma where 条件（startDate nullable） */
+function currentRoleDateWhere(today: Date) {
+  return {
+    AND: [
+      { OR: [{ startDate: null }, { startDate: { lte: today } }] },
+      { OR: [{ endDate: null }, { endDate: { gte: today } }] },
+    ],
+  }
+}
+
+/** 月次ビュー用: カレンダーデータ取得（全従業員ベース + フィルター + ページネーション） */
+export async function getDutyAssignmentsForCalendar(
+  filter: DutyCalendarFilterParams,
+  options: { cursor?: number; pageSize?: number } = {}
+): Promise<DutyCalendarPaginatedResult> {
+  const cursor = options.cursor ?? 0
+  const pageSize = options.pageSize ?? DEFAULT_CALENDAR_PAGE_SIZE
+  const startDate = new Date(Date.UTC(filter.year, filter.month - 1, 1))
+  const endDate = new Date(Date.UTC(filter.year, filter.month, 0))
+  const today = getTodayJST()
+  const todayStr = `${today.getUTCFullYear()}-${String(today.getUTCMonth() + 1).padStart(2, "0")}-${String(today.getUTCDate()).padStart(2, "0")}`
+  const groupDateFilter = currentGroupDateWhere(today)
+  const roleDateFilter = currentRoleDateWhere(today)
+
+  // --- Step 1: Raw SQL で従業員IDリストを取得（グループ名→従業員名順） ---
+  const conditions: Prisma.Sql[] = [
+    Prisma.sql`(e.termination_date IS NULL OR e.termination_date >= ${startDate})`,
+  ]
+
+  // グループフィルター
+  const sqlGroupConditions: Prisma.Sql[] = []
+  if (filter.groupIds && filter.groupIds.length > 0) {
+    sqlGroupConditions.push(Prisma.sql`EXISTS (
+      SELECT 1 FROM employee_groups eg2
+      WHERE eg2.employee_id = e.id AND (eg2.start_date IS NULL OR eg2.start_date <= ${todayStr}::date) AND (eg2.end_date IS NULL OR eg2.end_date >= ${todayStr}::date) AND eg2.group_id = ANY(${filter.groupIds})
+    )`)
+  }
+  if (filter.unassigned) {
+    sqlGroupConditions.push(Prisma.sql`NOT EXISTS (
+      SELECT 1 FROM employee_groups eg2
+      WHERE eg2.employee_id = e.id AND (eg2.start_date IS NULL OR eg2.start_date <= ${todayStr}::date) AND (eg2.end_date IS NULL OR eg2.end_date >= ${todayStr}::date)
+    )`)
+  }
+  if (sqlGroupConditions.length > 0) {
+    conditions.push(
+      sqlGroupConditions.length === 1
+        ? sqlGroupConditions[0]
+        : Prisma.sql`(${Prisma.join(sqlGroupConditions, " OR ")})`
+    )
   }
 
-  const assignments = await prisma.dutyAssignment.findMany({
-    where: whereCondition,
-    include: {
-      employee: {
-        include: {
-          groups: {
-            include: { group: true },
-            where: { endDate: null },
-          },
+  // ロールフィルター
+  const sqlRoleConditions: Prisma.Sql[] = []
+  if (filter.roleIds && filter.roleIds.length > 0) {
+    sqlRoleConditions.push(Prisma.sql`EXISTS (
+      SELECT 1 FROM employee_function_roles efr
+      WHERE efr.employee_id = e.id AND (efr.start_date IS NULL OR efr.start_date <= ${todayStr}::date) AND (efr.end_date IS NULL OR efr.end_date >= ${todayStr}::date) AND efr.function_role_id = ANY(${filter.roleIds})
+    )`)
+  }
+  if (filter.roleUnassigned) {
+    sqlRoleConditions.push(Prisma.sql`NOT EXISTS (
+      SELECT 1 FROM employee_function_roles efr
+      WHERE efr.employee_id = e.id AND (efr.start_date IS NULL OR efr.start_date <= ${todayStr}::date) AND (efr.end_date IS NULL OR efr.end_date >= ${todayStr}::date)
+    )`)
+  }
+  if (sqlRoleConditions.length > 0) {
+    conditions.push(
+      sqlRoleConditions.length === 1
+        ? sqlRoleConditions[0]
+        : Prisma.sql`(${Prisma.join(sqlRoleConditions, " OR ")})`
+    )
+  }
+
+  // 業務種別フィルター
+  const sqlDutyConditions: Prisma.Sql[] = []
+  if (filter.dutyTypeIds && filter.dutyTypeIds.length > 0) {
+    sqlDutyConditions.push(Prisma.sql`EXISTS (
+      SELECT 1 FROM duty_assignments da
+      WHERE da.employee_id = e.id AND da.duty_date >= ${startDate} AND da.duty_date <= ${endDate} AND da.duty_type_id = ANY(${filter.dutyTypeIds})
+    )`)
+  }
+  if (filter.dutyUnassigned) {
+    sqlDutyConditions.push(Prisma.sql`NOT EXISTS (
+      SELECT 1 FROM duty_assignments da
+      WHERE da.employee_id = e.id AND da.duty_date >= ${startDate} AND da.duty_date <= ${endDate}
+    )`)
+  }
+  if (sqlDutyConditions.length > 0) {
+    conditions.push(
+      sqlDutyConditions.length === 1
+        ? sqlDutyConditions[0]
+        : Prisma.sql`(${Prisma.join(sqlDutyConditions, " OR ")})`
+    )
+  }
+
+  // 従業員検索
+  if (filter.employeeSearch) {
+    const searchPattern = `%${filter.employeeSearch}%`
+    conditions.push(
+      Prisma.sql`(e.name ILIKE ${searchPattern} OR e.name_kana ILIKE ${searchPattern})`
+    )
+  }
+
+  // 従業員ID指定
+  if (filter.employeeIds && filter.employeeIds.length > 0) {
+    conditions.push(Prisma.sql`e.id::text = ANY(${filter.employeeIds})`)
+  }
+
+  const whereClause = Prisma.sql`WHERE ${Prisma.join(conditions, " AND ")}`
+
+  const orderedIds = await prisma.$queryRaw<{ id: string }[]>(Prisma.sql`
+    SELECT e.id
+    FROM employees e
+    LEFT JOIN employee_groups eg ON e.id = eg.employee_id AND (eg.start_date IS NULL OR eg.start_date <= ${todayStr}::date) AND (eg.end_date IS NULL OR eg.end_date >= ${todayStr}::date)
+    LEFT JOIN groups g ON eg.group_id = g.id
+    ${whereClause}
+    GROUP BY e.id, e.name
+    ORDER BY MIN(g.id) ASC NULLS LAST, e.name ASC
+    OFFSET ${cursor} LIMIT ${pageSize + 1}
+  `)
+
+  const hasMore = orderedIds.length > pageSize
+  const slicedIds = hasMore ? orderedIds.slice(0, pageSize).map((r) => r.id) : orderedIds.map((r) => r.id)
+
+  // --- Prisma where (count用) ---
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const employeeWhere: any = {
+    OR: [
+      { terminationDate: null },
+      { terminationDate: { gte: startDate } },
+    ],
+  }
+
+  const groupConditions2 = []
+  if (filter.groupIds && filter.groupIds.length > 0) {
+    groupConditions2.push({ groups: { some: { groupId: { in: filter.groupIds }, ...groupDateFilter } } })
+  }
+  if (filter.unassigned) {
+    groupConditions2.push({ groups: { none: groupDateFilter } })
+  }
+  if (groupConditions2.length > 0) {
+    employeeWhere.AND = [...(employeeWhere.AND ?? []), groupConditions2.length === 1 ? groupConditions2[0] : { OR: groupConditions2 }]
+  }
+
+  const roleConditions2 = []
+  if (filter.roleIds && filter.roleIds.length > 0) {
+    roleConditions2.push({ functionRoles: { some: { functionRoleId: { in: filter.roleIds }, ...roleDateFilter } } })
+  }
+  if (filter.roleUnassigned) {
+    roleConditions2.push({ functionRoles: { none: roleDateFilter } })
+  }
+  if (roleConditions2.length > 0) {
+    employeeWhere.AND = [...(employeeWhere.AND ?? []), roleConditions2.length === 1 ? roleConditions2[0] : { OR: roleConditions2 }]
+  }
+
+  if (filter.employeeSearch) {
+    employeeWhere.AND = [
+      ...(employeeWhere.AND ?? []),
+      {
+        OR: [
+          { name: { contains: filter.employeeSearch, mode: "insensitive" } },
+          { nameKana: { contains: filter.employeeSearch, mode: "insensitive" } },
+        ],
+      },
+    ]
+  }
+
+  if (filter.employeeIds && filter.employeeIds.length > 0) {
+    employeeWhere.AND = [
+      ...(employeeWhere.AND ?? []),
+      { id: { in: filter.employeeIds } },
+    ]
+  }
+
+  // 業務種別フィルター（Prisma版）
+  const dutyConditions2 = []
+  if (filter.dutyTypeIds && filter.dutyTypeIds.length > 0) {
+    dutyConditions2.push({
+      dutyAssignments: {
+        some: {
+          dutyDate: { gte: startDate, lte: endDate },
+          dutyTypeId: { in: filter.dutyTypeIds },
         },
       },
-      dutyType: true,
-    },
-    orderBy: [{ employee: { name: "asc" } }, { dutyDate: "asc" }, { startTime: "asc" }],
-  })
-
-  // 従業員×日のマトリクスに変換
-  const employeeMap = new Map<string, DutyCalendarData>()
-  const dutyTypeCountMap = new Map<string, { code: string; name: string; color: string | null; count: number }>()
-
-  for (const a of assignments) {
-    const empId = a.employeeId
-    if (!employeeMap.has(empId)) {
-      const groupName = a.employee.groups[0]?.group.name ?? null
-      employeeMap.set(empId, {
-        employeeId: empId,
-        employeeName: a.employee.name,
-        groupName,
-        duties: {},
-      })
-    }
-
-    const dateStr = (typeof a.dutyDate === "string" ? a.dutyDate : a.dutyDate.toISOString()).substring(0, 10)
-    const emp = employeeMap.get(empId)!
-    if (!emp.duties[dateStr]) {
-      emp.duties[dateStr] = []
-    }
-
-    const cell: DutyCalendarCell = {
-      id: a.id,
-      dutyTypeCode: a.dutyType.code,
-      dutyTypeName: a.dutyType.name,
-      dutyTypeColor: a.dutyType.color,
-      startTime: getTimeHHMM(a.startTime),
-      endTime: getTimeHHMM(a.endTime),
-      reducesCapacity: a.reducesCapacity,
-    }
-    emp.duties[dateStr].push(cell)
-
-    // 集計
-    const dtKey = a.dutyType.code
-    if (!dutyTypeCountMap.has(dtKey)) {
-      dutyTypeCountMap.set(dtKey, {
-        code: a.dutyType.code,
-        name: a.dutyType.name,
-        color: a.dutyType.color,
-        count: 0,
-      })
-    }
-    dutyTypeCountMap.get(dtKey)!.count++
+    })
+  }
+  if (filter.dutyUnassigned) {
+    dutyConditions2.push({
+      dutyAssignments: {
+        none: {
+          dutyDate: { gte: startDate, lte: endDate },
+        },
+      },
+    })
+  }
+  if (dutyConditions2.length > 0) {
+    employeeWhere.AND = [...(employeeWhere.AND ?? []), dutyConditions2.length === 1 ? dutyConditions2[0] : { OR: dutyConditions2 }]
   }
 
-  // グループ名昇順 → 従業員名昇順
-  const data = Array.from(employeeMap.values()).sort((a, b) => {
-    const gCmp = (a.groupName ?? "zzz").localeCompare(b.groupName ?? "zzz", "ja")
-    if (gCmp !== 0) return gCmp
-    return a.employeeName.localeCompare(b.employeeName, "ja")
+  // --- Step 2: Prisma でフルデータ取得 ---
+  const [employees, total] = await Promise.all([
+    slicedIds.length > 0
+      ? prisma.employee.findMany({
+          where: { id: { in: slicedIds } },
+          include: {
+            groups: {
+              include: { group: true },
+              where: groupDateFilter,
+            },
+            dutyAssignments: {
+              where: {
+                dutyDate: { gte: startDate, lte: endDate },
+              },
+              include: { dutyType: true },
+              orderBy: [{ dutyDate: "asc" }, { startTime: "asc" }],
+            },
+          },
+        })
+      : Promise.resolve([]),
+    prisma.employee.count({ where: employeeWhere }),
+  ])
+
+  // --- Step 3: Raw SQLの順序に合わせて並べ替え ---
+  const idOrder = new Map(slicedIds.map((id, i) => [id, i]))
+  employees.sort((a, b) => (idOrder.get(a.id) ?? 0) - (idOrder.get(b.id) ?? 0))
+
+  // --- Step 4: DutyCalendarData[] を構築 ---
+  const dutyTypeCountMap = new Map<string, { code: string; name: string; color: string | null; count: number }>()
+
+  const data: DutyCalendarData[] = employees.map((emp) => {
+    const groupName = emp.groups[0]?.group.name ?? null
+    const duties: Record<string, DutyCalendarCell[]> = {}
+
+    for (const a of emp.dutyAssignments) {
+      const dateStr = (typeof a.dutyDate === "string" ? a.dutyDate : a.dutyDate.toISOString()).substring(0, 10)
+      if (!duties[dateStr]) {
+        duties[dateStr] = []
+      }
+
+      const cell: DutyCalendarCell = {
+        id: a.id,
+        dutyTypeCode: a.dutyType.code,
+        dutyTypeName: a.dutyType.name,
+        dutyTypeColor: a.dutyType.color,
+        startTime: getTimeHHMM(a.startTime),
+        endTime: getTimeHHMM(a.endTime),
+        reducesCapacity: a.reducesCapacity,
+      }
+      duties[dateStr].push(cell)
+
+      // 集計
+      const dtKey = a.dutyType.code
+      if (!dutyTypeCountMap.has(dtKey)) {
+        dutyTypeCountMap.set(dtKey, {
+          code: a.dutyType.code,
+          name: a.dutyType.name,
+          color: a.dutyType.color,
+          count: 0,
+        })
+      }
+      dutyTypeCountMap.get(dtKey)!.count++
+    }
+
+    return {
+      employeeId: emp.id,
+      employeeName: emp.name,
+      groupName,
+      duties,
+    }
   })
 
   const dutyTypeSummary = Array.from(dutyTypeCountMap.values()).sort((a, b) => a.code.localeCompare(b.code))
 
-  return { data, dutyTypeSummary }
+  return { data, dutyTypeSummary, total, hasMore, nextCursor: hasMore ? cursor + pageSize : null }
 }
 
 /** 日次ビューのフィルター選択肢を取得 */

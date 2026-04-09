@@ -15,6 +15,7 @@ import { ColumnFilterPopover } from "@/components/common/filters/column-filter-p
 import { EmployeeCheckboxFilter } from "@/components/common/filters/employee-checkbox-filter"
 import { useQueryParams } from "@/hooks/use-query-params"
 import { StickyHorizontalScrollbar } from "@/components/ui/sticky-horizontal-scrollbar"
+import { Loader2 } from "lucide-react"
 
 type DutyMonthlyCalendarProps = {
   data: DutyCalendarData[]
@@ -23,6 +24,10 @@ type DutyMonthlyCalendarProps = {
   selectedEmployeeIds: string[]
   onCellClick: (dateStr: string) => void
   employeeSearchText: string
+  total: number
+  hasMore: boolean
+  isLoadingMore: boolean
+  onLoadMore: () => void
 }
 
 const MAX_DOTS = 6
@@ -102,6 +107,10 @@ export function DutyMonthlyCalendar({
   selectedEmployeeIds,
   onCellClick,
   employeeSearchText,
+  total,
+  hasMore,
+  isLoadingMore,
+  onLoadMore,
 }: DutyMonthlyCalendarProps) {
   const days = useMemo(() => getDaysInMonth(year, month), [year, month])
   const { setParams } = useQueryParams()
@@ -109,7 +118,13 @@ export function DutyMonthlyCalendar({
 
   const scrollContainerId = useId()
   const scrollContainerRef = useRef<HTMLDivElement>(null)
+  const sentinelRef = useRef<HTMLDivElement>(null)
+  const onLoadMoreRef = useRef(onLoadMore)
   const [maxHeight, setMaxHeight] = useState<number | undefined>(undefined)
+
+  useEffect(() => {
+    onLoadMoreRef.current = onLoadMore
+  }, [onLoadMore])
 
   useEffect(() => {
     const container = scrollContainerRef.current
@@ -131,6 +146,23 @@ export function DutyMonthlyCalendar({
       observer.disconnect()
     }
   }, [])
+
+  useEffect(() => {
+    const sentinel = sentinelRef.current
+    const container = scrollContainerRef.current
+    if (!sentinel || !hasMore) return
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          onLoadMoreRef.current?.()
+        }
+      },
+      { root: container, rootMargin: "200px" }
+    )
+    observer.observe(sentinel)
+    return () => observer.disconnect()
+  }, [hasMore])
 
   const employees = useMemo(
     () => data.map((emp) => ({ id: emp.employeeId, name: emp.employeeName })),
@@ -246,7 +278,24 @@ export function DutyMonthlyCalendar({
             該当する業務割当がありません
           </div>
         )}
+
+        {/* センチネル要素 + ローディング表示 */}
+        {data.length > 0 && hasMore && (
+          <div ref={sentinelRef} className="flex items-center justify-center py-4">
+            {isLoadingMore && (
+              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+            )}
+          </div>
+        )}
       </div>
+
+      {/* 件数表示 */}
+      {data.length > 0 && (
+        <div className="px-3 py-2 text-xs text-muted-foreground border-t">
+          {filteredData.length} / 全{total}人 表示中
+          {hasMore && !isLoadingMore && " — スクロールで続きを読み込み"}
+        </div>
+      )}
     </div>
   )
 
