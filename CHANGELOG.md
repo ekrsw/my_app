@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.1.3] - 2026-04-08
+
+### Fixed
+- 業務管理（月次）画面で未ログインユーザーがセルクリック時に業務割当ダイアログが表示される問題を修正
+
+### Added
+- コンポーネントテスト基盤を導入（@testing-library/react + happy-dom）
+- 月次カレンダー認証ガードのコンポーネントテストを追加
+
+### Changed
+- 月次カレンダーの従業員名セルからグループ名表示を削除し、レイアウトを簡素化
+
 ## [0.2.1.2] - 2026-04-06
 
 ### Fixed

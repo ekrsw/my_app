@@ -12,7 +12,7 @@ import {
 } from "@/lib/date-utils"
 import { cn } from "@/lib/utils"
 import { ColumnFilterPopover } from "@/components/common/filters/column-filter-popover"
-import { CheckboxListFilter } from "@/components/common/filters/checkbox-list-filter"
+import { EmployeeCheckboxFilter } from "@/components/common/filters/employee-checkbox-filter"
 import { useQueryParams } from "@/hooks/use-query-params"
 import { StickyHorizontalScrollbar } from "@/components/ui/sticky-horizontal-scrollbar"
 
@@ -20,21 +20,21 @@ type DutyMonthlyCalendarProps = {
   data: DutyCalendarData[]
   year: number
   month: number
-  groupIds: number[]
-  allGroups: { id: number; name: string }[]
+  selectedEmployeeIds: string[]
   onCellClick: (dateStr: string) => void
+  employeeSearchText: string
 }
 
-const MAX_BADGES = 3
+const MAX_DOTS = 6
 
 function DutyDot({ cell }: { cell: DutyCalendarCell }) {
-  const swatchClass = cell.dutyTypeColor
-    ? COLOR_PALETTE[cell.dutyTypeColor]?.swatch ?? COLOR_PALETTE["gray"].swatch
-    : COLOR_PALETTE["gray"].swatch
+  const palette = cell.dutyTypeColor
+    ? COLOR_PALETTE[cell.dutyTypeColor] ?? COLOR_PALETTE["gray"]
+    : COLOR_PALETTE["gray"]
 
   return (
     <span
-      className={cn("inline-block h-3 w-3 rounded-full shrink-0", swatchClass)}
+      className={cn("inline-block h-2 w-2 rounded-full flex-shrink-0", palette.swatch)}
       title={`${cell.dutyTypeName} (${cell.startTime}-${cell.endTime})`}
     />
   )
@@ -53,7 +53,12 @@ function CellContent({
     return (
       <button
         type="button"
-        className="flex h-full w-full items-center justify-center text-muted-foreground text-[10px]"
+        aria-label={`${dateStr} の業務割当を追加`}
+        className={cn(
+          "flex h-full w-full items-center justify-center text-muted-foreground text-[10px]",
+          "hover:bg-accent/30 transition-colors",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        )}
         onClick={() => onCellClick(dateStr)}
       >
         -
@@ -61,20 +66,28 @@ function CellContent({
     )
   }
 
-  const visible = duties.slice(0, MAX_BADGES)
-  const remaining = duties.length - MAX_BADGES
+  const visible = duties.slice(0, MAX_DOTS)
+  const remaining = duties.length - MAX_DOTS
 
   return (
     <button
       type="button"
-      className="flex h-full w-full flex-wrap items-center justify-center gap-1 px-1 py-1"
+      aria-label={`${dateStr} の業務割当を開く`}
+      className={cn(
+        "flex h-full w-full flex-wrap items-center justify-center gap-0.5 px-1 py-1",
+        "hover:bg-accent/30 transition-colors",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      )}
       onClick={() => onCellClick(dateStr)}
     >
       {visible.map((cell) => (
         <DutyDot key={cell.id} cell={cell} />
       ))}
       {remaining > 0 && (
-        <span className="text-[8px] text-muted-foreground leading-tight">
+        <span
+          className="text-[9px] text-muted-foreground leading-tight"
+          aria-label={`他${remaining}件`}
+        >
           +{remaining}
         </span>
       )}
@@ -86,13 +99,13 @@ export function DutyMonthlyCalendar({
   data,
   year,
   month,
-  groupIds,
-  allGroups,
+  selectedEmployeeIds,
   onCellClick,
+  employeeSearchText,
 }: DutyMonthlyCalendarProps) {
   const days = useMemo(() => getDaysInMonth(year, month), [year, month])
   const { setParams } = useQueryParams()
-  const [groupPopoverOpen, setGroupPopoverOpen] = useState(false)
+  const [employeePopoverOpen, setEmployeePopoverOpen] = useState(false)
 
   const scrollContainerId = useId()
   const scrollContainerRef = useRef<HTMLDivElement>(null)
@@ -119,45 +132,38 @@ export function DutyMonthlyCalendar({
     }
   }, [])
 
-  const groupOptions = useMemo(
-    () =>
-      allGroups.map((g) => ({
-        value: String(g.id),
-        label: g.name,
-      })),
-    [allGroups]
+  const employees = useMemo(
+    () => data.map((emp) => ({ id: emp.employeeId, name: emp.employeeName })),
+    [data]
   )
 
-  const selectedGroupValues = useMemo(
-    () => groupIds.map(String),
-    [groupIds]
-  )
-
-  const handleGroupConfirm = useCallback(
-    (values: string[]) => {
-      setParams({
-        monthlyGroupIds: values.length > 0 ? values.join(",") : null,
-      })
-      setGroupPopoverOpen(false)
+  const handleEmployeeConfirm = useCallback(
+    (ids: string[]) => {
+      setParams({ monthlyEmployeeIds: ids.length > 0 ? ids.join(",") : null })
+      setEmployeePopoverOpen(false)
     },
     [setParams]
   )
 
-  const handleGroupClear = useCallback(() => {
-    setParams({ monthlyGroupIds: null })
-    setGroupPopoverOpen(false)
+  const handleEmployeeClear = useCallback(() => {
+    setParams({ monthlyEmployeeIds: null })
+    setEmployeePopoverOpen(false)
   }, [setParams])
 
   const filteredData = useMemo(() => {
-    if (groupIds.length === 0) return data
-    const groupIdSet = new Set(groupIds)
-    return data.filter((emp) => {
-      if (!emp.groupName) return false
-      return allGroups.some(
-        (g) => groupIdSet.has(g.id) && g.name === emp.groupName
+    let result = data
+    if (selectedEmployeeIds.length > 0) {
+      const idSet = new Set(selectedEmployeeIds)
+      result = result.filter((emp) => idSet.has(emp.employeeId))
+    }
+    if (employeeSearchText) {
+      const lower = employeeSearchText.toLowerCase()
+      result = result.filter((emp) =>
+        emp.employeeName.toLowerCase().includes(lower)
       )
-    })
-  }, [data, groupIds, allGroups])
+    }
+    return result
+  }, [data, selectedEmployeeIds, employeeSearchText])
 
   const calendar = (
     <div
@@ -172,18 +178,17 @@ export function DutyMonthlyCalendar({
           <div className="sticky left-0 z-30 flex w-52 min-w-52 items-center border-r bg-background px-3 text-sm font-medium">
             <ColumnFilterPopover
               label="従業員名"
-              isActive={groupIds.length > 0}
-              activeCount={groupIds.length}
-              open={groupPopoverOpen}
-              onOpenChange={setGroupPopoverOpen}
+              isActive={selectedEmployeeIds.length > 0}
+              activeCount={selectedEmployeeIds.length}
+              open={employeePopoverOpen}
+              onOpenChange={setEmployeePopoverOpen}
             >
-              <CheckboxListFilter
-                options={groupOptions}
-                selectedValues={selectedGroupValues}
-                onConfirm={handleGroupConfirm}
-                onClear={handleGroupClear}
-                popoverOpen={groupPopoverOpen}
-                searchPlaceholder="グループ検索..."
+              <EmployeeCheckboxFilter
+                employees={employees}
+                selectedIds={selectedEmployeeIds}
+                onConfirm={handleEmployeeConfirm}
+                onClear={handleEmployeeClear}
+                popoverOpen={employeePopoverOpen}
               />
             </ColumnFilterPopover>
           </div>
@@ -209,13 +214,8 @@ export function DutyMonthlyCalendar({
         {/* Body rows */}
         {filteredData.map((emp) => (
           <div key={emp.employeeId} className="flex border-b hover:bg-muted/20">
-            <div className="sticky left-0 z-10 flex w-52 min-w-52 flex-col justify-center border-r bg-background px-3 py-1 text-sm">
+            <div className="sticky left-0 z-10 flex w-52 min-w-52 items-center border-r bg-background px-3 py-1 text-sm">
               <span className="truncate font-medium">{emp.employeeName}</span>
-              {emp.groupName && (
-                <span className="truncate text-[10px] text-muted-foreground">
-                  {emp.groupName}
-                </span>
-              )}
             </div>
             {days.map((day) => {
               const dateStr = toDateString(day)
@@ -225,7 +225,7 @@ export function DutyMonthlyCalendar({
                 <div
                   key={dateStr}
                   className={cn(
-                    "min-h-[2.5rem] w-16 min-w-16 border-r",
+                    "min-h-[4rem] w-16 min-w-16 border-r",
                     weekend && "bg-red-50/50"
                   )}
                 >

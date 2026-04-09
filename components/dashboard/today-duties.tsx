@@ -79,7 +79,7 @@ export function TodayDuties({ duties, employees, dutyTypes, isAuthenticated, tod
                         <span className="pl-5 py-0.5">
                           {assignment.employee.name}
                         </span>
-                        <span className="text-muted-foreground">
+                        <span className="text-muted-foreground truncate">
                           {assignment.employee.groups.length > 0
                             ? assignment.employee.groups.map((eg) => eg.group.name).join(", ")
                             : "-"}

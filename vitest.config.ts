@@ -8,11 +8,16 @@ export default defineConfig({
   test: {
     globals: true,
     environment: "node",
-    setupFiles: ["./tests/setup.ts"],
-    include: ["tests/**/*.test.ts"],
+    setupFiles: ["./tests/setup.ts", "./tests/components/setup.ts"],
+    include: ["tests/**/*.test.ts", "tests/**/*.test.tsx"],
     testTimeout: 30000,
     hookTimeout: 30000,
     fileParallelism: false,
+    server: {
+      deps: {
+        inline: ["next-auth"],
+      },
+    },
   },
   resolve: {
     alias: {
