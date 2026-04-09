@@ -15,14 +15,18 @@ import { FilterPresetManager } from "@/components/duty-assignments/filter-preset
 import { GroupMultiSelect } from "@/components/shifts/group-multi-select"
 import { RoleMultiSelect } from "@/components/shifts/role-multi-select"
 import { DutyTypeMultiSelect } from "@/components/duty-assignments/duty-type-multi-select"
-import { loadMoreDutyCalendarData } from "@/lib/actions/duty-assignment-actions"
+import { loadMoreDutyCalendarData, getDutyAssignmentById, deleteDutyAssignment } from "@/lib/actions/duty-assignment-actions"
+import { useRouter } from "next/navigation"
+import { toast } from "sonner"
 import { toDateString } from "@/lib/date-utils"
+import type { ShiftCodeInfo } from "@/lib/constants"
 import type {
   DutyAssignmentWithDetails,
   DutyCalendarData,
   DutyCalendarFilterParams,
   DutyDailyFilterOptions,
   DutyDailySortField,
+  ShiftCodeMap,
   SortOrder,
 } from "@/types/duties"
 
@@ -57,11 +61,13 @@ type DutyAssignmentPageClientProps = {
   monthlyRoleUnassigned: boolean
   monthlyDutyTypeIds: number[]
   monthlyDutyUnassigned: boolean
+  shiftCodeMap: ShiftCodeMap
+  shiftCodeInfoMap: Record<string, ShiftCodeInfo>
   groups: { id: number; name: string }[]
   roles: { id: number; roleName: string }[]
   // フォーム用
   employeeOptions: { id: string; name: string }[]
-  dutyTypeOptions: { id: number; code: string; name: string; defaultReducesCapacity: boolean }[]
+  dutyTypeOptions: { id: number; code: string; name: string; defaultReducesCapacity: boolean; defaultStartTime: string | null; defaultEndTime: string | null; defaultNote: string | null }[]
 }
 
 export function DutyAssignmentPageClient({
@@ -93,6 +99,8 @@ export function DutyAssignmentPageClient({
   monthlyRoleUnassigned,
   monthlyDutyTypeIds,
   monthlyDutyUnassigned,
+  shiftCodeMap,
+  shiftCodeInfoMap,
   groups,
   roles,
   employeeOptions,
@@ -115,6 +123,10 @@ export function DutyAssignmentPageClient({
   const [formOpen, setFormOpen] = useState(false)
   const [editingAssignment, setEditingAssignment] = useState<DutyAssignmentWithDetails | undefined>()
   const [monthlySelectedDate, setMonthlySelectedDate] = useState<string | undefined>()
+  const [monthlySelectedEmployeeId, setMonthlySelectedEmployeeId] = useState<string | undefined>()
+  const [editLoadingId, setEditLoadingId] = useState<number | null>(null)
+  const [deleteLoadingId, setDeleteLoadingId] = useState<number | null>(null)
+  const router = useRouter()
 
   const handleOpenNewForm = useCallback(() => {
     setEditingAssignment(undefined)
@@ -220,16 +232,51 @@ export function DutyAssignmentPageClient({
     return p
   }, [viewMode, employeeIds, groupIds, dutyTypeIds, reducesCapacity, sortBy, sortOrder, monthlyEmployeeIds])
 
-  // --- 月次セルクリック: 日次ビューへジャンプ ---
-  const handleCellClick = useCallback(
-    (dateStr: string) => {
-      if (!isAuthenticated) return
-      setEditingAssignment(undefined)
-      setMonthlySelectedDate(dateStr)
-      setFormOpen(true)
-    },
-    [isAuthenticated]
-  )
+  // --- 月次: 編集（割当データ取得→フォーム表示） ---
+  const handleEdit = useCallback(async (assignmentId: number) => {
+    setEditLoadingId(assignmentId)
+    try {
+      const assignment = await getDutyAssignmentById(assignmentId)
+      if (assignment) {
+        setEditingAssignment(assignment)
+        setMonthlySelectedDate(undefined)
+        setMonthlySelectedEmployeeId(undefined)
+        setFormOpen(true)
+      } else {
+        toast.error("業務割当が見つかりませんでした")
+      }
+    } catch {
+      toast.error("業務割当の取得に失敗しました")
+    } finally {
+      setEditLoadingId(null)
+    }
+  }, [])
+
+  // --- 月次: 削除 ---
+  const handleDelete = useCallback(async (assignmentId: number) => {
+    setDeleteLoadingId(assignmentId)
+    try {
+      const result = await deleteDutyAssignment(assignmentId)
+      if (result.error) {
+        toast.error(result.error)
+      } else {
+        toast.success("業務割当を削除しました")
+        router.refresh()
+      }
+    } catch {
+      toast.error("業務割当の削除に失敗しました")
+    } finally {
+      setDeleteLoadingId(null)
+    }
+  }, [router])
+
+  // --- 月次: 新規追加（日付・従業員プリセット） ---
+  const handleAddNew = useCallback((dateStr: string, employeeId: string) => {
+    setEditingAssignment(undefined)
+    setMonthlySelectedDate(dateStr)
+    setMonthlySelectedEmployeeId(employeeId)
+    setFormOpen(true)
+  }, [])
 
   // --- 日次ビュー ---
   if (viewMode === "daily") {
@@ -376,8 +423,15 @@ export function DutyAssignmentPageClient({
         year={year}
         month={month}
         selectedEmployeeIds={monthlyEmployeeIds}
-        onCellClick={handleCellClick}
+        onEdit={handleEdit}
+        onDelete={handleDelete}
+        onAddNew={handleAddNew}
+        isAuthenticated={isAuthenticated}
+        editLoadingId={editLoadingId}
+        deleteLoadingId={deleteLoadingId}
         employeeSearchText={employeeSearchText}
+        shiftCodeMap={shiftCodeMap}
+        shiftCodeInfoMap={shiftCodeInfoMap}
         total={calendarTotal}
         hasMore={calendarHasMoreState}
         isLoadingMore={calendarIsLoadingMore}
@@ -388,6 +442,7 @@ export function DutyAssignmentPageClient({
         employees={employeeOptions}
         dutyTypes={dutyTypeOptions}
         defaultDate={monthlySelectedDate}
+        defaultEmployeeId={monthlySelectedEmployeeId}
         dutyAssignment={editingAssignment}
         open={formOpen}
         onOpenChange={setFormOpen}

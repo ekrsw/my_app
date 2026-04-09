@@ -14,6 +14,9 @@ export async function createDutyType(formData: FormData) {
     isActive: formData.get("isActive") === "true",
     sortOrder: formData.get("sortOrder"),
     defaultReducesCapacity: formData.get("defaultReducesCapacity") === "true",
+    defaultStartTime: formData.get("defaultStartTime") as string,
+    defaultEndTime: formData.get("defaultEndTime") as string,
+    defaultNote: formData.get("defaultNote") as string,
   })
 
   if (!parsed.success) {
@@ -29,6 +32,9 @@ export async function createDutyType(formData: FormData) {
         isActive: parsed.data.isActive,
         sortOrder: parsed.data.sortOrder,
         defaultReducesCapacity: parsed.data.defaultReducesCapacity,
+        defaultStartTime: parsed.data.defaultStartTime ?? null,
+        defaultEndTime: parsed.data.defaultEndTime ?? null,
+        defaultNote: parsed.data.defaultNote ?? null,
       },
     })
     revalidatePath("/duty-types")
@@ -50,6 +56,9 @@ export async function updateDutyType(id: number, formData: FormData) {
     isActive: formData.get("isActive") === "true",
     sortOrder: formData.get("sortOrder"),
     defaultReducesCapacity: formData.get("defaultReducesCapacity") === "true",
+    defaultStartTime: formData.get("defaultStartTime") as string,
+    defaultEndTime: formData.get("defaultEndTime") as string,
+    defaultNote: formData.get("defaultNote") as string,
   })
 
   if (!parsed.success) {
@@ -66,6 +75,9 @@ export async function updateDutyType(id: number, formData: FormData) {
         isActive: parsed.data.isActive,
         sortOrder: parsed.data.sortOrder,
         defaultReducesCapacity: parsed.data.defaultReducesCapacity,
+        defaultStartTime: parsed.data.defaultStartTime ?? null,
+        defaultEndTime: parsed.data.defaultEndTime ?? null,
+        defaultNote: parsed.data.defaultNote ?? null,
       },
     })
     revalidatePath("/duty-types")

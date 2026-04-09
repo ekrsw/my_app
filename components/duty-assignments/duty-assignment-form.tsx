@@ -47,12 +47,13 @@ import {
 import type { DutyAssignmentWithDetails } from "@/types/duties"
 
 type Employee = { id: string; name: string }
-type DutyType = { id: number; code: string; name: string; defaultReducesCapacity: boolean }
+type DutyType = { id: number; code: string; name: string; defaultReducesCapacity: boolean; defaultStartTime: string | null; defaultEndTime: string | null; defaultNote: string | null }
 
 type DutyAssignmentFormProps = {
   employees: Employee[]
   dutyTypes: DutyType[]
   defaultDate?: string
+  defaultEmployeeId?: string
   dutyAssignment?: DutyAssignmentWithDetails
   open?: boolean
   onOpenChange?: (open: boolean) => void
@@ -74,6 +75,7 @@ export function DutyAssignmentForm({
   employees,
   dutyTypes,
   defaultDate,
+  defaultEmployeeId,
   dutyAssignment,
   open: controlledOpen,
   onOpenChange,
@@ -90,6 +92,9 @@ export function DutyAssignmentForm({
     dutyAssignment?.dutyTypeId?.toString() ?? ""
   )
   const [reducesCapacity, setReducesCapacity] = useState(dutyAssignment?.reducesCapacity ?? true)
+  const [startTime, setStartTime] = useState(dutyAssignment ? timeToInput(dutyAssignment.startTime) : "")
+  const [endTime, setEndTime] = useState(dutyAssignment ? timeToInput(dutyAssignment.endTime) : "")
+  const [note, setNote] = useState(dutyAssignment?.note ?? "")
   const [employeeSearch, setEmployeeSearch] = useState("")
   const [employeePopoverOpen, setEmployeePopoverOpen] = useState(false)
   const isEdit = !!dutyAssignment
@@ -98,9 +103,12 @@ export function DutyAssignmentForm({
   if (open !== prevOpen) {
     setPrevOpen(open)
     if (open) {
-      setSelectedEmployeeId(dutyAssignment?.employeeId ?? "")
+      setSelectedEmployeeId(dutyAssignment?.employeeId ?? defaultEmployeeId ?? "")
       setSelectedDutyTypeId(dutyAssignment?.dutyTypeId?.toString() ?? "")
       setReducesCapacity(dutyAssignment?.reducesCapacity ?? true)
+      setStartTime(dutyAssignment ? timeToInput(dutyAssignment.startTime) : "")
+      setEndTime(dutyAssignment ? timeToInput(dutyAssignment.endTime) : "")
+      setNote(dutyAssignment?.note ?? "")
     }
   }
 
@@ -109,6 +117,9 @@ export function DutyAssignmentForm({
     const dt = dutyTypes.find((d) => d.id.toString() === value)
     if (dt) {
       setReducesCapacity(dt.defaultReducesCapacity)
+      setStartTime(dt.defaultStartTime ?? "")
+      setEndTime(dt.defaultEndTime ?? "")
+      setNote(dt.defaultNote ?? "")
     }
   }
 
@@ -129,9 +140,9 @@ export function DutyAssignmentForm({
       employeeId: selectedEmployeeId,
       dutyTypeId: Number(selectedDutyTypeId),
       dutyDate: formData.get("dutyDate") as string,
-      startTime: formData.get("startTime") as string,
-      endTime: formData.get("endTime") as string,
-      note: (formData.get("note") as string) || undefined,
+      startTime,
+      endTime,
+      note: note || undefined,
       reducesCapacity,
     }
 
@@ -276,10 +287,9 @@ export function DutyAssignmentForm({
               <Label htmlFor="startTime">開始時刻 *</Label>
               <Input
                 id="startTime"
-                name="startTime"
                 type="time"
-                defaultValue={dutyAssignment ? timeToInput(dutyAssignment.startTime) : ""}
-                key={`start-${dutyAssignment?.id ?? "new"}`}
+                value={startTime}
+                onChange={(e) => setStartTime(e.target.value)}
                 required
               />
             </div>
@@ -287,10 +297,9 @@ export function DutyAssignmentForm({
               <Label htmlFor="endTime">終了時刻 *</Label>
               <Input
                 id="endTime"
-                name="endTime"
                 type="time"
-                defaultValue={dutyAssignment ? timeToInput(dutyAssignment.endTime) : ""}
-                key={`end-${dutyAssignment?.id ?? "new"}`}
+                value={endTime}
+                onChange={(e) => setEndTime(e.target.value)}
                 required
               />
             </div>
@@ -299,10 +308,9 @@ export function DutyAssignmentForm({
             <Label htmlFor="note">備考</Label>
             <Textarea
               id="note"
-              name="note"
               placeholder="備考を入力（任意）"
-              defaultValue={dutyAssignment?.note ?? ""}
-              key={`note-${dutyAssignment?.id ?? "new"}`}
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
               rows={3}
             />
           </div>

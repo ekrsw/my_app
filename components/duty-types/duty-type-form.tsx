@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
 import { Checkbox } from "@/components/ui/checkbox"
 import { createDutyType, updateDutyType, deleteDutyType } from "@/lib/actions/duty-type-actions"
 import { COLOR_PALETTE } from "@/lib/constants"
@@ -38,6 +39,9 @@ type DutyTypeFormProps = {
     isActive: boolean | null
     sortOrder: number
     defaultReducesCapacity: boolean
+    defaultStartTime: string | null
+    defaultEndTime: string | null
+    defaultNote: string | null
   }
   open?: boolean
   onOpenChange?: (open: boolean) => void
@@ -185,6 +189,39 @@ export function DutyTypeForm({ dutyType, open: controlledOpen, onOpenChange }: D
               defaultValue={dutyType?.sortOrder ?? 0}
               key={`sort-${dutyType?.id ?? "new"}`}
               min={0}
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="defaultStartTime">デフォルト開始時刻</Label>
+              <Input
+                type="time"
+                id="defaultStartTime"
+                name="defaultStartTime"
+                defaultValue={dutyType?.defaultStartTime ?? ""}
+                key={`dst-${dutyType?.id ?? "new"}`}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="defaultEndTime">デフォルト終了時刻</Label>
+              <Input
+                type="time"
+                id="defaultEndTime"
+                name="defaultEndTime"
+                defaultValue={dutyType?.defaultEndTime ?? ""}
+                key={`det-${dutyType?.id ?? "new"}`}
+              />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="defaultNote">デフォルト備考</Label>
+            <Textarea
+              id="defaultNote"
+              name="defaultNote"
+              defaultValue={dutyType?.defaultNote ?? ""}
+              key={`dn-${dutyType?.id ?? "new"}`}
+              rows={2}
+              placeholder="業務割当作成時の初期値"
             />
           </div>
           <div className="flex items-center gap-2">

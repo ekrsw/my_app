@@ -252,6 +252,8 @@ export async function getDutyAssignmentsForCalendar(
   const pageSize = options.pageSize ?? DEFAULT_CALENDAR_PAGE_SIZE
   const startDate = new Date(Date.UTC(filter.year, filter.month - 1, 1))
   const endDate = new Date(Date.UTC(filter.year, filter.month, 0))
+  const startDateStr = `${startDate.getUTCFullYear()}-${String(startDate.getUTCMonth() + 1).padStart(2, "0")}-${String(startDate.getUTCDate()).padStart(2, "0")}`
+  const endDateStr = `${endDate.getUTCFullYear()}-${String(endDate.getUTCMonth() + 1).padStart(2, "0")}-${String(endDate.getUTCDate()).padStart(2, "0")}`
   const today = getTodayJST()
   const todayStr = `${today.getUTCFullYear()}-${String(today.getUTCMonth() + 1).padStart(2, "0")}-${String(today.getUTCDate()).padStart(2, "0")}`
   const groupDateFilter = currentGroupDateWhere(today)
@@ -259,7 +261,7 @@ export async function getDutyAssignmentsForCalendar(
 
   // --- Step 1: Raw SQL で従業員IDリストを取得（グループ名→従業員名順） ---
   const conditions: Prisma.Sql[] = [
-    Prisma.sql`(e.termination_date IS NULL OR e.termination_date >= ${startDate})`,
+    Prisma.sql`(e.termination_date IS NULL OR e.termination_date >= ${startDateStr}::date)`,
   ]
 
   // グループフィルター
@@ -311,13 +313,13 @@ export async function getDutyAssignmentsForCalendar(
   if (filter.dutyTypeIds && filter.dutyTypeIds.length > 0) {
     sqlDutyConditions.push(Prisma.sql`EXISTS (
       SELECT 1 FROM duty_assignments da
-      WHERE da.employee_id = e.id AND da.duty_date >= ${startDate} AND da.duty_date <= ${endDate} AND da.duty_type_id = ANY(${filter.dutyTypeIds})
+      WHERE da.employee_id = e.id AND da.duty_date >= ${startDateStr}::date AND da.duty_date <= ${endDateStr}::date AND da.duty_type_id = ANY(${filter.dutyTypeIds})
     )`)
   }
   if (filter.dutyUnassigned) {
     sqlDutyConditions.push(Prisma.sql`NOT EXISTS (
       SELECT 1 FROM duty_assignments da
-      WHERE da.employee_id = e.id AND da.duty_date >= ${startDate} AND da.duty_date <= ${endDate}
+      WHERE da.employee_id = e.id AND da.duty_date >= ${startDateStr}::date AND da.duty_date <= ${endDateStr}::date
     )`)
   }
   if (sqlDutyConditions.length > 0) {
@@ -480,6 +482,7 @@ export async function getDutyAssignmentsForCalendar(
         startTime: getTimeHHMM(a.startTime),
         endTime: getTimeHHMM(a.endTime),
         reducesCapacity: a.reducesCapacity,
+        note: a.note ?? null,
       }
       duties[dateStr].push(cell)
 

@@ -1,8 +1,8 @@
 "use client"
 
 import { useMemo, useState, useCallback, useRef, useEffect, useId } from "react"
-import type { DutyCalendarData, DutyCalendarCell } from "@/types/duties"
-import { COLOR_PALETTE } from "@/lib/constants"
+import type { DutyCalendarData, DutyCalendarCell, ShiftCodeMap } from "@/types/duties"
+import { COLOR_PALETTE, getShiftCodeInfo, type ShiftCodeInfo } from "@/lib/constants"
 import {
   getDaysInMonth,
   getDayOfWeekJa,
@@ -15,6 +15,7 @@ import { ColumnFilterPopover } from "@/components/common/filters/column-filter-p
 import { EmployeeCheckboxFilter } from "@/components/common/filters/employee-checkbox-filter"
 import { useQueryParams } from "@/hooks/use-query-params"
 import { StickyHorizontalScrollbar } from "@/components/ui/sticky-horizontal-scrollbar"
+import { DutyCellPopover } from "@/components/duty-assignments/duty-cell-popover"
 import { Loader2 } from "lucide-react"
 
 type DutyMonthlyCalendarProps = {
@@ -22,8 +23,15 @@ type DutyMonthlyCalendarProps = {
   year: number
   month: number
   selectedEmployeeIds: string[]
-  onCellClick: (dateStr: string) => void
+  onEdit: (assignmentId: number) => void
+  onDelete: (assignmentId: number) => void
+  onAddNew: (dateStr: string, employeeId: string) => void
+  isAuthenticated: boolean
+  editLoadingId: number | null
+  deleteLoadingId: number | null
   employeeSearchText: string
+  shiftCodeMap: ShiftCodeMap
+  shiftCodeInfoMap: Record<string, ShiftCodeInfo>
   total: number
   hasMore: boolean
   isLoadingMore: boolean
@@ -47,56 +55,61 @@ function DutyDot({ cell }: { cell: DutyCalendarCell }) {
 
 function CellContent({
   duties,
-  dateStr,
-  onCellClick,
+  shiftCode,
+  shiftCodeInfoMap,
 }: {
   duties: DutyCalendarCell[] | undefined
-  dateStr: string
-  onCellClick: (dateStr: string) => void
+  shiftCode: string | undefined
+  shiftCodeInfoMap: Record<string, ShiftCodeInfo>
 }) {
-  if (!duties || duties.length === 0) {
-    return (
-      <button
-        type="button"
-        aria-label={`${dateStr} の業務割当を追加`}
-        className={cn(
-          "flex h-full w-full items-center justify-center text-muted-foreground text-[10px]",
-          "hover:bg-accent/30 transition-colors",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        )}
-        onClick={() => onCellClick(dateStr)}
-      >
-        -
-      </button>
-    )
-  }
+  const hasDuties = duties && duties.length > 0
+  const shiftInfo = shiftCode ? getShiftCodeInfo(shiftCode, shiftCodeInfoMap) : null
 
-  const visible = duties.slice(0, MAX_DOTS)
-  const remaining = duties.length - MAX_DOTS
+  const visible = hasDuties ? duties.slice(0, MAX_DOTS) : []
+  const remaining = hasDuties ? duties.length - MAX_DOTS : 0
 
   return (
-    <button
-      type="button"
-      aria-label={`${dateStr} の業務割当を開く`}
+    <div
       className={cn(
-        "flex h-full w-full flex-wrap items-center justify-center gap-0.5 px-1 py-1",
-        "hover:bg-accent/30 transition-colors",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        "grid grid-rows-2 h-full w-full px-1 py-1 cursor-pointer",
+        "hover:bg-accent/30 transition-colors"
       )}
-      onClick={() => onCellClick(dateStr)}
     >
-      {visible.map((cell) => (
-        <DutyDot key={cell.id} cell={cell} />
-      ))}
-      {remaining > 0 && (
-        <span
-          className="text-[9px] text-muted-foreground leading-tight"
-          aria-label={`他${remaining}件`}
-        >
-          +{remaining}
-        </span>
-      )}
-    </button>
+      <div className="flex items-center justify-center">
+        {shiftInfo && (
+          <span
+            className={cn(
+              "text-[10px] font-medium rounded px-1 leading-tight",
+              shiftInfo.bgColor,
+              shiftInfo.color
+            )}
+          >
+            {shiftCode}
+          </span>
+        )}
+      </div>
+      <div className="flex flex-wrap items-center justify-center gap-0.5">
+        {hasDuties ? (
+          <>
+            {visible.map((cell) => (
+              <DutyDot key={cell.id} cell={cell} />
+            ))}
+            {remaining > 0 && (
+              <span
+                className="text-[9px] text-muted-foreground leading-tight"
+                aria-label={`他${remaining}件`}
+              >
+                +{remaining}
+              </span>
+            )}
+          </>
+        ) : (
+          !shiftInfo && (
+            <span className="text-muted-foreground text-[10px]">-</span>
+          )
+        )}
+      </div>
+    </div>
   )
 }
 
@@ -105,8 +118,15 @@ export function DutyMonthlyCalendar({
   year,
   month,
   selectedEmployeeIds,
-  onCellClick,
+  onEdit,
+  onDelete,
+  onAddNew,
+  isAuthenticated,
+  editLoadingId,
+  deleteLoadingId,
   employeeSearchText,
+  shiftCodeMap,
+  shiftCodeInfoMap,
   total,
   hasMore,
   isLoadingMore,
@@ -252,6 +272,7 @@ export function DutyMonthlyCalendar({
             {days.map((day) => {
               const dateStr = toDateString(day)
               const duties = emp.duties[dateStr]
+              const shiftCode = shiftCodeMap[emp.employeeId]?.[dateStr]
               const weekend = checkWeekend(day)
               return (
                 <div
@@ -261,11 +282,26 @@ export function DutyMonthlyCalendar({
                     weekend && "bg-red-50/50"
                   )}
                 >
-                  <CellContent
-                    duties={duties}
+                  <DutyCellPopover
+                    duties={duties ?? []}
                     dateStr={dateStr}
-                    onCellClick={onCellClick}
-                  />
+                    employeeId={emp.employeeId}
+                    employeeName={emp.employeeName}
+                    isAuthenticated={isAuthenticated}
+                    onEdit={onEdit}
+                    onDelete={onDelete}
+                    onAddNew={onAddNew}
+                    editLoadingId={editLoadingId}
+                    deleteLoadingId={deleteLoadingId}
+                  >
+                    <div className="h-full">
+                      <CellContent
+                        duties={duties}
+                        shiftCode={shiftCode}
+                        shiftCodeInfoMap={shiftCodeInfoMap}
+                      />
+                    </div>
+                  </DutyCellPopover>
                 </div>
               )
             })}

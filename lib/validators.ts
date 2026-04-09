@@ -110,6 +110,18 @@ export const dutyTypeSchema = z.object({
   isActive: z.boolean().default(true),
   sortOrder: z.coerce.number().int().min(0, "0以上の数値を入力してください").default(0),
   defaultReducesCapacity: z.boolean().default(true),
+  defaultStartTime: z.string()
+    .transform((v) => (v === "" ? null : v))
+    .pipe(z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "HH:mm形式で入力してください").nullable())
+    .optional(),
+  defaultEndTime: z.string()
+    .transform((v) => (v === "" ? null : v))
+    .pipe(z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "HH:mm形式で入力してください").nullable())
+    .optional(),
+  defaultNote: z.string()
+    .transform((v) => (v === "" ? null : v))
+    .nullable()
+    .optional(),
 })
 export type DutyTypeFormData = z.infer<typeof dutyTypeSchema>
 

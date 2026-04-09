@@ -53,6 +53,7 @@ export type DutyCalendarCell = {
   startTime: string // "HH:mm"
   endTime: string // "HH:mm"
   reducesCapacity: boolean
+  note: string | null
 }
 
 export type DutyCalendarResult = {
@@ -78,6 +79,9 @@ export type DutyCalendarFilterParams = {
   employeeSearch?: string
   employeeIds?: string[]
 }
+
+/** 従業員ID → 日付文字列 → シフトコード のマップ */
+export type ShiftCodeMap = Record<string, Record<string, string>>
 
 export type DutyCalendarPaginatedResult = {
   data: DutyCalendarData[]

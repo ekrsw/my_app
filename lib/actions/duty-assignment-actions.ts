@@ -169,7 +169,7 @@ class ShiftValidationError extends Error {
 }
 
 import { getDutyAssignmentsForDaily, getDutyAssignmentsForCalendar } from "@/lib/db/duty-assignments"
-import type { DutyDailyFilterParams, DutyDailyPaginatedResult, DutyCalendarFilterParams, DutyCalendarPaginatedResult } from "@/types/duties"
+import type { DutyAssignmentWithDetails, DutyDailyFilterParams, DutyDailyPaginatedResult, DutyCalendarFilterParams, DutyCalendarPaginatedResult } from "@/types/duties"
 
 /** 日次ビューの追加データ読み込み（無限スクロール用） */
 export async function loadMoreDutyDailyData(
@@ -191,4 +191,29 @@ export async function loadMoreDutyCalendarData(
 ): Promise<DutyCalendarPaginatedResult> {
   const safeCursor = Math.max(0, Math.floor(Number(cursor) || 0))
   return getDutyAssignmentsForCalendar(filter, { cursor: safeCursor })
+}
+
+/** 業務割当の個別取得（編集用） */
+export async function getDutyAssignmentById(
+  id: number
+): Promise<DutyAssignmentWithDetails | null> {
+  const safeId = Math.floor(Number(id) || 0)
+  if (safeId <= 0) return null
+
+  const result = await prisma.dutyAssignment.findUnique({
+    where: { id: safeId },
+    include: {
+      employee: {
+        include: {
+          groups: {
+            include: { group: true },
+            where: { endDate: null },
+          },
+        },
+      },
+      dutyType: true,
+    },
+  })
+
+  return result
 }

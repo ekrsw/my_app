@@ -19,7 +19,7 @@ import type { DutyAssignmentWithDetails } from "@/types/duties"
 type Props = {
   duties: DutyAssignmentWithDetails[]
   employees: { id: string; name: string }[]
-  dutyTypes: { id: number; code: string; name: string; defaultReducesCapacity: boolean }[]
+  dutyTypes: { id: number; code: string; name: string; defaultReducesCapacity: boolean; defaultStartTime: string | null; defaultEndTime: string | null; defaultNote: string | null }[]
   isAuthenticated: boolean
   todayDateString: string
 }

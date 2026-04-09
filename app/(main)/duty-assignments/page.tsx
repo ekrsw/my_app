@@ -8,11 +8,14 @@ import {
 } from "@/lib/db/duty-assignments"
 import { getActiveDutyTypes } from "@/lib/db/duty-types"
 import { getAllEmployees } from "@/lib/db/employees"
+import { getShiftsForCalendar } from "@/lib/db/shifts"
+import { getActiveShiftCodes } from "@/lib/db/shift-codes"
 import { getGroups } from "@/lib/db/groups"
 import { getFunctionRoles } from "@/lib/db/roles"
 import { getTodayJST } from "@/lib/date-utils"
+import { SHIFT_CODE_MAP, getColorClasses, type ShiftCodeInfo } from "@/lib/constants"
 import { auth } from "@/auth"
-import type { DutyDailySortField, SortOrder } from "@/types/duties"
+import type { DutyDailySortField, ShiftCodeMap, SortOrder } from "@/types/duties"
 
 type Props = {
   searchParams: Promise<Record<string, string | string[] | undefined>>
@@ -40,6 +43,9 @@ export default async function DutyAssignmentsPage({ searchParams }: Props) {
     code: dt.code,
     name: dt.name,
     defaultReducesCapacity: dt.defaultReducesCapacity,
+    defaultStartTime: dt.defaultStartTime,
+    defaultEndTime: dt.defaultEndTime,
+    defaultNote: dt.defaultNote,
   }))
 
   if (viewMode === "daily") {
@@ -114,6 +120,8 @@ export default async function DutyAssignmentsPage({ searchParams }: Props) {
             monthlyDutyUnassigned={false}
             groups={[]}
             roles={[]}
+            shiftCodeMap={{}}
+            shiftCodeInfoMap={{}}
             employeeOptions={employeeOptions}
             dutyTypeOptions={dutyTypeOptions}
           />
@@ -155,11 +163,35 @@ export default async function DutyAssignmentsPage({ searchParams }: Props) {
     employeeIds: monthlyEmployeeIds.length > 0 ? monthlyEmployeeIds : undefined,
   }
 
-  const [calendarResult, groups, roles] = await Promise.all([
+  const [calendarResult, groups, roles, shiftData, shiftCodes] = await Promise.all([
     getDutyAssignmentsForCalendar(calendarFilter),
     getGroups(),
     getFunctionRoles(),
+    getShiftsForCalendar({ year, month }),
+    getActiveShiftCodes(),
   ])
+
+  // ShiftCode マスタ → ShiftCodeInfo マップ（DB カラー解決用）
+  const shiftCodeInfoMap: Record<string, ShiftCodeInfo> = {}
+  for (const sc of shiftCodes) {
+    const dbColor = getColorClasses(sc.color)
+    const hardcoded = SHIFT_CODE_MAP[sc.code]
+    shiftCodeInfoMap[sc.code] = {
+      label: hardcoded?.label ?? sc.code,
+      color: dbColor?.text ?? hardcoded?.color ?? "text-gray-800",
+      bgColor: dbColor?.bg ?? hardcoded?.bgColor ?? "bg-gray-100",
+    }
+  }
+
+  // ShiftCalendarData[] → ShiftCodeMap に変換
+  const shiftCodeMap: ShiftCodeMap = {}
+  for (const emp of shiftData) {
+    const shifts: Record<string, string> = {}
+    for (const [dateStr, shift] of Object.entries(emp.shifts)) {
+      if (shift.shiftCode) shifts[dateStr] = shift.shiftCode
+    }
+    shiftCodeMap[emp.employeeId] = shifts
+  }
 
   return (
     <>
@@ -200,6 +232,8 @@ export default async function DutyAssignmentsPage({ searchParams }: Props) {
           monthlyRoleUnassigned={monthlyRoleUnassigned}
           monthlyDutyTypeIds={monthlyDutyTypeIds}
           monthlyDutyUnassigned={monthlyDutyUnassigned}
+          shiftCodeMap={shiftCodeMap}
+          shiftCodeInfoMap={shiftCodeInfoMap}
           groups={groups.map((g) => ({ id: g.id, name: g.name }))}
           roles={roles.map((r) => ({ id: r.id, roleName: r.roleName }))}
           employeeOptions={employeeOptions}

@@ -13,6 +13,9 @@ export type DutyTypeRow = {
   isActive: boolean | null
   sortOrder: number
   defaultReducesCapacity: boolean
+  defaultStartTime: string | null
+  defaultEndTime: string | null
+  defaultNote: string | null
 }
 
 export const dutyTypeColumns: ColumnDef<DutyTypeRow>[] = [
@@ -50,6 +53,16 @@ export const dutyTypeColumns: ColumnDef<DutyTypeRow>[] = [
   {
     accessorKey: "sortOrder",
     header: "表示順",
+  },
+  {
+    id: "defaultTime",
+    header: "デフォルト時刻",
+    cell: ({ row }) => {
+      const start = row.original.defaultStartTime
+      const end = row.original.defaultEndTime
+      if (!start && !end) return <span className="text-muted-foreground">-</span>
+      return <span className="text-sm">{start ?? ""}〜{end ?? ""}</span>
+    },
   },
   {
     accessorKey: "defaultReducesCapacity",
