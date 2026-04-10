@@ -40,7 +40,6 @@ export default async function DutyAssignmentsPage({ searchParams }: Props) {
   const employeeOptions = employees.map((e) => ({ id: e.id, name: e.name }))
   const dutyTypeOptions = dutyTypes.map((dt) => ({
     id: dt.id,
-    code: dt.code,
     name: dt.name,
     defaultReducesCapacity: dt.defaultReducesCapacity,
     defaultStartTime: dt.defaultStartTime,

@@ -33,7 +33,6 @@ describe("DutyType Actions", () => {
   describe("createDutyType", () => {
     it("デフォルト時刻・備考なしで作成成功", async () => {
       const fd = makeFormData({
-        code: "TEL",
         name: "電話対応",
         isActive: "true",
         sortOrder: "0",
@@ -46,7 +45,7 @@ describe("DutyType Actions", () => {
       const result = await createDutyType(fd)
       expect(result).toEqual({ success: true })
 
-      const dt = await prisma.dutyType.findFirst({ where: { code: "TEL" } })
+      const dt = await prisma.dutyType.findFirst({ where: { name: "電話対応" } })
       expect(dt).not.toBeNull()
       expect(dt!.defaultStartTime).toBeNull()
       expect(dt!.defaultEndTime).toBeNull()
@@ -55,7 +54,6 @@ describe("DutyType Actions", () => {
 
     it("デフォルト時刻・備考ありで作成成功", async () => {
       const fd = makeFormData({
-        code: "MTG",
         name: "会議",
         isActive: "true",
         sortOrder: "1",
@@ -68,7 +66,7 @@ describe("DutyType Actions", () => {
       const result = await createDutyType(fd)
       expect(result).toEqual({ success: true })
 
-      const dt = await prisma.dutyType.findFirst({ where: { code: "MTG" } })
+      const dt = await prisma.dutyType.findFirst({ where: { name: "会議" } })
       expect(dt).not.toBeNull()
       expect(dt!.defaultStartTime).toBe("09:00")
       expect(dt!.defaultEndTime).toBe("17:00")
@@ -77,7 +75,6 @@ describe("DutyType Actions", () => {
 
     it("不正な時刻形式でバリデーションエラー", async () => {
       const fd = makeFormData({
-        code: "BAD",
         name: "不正",
         isActive: "true",
         sortOrder: "0",
@@ -90,33 +87,12 @@ describe("DutyType Actions", () => {
       const result = await createDutyType(fd)
       expect(result).toHaveProperty("error")
     })
-
-    it("重複コードでエラー", async () => {
-      await prisma.dutyType.create({
-        data: { code: "DUP", name: "既存" },
-      })
-
-      const fd = makeFormData({
-        code: "DUP",
-        name: "重複テスト",
-        isActive: "true",
-        sortOrder: "0",
-        defaultReducesCapacity: "true",
-        defaultStartTime: "",
-        defaultEndTime: "",
-        defaultNote: "",
-      })
-
-      const result = await createDutyType(fd)
-      expect(result).toEqual({ error: "この業務コードは既に使用されています" })
-    })
   })
 
   describe("updateDutyType", () => {
     it("デフォルト時刻を設定→クリアできる", async () => {
       const dt = await prisma.dutyType.create({
         data: {
-          code: "UPD",
           name: "更新テスト",
           defaultStartTime: "09:00",
           defaultEndTime: "17:00",
@@ -126,7 +102,6 @@ describe("DutyType Actions", () => {
 
       // クリア
       const fd = makeFormData({
-        code: "UPD",
         name: "更新テスト",
         isActive: "true",
         sortOrder: "0",
@@ -148,7 +123,6 @@ describe("DutyType Actions", () => {
     it("デフォルト時刻を変更できる", async () => {
       const dt = await prisma.dutyType.create({
         data: {
-          code: "CHG",
           name: "変更テスト",
           defaultStartTime: "09:00",
           defaultEndTime: "17:00",
@@ -156,7 +130,6 @@ describe("DutyType Actions", () => {
       })
 
       const fd = makeFormData({
-        code: "CHG",
         name: "変更テスト",
         isActive: "true",
         sortOrder: "0",
@@ -179,7 +152,7 @@ describe("DutyType Actions", () => {
   describe("deleteDutyType", () => {
     it("業務種別を削除できる", async () => {
       const dt = await prisma.dutyType.create({
-        data: { code: "DEL", name: "削除テスト" },
+        data: { name: "削除テスト" },
       })
 
       const result = await deleteDutyType(dt.id)

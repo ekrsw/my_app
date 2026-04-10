@@ -8,7 +8,6 @@ import { requireAuth } from "@/lib/auth-guard"
 export async function createDutyType(formData: FormData) {
   await requireAuth()
   const parsed = dutyTypeSchema.safeParse({
-    code: formData.get("code"),
     name: formData.get("name"),
     color: formData.get("color") || null,
     isActive: formData.get("isActive") === "true",
@@ -26,7 +25,6 @@ export async function createDutyType(formData: FormData) {
   try {
     await prisma.dutyType.create({
       data: {
-        code: parsed.data.code,
         name: parsed.data.name,
         color: parsed.data.color ?? null,
         isActive: parsed.data.isActive,
@@ -39,10 +37,7 @@ export async function createDutyType(formData: FormData) {
     })
     revalidatePath("/duty-types")
     return { success: true }
-  } catch (e: unknown) {
-    if (e && typeof e === "object" && "code" in e && e.code === "P2002") {
-      return { error: "この業務コードは既に使用されています" }
-    }
+  } catch {
     return { error: "業務種別の作成に失敗しました" }
   }
 }
@@ -50,7 +45,6 @@ export async function createDutyType(formData: FormData) {
 export async function updateDutyType(id: number, formData: FormData) {
   await requireAuth()
   const parsed = dutyTypeSchema.safeParse({
-    code: formData.get("code"),
     name: formData.get("name"),
     color: formData.get("color") || null,
     isActive: formData.get("isActive") === "true",
@@ -69,7 +63,6 @@ export async function updateDutyType(id: number, formData: FormData) {
     await prisma.dutyType.update({
       where: { id },
       data: {
-        code: parsed.data.code,
         name: parsed.data.name,
         color: parsed.data.color ?? null,
         isActive: parsed.data.isActive,
@@ -82,10 +75,7 @@ export async function updateDutyType(id: number, formData: FormData) {
     })
     revalidatePath("/duty-types")
     return { success: true }
-  } catch (e: unknown) {
-    if (e && typeof e === "object" && "code" in e && e.code === "P2002") {
-      return { error: "この業務コードは既に使用されています" }
-    }
+  } catch {
     return { error: "業務種別の更新に失敗しました" }
   }
 }

@@ -4,7 +4,7 @@ import { getColorClasses, COLOR_PALETTE } from "@/lib/constants"
 import { cn } from "@/lib/utils"
 
 type DutyTypeSummaryRowProps = {
-  summary: { code: string; name: string; color: string | null; count: number }[]
+  summary: { name: string; color: string | null; count: number; sortOrder: number }[]
 }
 
 export function DutyTypeSummaryRow({ summary }: DutyTypeSummaryRowProps) {
@@ -12,7 +12,7 @@ export function DutyTypeSummaryRow({ summary }: DutyTypeSummaryRowProps) {
 
   return (
     <div className="flex flex-wrap gap-2 px-1 py-2">
-      {summary.map((item) => {
+      {summary.map((item, idx) => {
         const colors = getColorClasses(item.color)
         const fallback = COLOR_PALETTE["gray"]
 
@@ -24,7 +24,7 @@ export function DutyTypeSummaryRow({ summary }: DutyTypeSummaryRowProps) {
 
         return (
           <span
-            key={item.code}
+            key={idx}
             className={cn(
               "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium",
               bgClass,

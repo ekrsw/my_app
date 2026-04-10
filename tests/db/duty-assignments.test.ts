@@ -51,10 +51,10 @@ describe("getDutyAssignmentsForDaily", () => {
     })
 
     const dt1 = await prisma.dutyType.create({
-      data: { code: "DAY", name: "日勤", sortOrder: 1 },
+      data: { name: "日勤", sortOrder: 1 },
     })
     const dt2 = await prisma.dutyType.create({
-      data: { code: "NGT", name: "夜勤", sortOrder: 2 },
+      data: { name: "夜勤", sortOrder: 2 },
     })
     dutyTypeId1 = dt1.id
     dutyTypeId2 = dt2.id
@@ -182,7 +182,7 @@ describe("getDutyAssignmentsForCalendar", () => {
     employeeId = emp.id
 
     const dt = await prisma.dutyType.create({
-      data: { code: "DAY", name: "日勤", sortOrder: 1 },
+      data: { name: "日勤", sortOrder: 1 },
     })
     dutyTypeId = dt.id
 
@@ -244,7 +244,7 @@ describe("getDutyAssignmentsForCalendar", () => {
   it("dutyTypeSummary に集計データ", async () => {
     const result = await getDutyAssignmentsForCalendar({ year: 2025, month: 6 })
     expect(result.dutyTypeSummary).toHaveLength(1)
-    expect(result.dutyTypeSummary[0].code).toBe("DAY")
+    expect(result.dutyTypeSummary[0].name).toBe("日勤")
     expect(result.dutyTypeSummary[0].count).toBe(2)
   })
 
@@ -282,7 +282,7 @@ describe("getDutyDailyFilterOptions", () => {
       data: { employeeId: emp.id, groupId: group.id, startDate: null, endDate: null },
     })
     const dt = await prisma.dutyType.create({
-      data: { code: "DAY", name: "日勤", sortOrder: 1 },
+      data: { name: "日勤", sortOrder: 1 },
     })
 
     await prisma.dutyAssignment.create({
@@ -304,7 +304,7 @@ describe("getDutyDailyFilterOptions", () => {
     expect(options.groups).toHaveLength(1)
     expect(options.groups[0].name).toBe("C班")
     expect(options.dutyTypes).toHaveLength(1)
-    expect(options.dutyTypes[0].code).toBe("DAY")
+    expect(options.dutyTypes[0].name).toBe("日勤")
   })
 
   it("データなし → 空配列", async () => {

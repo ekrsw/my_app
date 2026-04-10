@@ -45,7 +45,7 @@ type DutyDailyViewProps = {
   filterOptions: DutyDailyFilterOptions
   isAuthenticated: boolean
   employees: { id: string; name: string }[]
-  dutyTypes: { id: number; code: string; name: string; defaultReducesCapacity: boolean; defaultStartTime: string | null; defaultEndTime: string | null; defaultNote: string | null }[]
+  dutyTypes: { id: number; name: string; defaultReducesCapacity: boolean; defaultStartTime: string | null; defaultEndTime: string | null; defaultNote: string | null }[]
   // Filter state from URL
   selectedEmployeeIds: string[]
   selectedGroupIds: number[]
@@ -61,16 +61,11 @@ function formatTime(d: Date | string | null): string {
   return iso.substring(11, 16)
 }
 
-function getDutyTypeBadge(dutyType: { code: string; name: string; color: string | null }) {
+function getDutyTypeLabel(dutyType: { name: string; color: string | null }) {
   const palette = dutyType.color ? COLOR_PALETTE[dutyType.color] : null
-  const codeBadgeClass = palette
-    ? cn(palette.text, palette.bg, "rounded-sm px-1 py-0.5 text-xs font-mono font-bold")
-    : "rounded-sm px-1 py-0.5 text-xs font-mono font-bold bg-muted text-muted-foreground"
+  const textClass = palette ? palette.text : "text-foreground"
   return (
-    <div className="flex items-center gap-1.5">
-      <span className={codeBadgeClass}>{dutyType.code}</span>
-      <span className="text-sm text-foreground">{dutyType.name}</span>
-    </div>
+    <span className={cn("text-sm", textClass)}>{dutyType.name}</span>
   )
 }
 
@@ -241,8 +236,8 @@ export function DutyDailyView({
   const dutyTypeOptions = useMemo(
     () => filterOptions.dutyTypes.map((dt) => ({
       value: String(dt.id),
-      label: getDutyTypeBadge(dt),
-      searchText: `${dt.code} ${dt.name}`,
+      label: getDutyTypeLabel(dt),
+      searchText: dt.name,
     })),
     [filterOptions.dutyTypes]
   )
@@ -327,7 +322,7 @@ export function DutyDailyView({
           />
         </ColumnFilterPopover>
       ),
-      cell: ({ row }) => getDutyTypeBadge(row.original.dutyType),
+      cell: ({ row }) => getDutyTypeLabel(row.original.dutyType),
     },
     {
       id: "timeRange",

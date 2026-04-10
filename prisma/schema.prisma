@@ -223,7 +223,6 @@ model EmployeeGroup {
 
 model DutyType {
   id        Int       @id @default(autoincrement())
-  code      String    @unique @db.VarChar(20)
   name      String    @db.VarChar(50)
   color     String?   @db.VarChar(20)
   isActive         Boolean?  @default(true) @map("is_active")

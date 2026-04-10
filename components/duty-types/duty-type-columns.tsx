@@ -7,7 +7,6 @@ import { cn } from "@/lib/utils"
 
 export type DutyTypeRow = {
   id: number
-  code: string
   name: string
   color: string | null
   isActive: boolean | null
@@ -22,13 +21,6 @@ export const dutyTypeColumns: ColumnDef<DutyTypeRow>[] = [
   {
     accessorKey: "id",
     header: "ID",
-  },
-  {
-    accessorKey: "code",
-    header: "コード",
-    cell: ({ getValue }) => (
-      <code className="rounded bg-muted px-1.5 py-0.5 text-sm">{getValue<string>()}</code>
-    ),
   },
   {
     accessorKey: "name",

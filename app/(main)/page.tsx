@@ -131,7 +131,7 @@ export default async function DashboardPage({ searchParams }: Props) {
             <TodayDuties
               duties={todayDuties}
               employees={allEmployees.map((e) => ({ id: e.id, name: e.name }))}
-              dutyTypes={dutyTypes.map((dt) => ({ id: dt.id, code: dt.code, name: dt.name, defaultReducesCapacity: dt.defaultReducesCapacity, defaultStartTime: dt.defaultStartTime, defaultEndTime: dt.defaultEndTime, defaultNote: dt.defaultNote }))}
+              dutyTypes={dutyTypes.map((dt) => ({ id: dt.id, name: dt.name, defaultReducesCapacity: dt.defaultReducesCapacity, defaultStartTime: dt.defaultStartTime, defaultEndTime: dt.defaultEndTime, defaultNote: dt.defaultNote }))}
               isAuthenticated={!!session?.user}
               todayDateString={todayDateString}
             />

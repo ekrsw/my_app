@@ -47,7 +47,6 @@ export type DutyCalendarData = {
 
 export type DutyCalendarCell = {
   id: number
-  dutyTypeCode: string
   dutyTypeName: string
   dutyTypeColor: string | null
   startTime: string // "HH:mm"
@@ -58,13 +57,13 @@ export type DutyCalendarCell = {
 
 export type DutyCalendarResult = {
   data: DutyCalendarData[]
-  dutyTypeSummary: { code: string; name: string; color: string | null; count: number }[]
+  dutyTypeSummary: { name: string; color: string | null; count: number; sortOrder: number }[]
 }
 
 export type DutyDailyFilterOptions = {
   employees: { id: string; name: string }[]
   groups: { id: number; name: string }[]
-  dutyTypes: { id: number; code: string; name: string; color: string | null }[]
+  dutyTypes: { id: number; name: string; color: string | null }[]
 }
 
 export type DutyCalendarFilterParams = {
@@ -85,7 +84,7 @@ export type ShiftCodeMap = Record<string, Record<string, string>>
 
 export type DutyCalendarPaginatedResult = {
   data: DutyCalendarData[]
-  dutyTypeSummary: { code: string; name: string; color: string | null; count: number }[]
+  dutyTypeSummary: { name: string; color: string | null; count: number; sortOrder: number }[]
   total: number
   hasMore: boolean
   nextCursor: number | null

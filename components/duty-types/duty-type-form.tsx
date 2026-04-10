@@ -33,7 +33,6 @@ import {
 type DutyTypeFormProps = {
   dutyType?: {
     id: number
-    code: string
     name: string
     color: string | null
     isActive: boolean | null
@@ -121,18 +120,6 @@ export function DutyTypeForm({ dutyType, open: controlledOpen, onOpenChange }: D
           <DialogTitle>{isEdit ? "業務種別編集" : "業務種別作成"}</DialogTitle>
         </DialogHeader>
         <form action={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="code">業務コード *</Label>
-            <Input
-              id="code"
-              name="code"
-              defaultValue={dutyType?.code ?? ""}
-              key={dutyType?.id ?? "new"}
-              required
-              maxLength={20}
-              placeholder="例: DIRECT_CALL"
-            />
-          </div>
           <div className="space-y-2">
             <Label htmlFor="name">業務名 *</Label>
             <Input

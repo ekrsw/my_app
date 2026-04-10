@@ -47,7 +47,7 @@ import {
 import type { DutyAssignmentWithDetails } from "@/types/duties"
 
 type Employee = { id: string; name: string }
-type DutyType = { id: number; code: string; name: string; defaultReducesCapacity: boolean; defaultStartTime: string | null; defaultEndTime: string | null; defaultNote: string | null }
+type DutyType = { id: number; name: string; defaultReducesCapacity: boolean; defaultStartTime: string | null; defaultEndTime: string | null; defaultNote: string | null }
 
 type DutyAssignmentFormProps = {
   employees: Employee[]
