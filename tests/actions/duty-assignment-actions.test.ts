@@ -271,4 +271,134 @@ describe("DutyAssignment Actions — シフト整合性バリデーション", (
       expect(updated?.reducesCapacity).toBe(false)
     })
   })
+
+  describe("title フィールド", () => {
+    it("title 付きで作成 → DB に保存される", async () => {
+      await prisma.shift.create({
+        data: {
+          employeeId,
+          shiftDate: new Date("2026-04-10"),
+          shiftCode: "A",
+          startTime: new Date("1970-01-01T09:00:00Z"),
+          endTime: new Date("1970-01-01T17:00:00Z"),
+        },
+      })
+
+      const result = await createDutyAssignment({
+        employeeId,
+        dutyTypeId,
+        dutyDate: "2026-04-10",
+        startTime: "10:00",
+        endTime: "12:00",
+        title: "A社訪問",
+      })
+
+      expect(result).toEqual({ success: true })
+
+      const assignment = await prisma.dutyAssignment.findFirst()
+      expect(assignment?.title).toBe("A社訪問")
+    })
+
+    it("title 省略で作成 → null で保存される", async () => {
+      await prisma.shift.create({
+        data: {
+          employeeId,
+          shiftDate: new Date("2026-04-10"),
+          shiftCode: "A",
+          startTime: new Date("1970-01-01T09:00:00Z"),
+          endTime: new Date("1970-01-01T17:00:00Z"),
+        },
+      })
+
+      const result = await createDutyAssignment({
+        employeeId,
+        dutyTypeId,
+        dutyDate: "2026-04-10",
+        startTime: "10:00",
+        endTime: "12:00",
+      })
+
+      expect(result).toEqual({ success: true })
+
+      const assignment = await prisma.dutyAssignment.findFirst()
+      expect(assignment?.title).toBeNull()
+    })
+
+    it("title を更新 → 反映される", async () => {
+      await prisma.shift.create({
+        data: {
+          employeeId,
+          shiftDate: new Date("2026-04-10"),
+          shiftCode: "A",
+          startTime: new Date("1970-01-01T09:00:00Z"),
+          endTime: new Date("1970-01-01T17:00:00Z"),
+        },
+      })
+
+      const assignment = await prisma.dutyAssignment.create({
+        data: {
+          employeeId,
+          dutyTypeId,
+          dutyDate: new Date("2026-04-10"),
+          startTime: new Date("1970-01-01T10:00:00Z"),
+          endTime: new Date("1970-01-01T12:00:00Z"),
+          title: "旧タイトル",
+        },
+      })
+
+      const result = await updateDutyAssignment(assignment.id, {
+        employeeId,
+        dutyTypeId,
+        dutyDate: "2026-04-10",
+        startTime: "10:00",
+        endTime: "12:00",
+        title: "新タイトル",
+      })
+
+      expect(result).toEqual({ success: true })
+
+      const updated = await prisma.dutyAssignment.findUnique({
+        where: { id: assignment.id },
+      })
+      expect(updated?.title).toBe("新タイトル")
+    })
+
+    it("title を null に更新 → null で保存される", async () => {
+      await prisma.shift.create({
+        data: {
+          employeeId,
+          shiftDate: new Date("2026-04-10"),
+          shiftCode: "A",
+          startTime: new Date("1970-01-01T09:00:00Z"),
+          endTime: new Date("1970-01-01T17:00:00Z"),
+        },
+      })
+
+      const assignment = await prisma.dutyAssignment.create({
+        data: {
+          employeeId,
+          dutyTypeId,
+          dutyDate: new Date("2026-04-10"),
+          startTime: new Date("1970-01-01T10:00:00Z"),
+          endTime: new Date("1970-01-01T12:00:00Z"),
+          title: "消えるタイトル",
+        },
+      })
+
+      const result = await updateDutyAssignment(assignment.id, {
+        employeeId,
+        dutyTypeId,
+        dutyDate: "2026-04-10",
+        startTime: "10:00",
+        endTime: "12:00",
+      })
+
+      expect(result).toEqual({ success: true })
+
+      const updated = await prisma.dutyAssignment.findUnique({
+        where: { id: assignment.id },
+      })
+      expect(updated?.title).toBeNull()
+    })
+  })
 })

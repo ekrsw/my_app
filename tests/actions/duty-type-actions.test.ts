@@ -149,6 +149,69 @@ describe("DutyType Actions", () => {
     })
   })
 
+  describe("defaultTitle", () => {
+    it("defaultTitle 付きで作成 → DB に保存される", async () => {
+      const fd = makeFormData({
+        name: "タイトルテスト",
+        isActive: "true",
+        sortOrder: "0",
+        defaultReducesCapacity: "true",
+        defaultStartTime: "",
+        defaultEndTime: "",
+        defaultNote: "",
+        defaultTitle: "A社訪問",
+      })
+
+      const result = await createDutyType(fd)
+      expect(result).toEqual({ success: true })
+
+      const dt = await prisma.dutyType.findFirst({ where: { name: "タイトルテスト" } })
+      expect(dt?.defaultTitle).toBe("A社訪問")
+    })
+
+    it("defaultTitle 空文字 → null で保存される", async () => {
+      const fd = makeFormData({
+        name: "タイトルなし",
+        isActive: "true",
+        sortOrder: "0",
+        defaultReducesCapacity: "true",
+        defaultStartTime: "",
+        defaultEndTime: "",
+        defaultNote: "",
+        defaultTitle: "",
+      })
+
+      const result = await createDutyType(fd)
+      expect(result).toEqual({ success: true })
+
+      const dt = await prisma.dutyType.findFirst({ where: { name: "タイトルなし" } })
+      expect(dt?.defaultTitle).toBeNull()
+    })
+
+    it("defaultTitle を更新 → 反映される", async () => {
+      const dt = await prisma.dutyType.create({
+        data: { name: "タイトル更新", defaultTitle: "旧タイトル" },
+      })
+
+      const fd = makeFormData({
+        name: "タイトル更新",
+        isActive: "true",
+        sortOrder: "0",
+        defaultReducesCapacity: "true",
+        defaultStartTime: "",
+        defaultEndTime: "",
+        defaultNote: "",
+        defaultTitle: "新タイトル",
+      })
+
+      const result = await updateDutyType(dt.id, fd)
+      expect(result).toEqual({ success: true })
+
+      const updated = await prisma.dutyType.findUnique({ where: { id: dt.id } })
+      expect(updated?.defaultTitle).toBe("新タイトル")
+    })
+  })
+
   describe("deleteDutyType", () => {
     it("業務種別を削除できる", async () => {
       const dt = await prisma.dutyType.create({

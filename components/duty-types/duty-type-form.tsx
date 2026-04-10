@@ -41,6 +41,7 @@ type DutyTypeFormProps = {
     defaultStartTime: string | null
     defaultEndTime: string | null
     defaultNote: string | null
+    defaultTitle: string | null
   }
   open?: boolean
   onOpenChange?: (open: boolean) => void
@@ -199,6 +200,17 @@ export function DutyTypeForm({ dutyType, open: controlledOpen, onOpenChange }: D
                 key={`det-${dutyType?.id ?? "new"}`}
               />
             </div>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="defaultTitle">デフォルトタイトル</Label>
+            <Input
+              id="defaultTitle"
+              name="defaultTitle"
+              defaultValue={dutyType?.defaultTitle ?? ""}
+              key={`dt-${dutyType?.id ?? "new"}`}
+              maxLength={100}
+              placeholder="業務割当作成時の初期値（例: A社訪問）"
+            />
           </div>
           <div className="space-y-2">
             <Label htmlFor="defaultNote">デフォルト備考</Label>

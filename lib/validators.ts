@@ -121,6 +121,10 @@ export const dutyTypeSchema = z.object({
     .transform((v) => (v === "" ? null : v))
     .nullable()
     .optional(),
+  defaultTitle: z.string()
+    .transform((v) => (v === "" ? null : v))
+    .pipe(z.string().max(100, "100文字以内で入力してください").nullable())
+    .optional(),
 })
 export type DutyTypeFormData = z.infer<typeof dutyTypeSchema>
 
@@ -132,6 +136,10 @@ export const dutyAssignmentSchema = z.object({
   startTime: z.string().min(1, "開始時刻は必須です"),
   endTime: z.string().min(1, "終了時刻は必須です"),
   note: z.string().optional(),
+  title: z.string()
+    .transform((v) => (v === "" ? undefined : v))
+    .pipe(z.string().max(100, "100文字以内で入力してください").optional())
+    .optional(),
   reducesCapacity: z.boolean().default(true),
 }).refine((data) => data.endTime !== data.startTime, {
   message: "終了時刻は開始時刻と異なる値にしてください",

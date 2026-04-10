@@ -53,6 +53,7 @@ export type DutyCalendarCell = {
   endTime: string // "HH:mm"
   reducesCapacity: boolean
   note: string | null
+  title: string | null
 }
 
 export type DutyCalendarResult = {

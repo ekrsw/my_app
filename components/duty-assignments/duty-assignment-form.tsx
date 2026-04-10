@@ -47,7 +47,7 @@ import {
 import type { DutyAssignmentWithDetails } from "@/types/duties"
 
 type Employee = { id: string; name: string }
-type DutyType = { id: number; name: string; defaultReducesCapacity: boolean; defaultStartTime: string | null; defaultEndTime: string | null; defaultNote: string | null }
+type DutyType = { id: number; name: string; defaultReducesCapacity: boolean; defaultStartTime: string | null; defaultEndTime: string | null; defaultNote: string | null; defaultTitle: string | null }
 
 type DutyAssignmentFormProps = {
   employees: Employee[]
@@ -95,6 +95,7 @@ export function DutyAssignmentForm({
   const [startTime, setStartTime] = useState(dutyAssignment ? timeToInput(dutyAssignment.startTime) : "")
   const [endTime, setEndTime] = useState(dutyAssignment ? timeToInput(dutyAssignment.endTime) : "")
   const [note, setNote] = useState(dutyAssignment?.note ?? "")
+  const [title, setTitle] = useState(dutyAssignment?.title ?? "")
   const [employeeSearch, setEmployeeSearch] = useState("")
   const [employeePopoverOpen, setEmployeePopoverOpen] = useState(false)
   const isEdit = !!dutyAssignment
@@ -109,6 +110,7 @@ export function DutyAssignmentForm({
       setStartTime(dutyAssignment ? timeToInput(dutyAssignment.startTime) : "")
       setEndTime(dutyAssignment ? timeToInput(dutyAssignment.endTime) : "")
       setNote(dutyAssignment?.note ?? "")
+      setTitle(dutyAssignment?.title ?? "")
     }
   }
 
@@ -120,6 +122,9 @@ export function DutyAssignmentForm({
       setStartTime(dt.defaultStartTime ?? "")
       setEndTime(dt.defaultEndTime ?? "")
       setNote(dt.defaultNote ?? "")
+      if (!isEdit) {
+        setTitle(dt.defaultTitle ?? "")
+      }
     }
   }
 
@@ -143,6 +148,7 @@ export function DutyAssignmentForm({
       startTime,
       endTime,
       note: note || undefined,
+      title: title || undefined,
       reducesCapacity,
     }
 
@@ -303,6 +309,16 @@ export function DutyAssignmentForm({
                 required
               />
             </div>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="title">タイトル</Label>
+            <Input
+              id="title"
+              placeholder="業務の具体的な内容（例: A社訪問）"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              maxLength={100}
+            />
           </div>
           <div className="space-y-2">
             <Label htmlFor="note">備考</Label>

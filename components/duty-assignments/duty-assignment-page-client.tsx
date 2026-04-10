@@ -67,7 +67,7 @@ type DutyAssignmentPageClientProps = {
   roles: { id: number; roleName: string }[]
   // フォーム用
   employeeOptions: { id: string; name: string }[]
-  dutyTypeOptions: { id: number; name: string; defaultReducesCapacity: boolean; defaultStartTime: string | null; defaultEndTime: string | null; defaultNote: string | null }[]
+  dutyTypeOptions: { id: number; name: string; defaultReducesCapacity: boolean; defaultStartTime: string | null; defaultEndTime: string | null; defaultNote: string | null; defaultTitle: string | null }[]
 }
 
 export function DutyAssignmentPageClient({

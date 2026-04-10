@@ -142,7 +142,9 @@ function DutyItem({
         <span
           className={cn("inline-block h-2.5 w-2.5 rounded-full flex-shrink-0", palette.swatch)}
         />
-        <span className="flex-1 truncate">{duty.dutyTypeName}</span>
+        <span className="flex-1 truncate">
+          {duty.title ? `${duty.dutyTypeName}: ${duty.title}` : duty.dutyTypeName}
+        </span>
         <ChevronDown className="h-3.5 w-3.5 text-muted-foreground transition-transform duration-200 [[data-state=open]>&]:rotate-180" />
       </CollapsibleTrigger>
       <CollapsibleContent>

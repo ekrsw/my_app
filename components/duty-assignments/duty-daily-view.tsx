@@ -45,7 +45,7 @@ type DutyDailyViewProps = {
   filterOptions: DutyDailyFilterOptions
   isAuthenticated: boolean
   employees: { id: string; name: string }[]
-  dutyTypes: { id: number; name: string; defaultReducesCapacity: boolean; defaultStartTime: string | null; defaultEndTime: string | null; defaultNote: string | null }[]
+  dutyTypes: { id: number; name: string; defaultReducesCapacity: boolean; defaultStartTime: string | null; defaultEndTime: string | null; defaultNote: string | null; defaultTitle: string | null }[]
   // Filter state from URL
   selectedEmployeeIds: string[]
   selectedGroupIds: number[]

@@ -15,6 +15,7 @@ export type DutyTypeRow = {
   defaultStartTime: string | null
   defaultEndTime: string | null
   defaultNote: string | null
+  defaultTitle: string | null
 }
 
 export const dutyTypeColumns: ColumnDef<DutyTypeRow>[] = [
