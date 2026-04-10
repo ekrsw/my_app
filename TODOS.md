@@ -124,3 +124,19 @@
 **Depends on:** デフォルト時刻機能の実装完了（このPRの後）
 
 **Context:** `/plan-eng-review` (2026-04-10) の Step 0 で発見。duty-assignment-page-client.tsx の Props 型定義も dutyTypeOptions のインライン型を DutyTypeOption[] に置き換えられる。
+
+## UX改善: 編集時のDutyType変更でdefault値が上書きされる問題
+
+**What:** DutyAssignmentForm の編集モードで業務種別を変更すると、手入力済みの startTime/endTime/note が defaultXxx 値で無言で上書きされる。title のみ「新規作成時のみ自動補完」に修正済みだが、他のdefault値も同様の対応が必要。
+
+**Why:** ユーザーが手で修正した時間や備考が、業務種別を変更しただけで消える。特に時間帯の修正は頻繁に行われるため、影響が大きい。Codex adversarial review (2026-04-11) で発見。
+
+**Pros:** 編集時のデータ消失リスクがなくなる。ユーザーの入力が尊重される。
+
+**Cons:** handleDutyTypeChange の条件分岐が増える（新規/編集で動作が異なる）。
+
+**Effort:** S (human) → XS (CC+gstack) | **Priority:** P2 | **Risk:** Low
+
+**Depends on:** タイトルカラム追加の実装完了
+
+**Context:** duty-assignment-form.tsx:115-124 の handleDutyTypeChange が対象。現在は新規・編集問わず全 default 値を上書きする。title は今回のPRで「新規のみ」に修正されるが、startTime/endTime/note/reducesCapacity も同じパターンにすべき。
