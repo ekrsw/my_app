@@ -241,6 +241,30 @@ describe("getDutyAssignmentsForCalendar", () => {
     expect(cell.note).toBe("テストメモ")
   })
 
+  it("title 付き割当がセルに反映される", async () => {
+    await prisma.dutyAssignment.create({
+      data: {
+        employeeId,
+        dutyTypeId,
+        dutyDate: utcDate("2025-06-21"),
+        startTime: new Date("1970-01-01T09:00:00Z"),
+        endTime: new Date("1970-01-01T17:00:00Z"),
+        title: "A社訪問",
+      },
+    })
+    const result = await getDutyAssignmentsForCalendar({ year: 2025, month: 6 })
+    const cell = result.data[0].duties["2025-06-21"]?.[0]
+    expect(cell).toBeDefined()
+    expect(cell.title).toBe("A社訪問")
+  })
+
+  it("title なし割当のセルは null", async () => {
+    const result = await getDutyAssignmentsForCalendar({ year: 2025, month: 6 })
+    const cell = result.data[0].duties["2025-06-01"]?.[0]
+    expect(cell).toBeDefined()
+    expect(cell.title).toBeNull()
+  })
+
   it("dutyTypeSummary に集計データ", async () => {
     const result = await getDutyAssignmentsForCalendar({ year: 2025, month: 6 })
     expect(result.dutyTypeSummary).toHaveLength(1)

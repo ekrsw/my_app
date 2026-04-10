@@ -501,6 +501,52 @@ describe("Zod Validation Schemas", () => {
         expect(result.data.reducesCapacity).toBe(true)
       }
     })
+
+    it("titleを受け入れる", () => {
+      const result = dutyAssignmentSchema.safeParse({
+        ...validData,
+        title: "A社訪問",
+      })
+      expect(result.success).toBe(true)
+      if (result.success) {
+        expect(result.data.title).toBe("A社訪問")
+      }
+    })
+
+    it("title省略時はundefined", () => {
+      const result = dutyAssignmentSchema.safeParse(validData)
+      expect(result.success).toBe(true)
+      if (result.success) {
+        expect(result.data.title).toBeUndefined()
+      }
+    })
+
+    it("title空文字はundefinedに変換", () => {
+      const result = dutyAssignmentSchema.safeParse({
+        ...validData,
+        title: "",
+      })
+      expect(result.success).toBe(true)
+      if (result.success) {
+        expect(result.data.title).toBeUndefined()
+      }
+    })
+
+    it("title 100文字は受け入れる", () => {
+      const result = dutyAssignmentSchema.safeParse({
+        ...validData,
+        title: "あ".repeat(100),
+      })
+      expect(result.success).toBe(true)
+    })
+
+    it("title 101文字は拒否する", () => {
+      const result = dutyAssignmentSchema.safeParse({
+        ...validData,
+        title: "あ".repeat(101),
+      })
+      expect(result.success).toBe(false)
+    })
   })
 
   describe("roleCsvRowSchema", () => {
@@ -676,6 +722,36 @@ describe("Zod Validation Schemas", () => {
 
     it("should reject name over 50 characters", () => {
       const result = dutyTypeSchema.safeParse({ ...validData, name: "あ".repeat(51) })
+      expect(result.success).toBe(false)
+    })
+
+    it("should accept defaultTitle", () => {
+      const result = dutyTypeSchema.safeParse({
+        ...validData,
+        defaultTitle: "A社訪問",
+      })
+      expect(result.success).toBe(true)
+      if (result.success) {
+        expect(result.data.defaultTitle).toBe("A社訪問")
+      }
+    })
+
+    it("should transform empty string to null for defaultTitle", () => {
+      const result = dutyTypeSchema.safeParse({
+        ...validData,
+        defaultTitle: "",
+      })
+      expect(result.success).toBe(true)
+      if (result.success) {
+        expect(result.data.defaultTitle).toBeNull()
+      }
+    })
+
+    it("should reject defaultTitle over 100 characters", () => {
+      const result = dutyTypeSchema.safeParse({
+        ...validData,
+        defaultTitle: "あ".repeat(101),
+      })
       expect(result.success).toBe(false)
     })
   })
