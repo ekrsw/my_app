@@ -482,6 +482,7 @@ export async function getDutyAssignmentsForCalendar(
         endTime: getTimeHHMM(a.endTime),
         reducesCapacity: a.reducesCapacity,
         note: a.note ?? null,
+        title: a.title ?? null,
       }
       duties[dateStr].push(cell)
 

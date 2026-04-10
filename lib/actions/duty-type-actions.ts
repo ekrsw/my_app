@@ -16,6 +16,7 @@ export async function createDutyType(formData: FormData) {
     defaultStartTime: formData.get("defaultStartTime") as string,
     defaultEndTime: formData.get("defaultEndTime") as string,
     defaultNote: formData.get("defaultNote") as string,
+    defaultTitle: (formData.get("defaultTitle") as string) ?? "",
   })
 
   if (!parsed.success) {
@@ -33,6 +34,7 @@ export async function createDutyType(formData: FormData) {
         defaultStartTime: parsed.data.defaultStartTime ?? null,
         defaultEndTime: parsed.data.defaultEndTime ?? null,
         defaultNote: parsed.data.defaultNote ?? null,
+        defaultTitle: parsed.data.defaultTitle ?? null,
       },
     })
     revalidatePath("/duty-types")
@@ -53,6 +55,7 @@ export async function updateDutyType(id: number, formData: FormData) {
     defaultStartTime: formData.get("defaultStartTime") as string,
     defaultEndTime: formData.get("defaultEndTime") as string,
     defaultNote: formData.get("defaultNote") as string,
+    defaultTitle: (formData.get("defaultTitle") as string) ?? "",
   })
 
   if (!parsed.success) {
@@ -71,6 +74,7 @@ export async function updateDutyType(id: number, formData: FormData) {
         defaultStartTime: parsed.data.defaultStartTime ?? null,
         defaultEndTime: parsed.data.defaultEndTime ?? null,
         defaultNote: parsed.data.defaultNote ?? null,
+        defaultTitle: parsed.data.defaultTitle ?? null,
       },
     })
     revalidatePath("/duty-types")
