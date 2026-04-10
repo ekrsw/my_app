@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.2.1] - 2026-04-10
+
+### Changed
+- 業務管理（月次）画面のセルクリック時の業務一覧表示をPopoverから画面中央のモーダルDialogに変更（シフト管理画面と統一）
+
 ## [0.2.2.0] - 2026-04-10
 
 ### Added
