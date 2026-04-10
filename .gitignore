@@ -49,3 +49,4 @@ next-env.d.ts
 # playwright
 .playwright-mcp/
 .gstack/
+.claude/skills/gstack/
