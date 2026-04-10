@@ -1,11 +1,11 @@
 "use client"
 
-import { useState } from "react"
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover"
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import {
   Collapsible,
   CollapsibleContent,
@@ -28,7 +28,9 @@ import { cn } from "@/lib/utils"
 import { COLOR_PALETTE } from "@/lib/constants"
 import type { DutyCalendarCell } from "@/types/duties"
 
-type DutyCellPopoverProps = {
+type DutyCellDialogProps = {
+  open: boolean
+  onOpenChange: (open: boolean) => void
   duties: DutyCalendarCell[]
   dateStr: string
   employeeId: string
@@ -39,10 +41,11 @@ type DutyCellPopoverProps = {
   onAddNew: (dateStr: string, employeeId: string) => void
   editLoadingId: number | null
   deleteLoadingId: number | null
-  children: React.ReactNode
 }
 
-export function DutyCellPopover({
+export function DutyCellDialog({
+  open,
+  onOpenChange,
   duties,
   dateStr,
   employeeId,
@@ -53,10 +56,7 @@ export function DutyCellPopover({
   onAddNew,
   editLoadingId,
   deleteLoadingId,
-  children,
-}: DutyCellPopoverProps) {
-  const [open, setOpen] = useState(false)
-
+}: DutyCellDialogProps) {
   const formattedDate = (() => {
     const d = new Date(dateStr + "T00:00:00+09:00")
     const dayNames = ["日", "月", "火", "水", "木", "金", "土"]
@@ -64,21 +64,15 @@ export function DutyCellPopover({
   })()
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>{children}</PopoverTrigger>
-      <PopoverContent
-        align="start"
-        sideOffset={4}
-        className="w-72 max-h-[300px] overflow-auto p-0"
-      >
-        {/* ヘッダー */}
-        <div className="px-3 py-2 border-b bg-muted/30">
-          <p className="text-sm font-medium">{employeeName}</p>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[420px] max-h-[80vh] overflow-auto p-0">
+        <DialogHeader className="px-4 pt-4 pb-2 border-b bg-muted/30">
+          <DialogTitle className="text-base">{employeeName}</DialogTitle>
           <p className="text-xs text-muted-foreground">{formattedDate}</p>
-        </div>
+        </DialogHeader>
 
         {/* 業務リスト */}
-        <div className="p-2 space-y-1">
+        <div className="p-3 space-y-1">
           {duties.length > 0 ? (
             duties.map((duty) => (
               <DutyItem
@@ -86,7 +80,7 @@ export function DutyCellPopover({
                 duty={duty}
                 isAuthenticated={isAuthenticated}
                 onEdit={() => {
-                  setOpen(false)
+                  onOpenChange(false)
                   onEdit(duty.id)
                 }}
                 onDelete={() => onDelete(duty.id)}
@@ -95,7 +89,7 @@ export function DutyCellPopover({
               />
             ))
           ) : (
-            <p className="text-sm text-muted-foreground text-center py-2">
+            <p className="text-sm text-muted-foreground text-center py-4">
               割当なし
             </p>
           )}
@@ -103,13 +97,13 @@ export function DutyCellPopover({
 
         {/* 新規追加ボタン */}
         {isAuthenticated && (
-          <div className="px-2 pb-2">
+          <div className="px-3 pb-3">
             <Button
               variant="ghost"
               size="sm"
               className="w-full justify-start text-xs"
               onClick={() => {
-                setOpen(false)
+                onOpenChange(false)
                 onAddNew(dateStr, employeeId)
               }}
             >
@@ -118,8 +112,8 @@ export function DutyCellPopover({
             </Button>
           </div>
         )}
-      </PopoverContent>
-    </Popover>
+      </DialogContent>
+    </Dialog>
   )
 }
 
