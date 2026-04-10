@@ -462,7 +462,7 @@ export async function getDutyAssignmentsForCalendar(
   employees.sort((a, b) => (idOrder.get(a.id) ?? 0) - (idOrder.get(b.id) ?? 0))
 
   // --- Step 4: DutyCalendarData[] を構築 ---
-  const dutyTypeCountMap = new Map<string, { code: string; name: string; color: string | null; count: number }>()
+  const dutyTypeCountMap = new Map<number, { name: string; color: string | null; count: number; sortOrder: number }>()
 
   const data: DutyCalendarData[] = employees.map((emp) => {
     const groupName = emp.groups[0]?.group.name ?? null
@@ -476,7 +476,6 @@ export async function getDutyAssignmentsForCalendar(
 
       const cell: DutyCalendarCell = {
         id: a.id,
-        dutyTypeCode: a.dutyType.code,
         dutyTypeName: a.dutyType.name,
         dutyTypeColor: a.dutyType.color,
         startTime: getTimeHHMM(a.startTime),
@@ -487,13 +486,13 @@ export async function getDutyAssignmentsForCalendar(
       duties[dateStr].push(cell)
 
       // 集計
-      const dtKey = a.dutyType.code
+      const dtKey = a.dutyTypeId
       if (!dutyTypeCountMap.has(dtKey)) {
         dutyTypeCountMap.set(dtKey, {
-          code: a.dutyType.code,
           name: a.dutyType.name,
           color: a.dutyType.color,
           count: 0,
+          sortOrder: a.dutyType.sortOrder,
         })
       }
       dutyTypeCountMap.get(dtKey)!.count++
@@ -507,7 +506,7 @@ export async function getDutyAssignmentsForCalendar(
     }
   })
 
-  const dutyTypeSummary = Array.from(dutyTypeCountMap.values()).sort((a, b) => a.code.localeCompare(b.code))
+  const dutyTypeSummary = Array.from(dutyTypeCountMap.values()).sort((a, b) => a.sortOrder - b.sortOrder)
 
   return { data, dutyTypeSummary, total, hasMore, nextCursor: hasMore ? cursor + pageSize : null }
 }
@@ -516,7 +515,7 @@ export async function getDutyAssignmentsForCalendar(
 export async function getDutyDailyFilterOptions(date: Date): Promise<DutyDailyFilterOptions> {
   const employeeSet = new Map<string, string>()
   const groupSet = new Map<number, string>()
-  const dutyTypeSet = new Map<number, { code: string; name: string; color: string | null }>()
+  const dutyTypeSet = new Map<number, { name: string; color: string | null }>()
 
   // 全業務割当からフィルター候補を収集
   const allAssignments = await prisma.dutyAssignment.findMany({
@@ -540,7 +539,6 @@ export async function getDutyDailyFilterOptions(date: Date): Promise<DutyDailyFi
       groupSet.set(eg.group.id, eg.group.name)
     }
     dutyTypeSet.set(a.dutyTypeId, {
-      code: a.dutyType.code,
       name: a.dutyType.name,
       color: a.dutyType.color,
     })
@@ -555,6 +553,6 @@ export async function getDutyDailyFilterOptions(date: Date): Promise<DutyDailyFi
       .sort((a, b) => a.name.localeCompare(b.name, "ja")),
     dutyTypes: Array.from(dutyTypeSet.entries())
       .map(([id, dt]) => ({ id, ...dt }))
-      .sort((a, b) => a.code.localeCompare(b.code)),
+      .sort((a, b) => a.name.localeCompare(b.name, "ja")),
   }
 }

@@ -111,9 +111,9 @@
 
 ## リファクタ: DutyType ローカル型の共通化
 
-**What:** `DutyType = { id: number; code: string; name: string; defaultReducesCapacity: boolean; ... }` がコンポーネント4箇所（duty-assignment-form.tsx:50, duty-assignment-table.tsx:11, duty-daily-view.tsx:48, duty-assignment-page-client.tsx:68）でローカル定義されている。`types/duties.ts` に `DutyTypeOption` 型を切り出して import に統一する。
+**What:** `DutyType = { id: number; name: string; defaultReducesCapacity: boolean; ... }` がコンポーネント4箇所（duty-assignment-form.tsx:50, duty-assignment-table.tsx:11, duty-daily-view.tsx:48, duty-assignment-page-client.tsx:70）でローカル定義されている。`types/duties.ts` に `DutyTypeOption` 型を切り出して import に統一する。
 
-**Why:** フィールド追加のたびに4箇所を同期修正する必要がある。今回のデフォルト時刻追加で顕在化。
+**Why:** フィールド追加のたびに4箇所を同期修正する必要がある。デフォルト時刻追加で顕在化。
 
 **Pros:** 型変更が1箇所で済む。型の不整合リスクがなくなる。
 

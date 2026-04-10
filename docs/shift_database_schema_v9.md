@@ -32,7 +32,6 @@ erDiagram
 
     duty_types {
         integer id PK
-        varchar code
         varchar name
         varchar color
         boolean is_active
@@ -894,7 +893,6 @@ EXECUTE FUNCTION record_employee_position_change();
 | カラム名 | データ型 | NULL | デフォルト | 説明 |
 |---------|---------|------|-----------|------|
 | id | SERIAL | NO | auto_increment | 主キー |
-| code | VARCHAR(20) | NO | - | 業務コード（ユニーク） |
 | name | VARCHAR(50) | NO | - | 業務名 |
 | color | VARCHAR(20) | YES | - | 表示色（Tailwind色キー） |
 | is_active | BOOLEAN | YES | true | 有効フラグ |
@@ -904,7 +902,7 @@ EXECUTE FUNCTION record_employee_position_change();
 | default_end_time | VARCHAR(5) | YES | - | デフォルト終了時刻（HH:mm形式） |
 | default_note | TEXT | YES | - | デフォルト備考 |
 
-**制約**: PK(id), UNIQUE(code)
+**制約**: PK(id)
 
 **備考**: default_start_time / default_end_time はTIME型ではなくVARCHAR(5)でHH:mm文字列を格納する。これはシフトの実時刻ではなくフォームプリフィル用のテンプレート値であるため。
 
@@ -1029,3 +1027,4 @@ groups (1) ────< (N) employee_groups (N) >────(1) employees
 | v19 | 2026-03-02 | employees.idをSERIAL（INTEGER）からUUID v7に変更。カスタムPL/pgSQL関数uuid_generate_v7()を作成しDBレベルで自動生成。関連9テーブルのemployee_idもINTEGER→UUIDに変更。トリガー関数（record_employee_role_change, record_employee_position_change, record_employee_group_change）のtarget_employee_id変数をinteger→uuidに更新 |
 | v20 | 2026-03-02 | shift_codesテーブルにcolor VARCHAR(20)カラムを追加。Tailwind色キー（blue, red等）を格納し、フォームからカラースウォッチUIで選択可能に。既存9コードには現行ハードコード色をマイグレーションで設定。colorがNULLの場合はSHIFT_CODE_MAPのハードコードにフォールバック |
 | v21 | 2026-04-10 | duty_types（業務種別マスタ）、duty_assignments（業務割当データ）テーブルのドキュメントを追加。duty_typesにdefault_start_time VARCHAR(5)、default_end_time VARCHAR(5)、default_note TEXTカラムを追加。業務種別マスタにデフォルト開始時刻・終了時刻・備考を設定可能にし、業務割当作成時にプリフィルされる |
+| v22 | 2026-04-10 | duty_typesテーブルからcode VARCHAR(20)カラムとUNIQUE(code)制約を削除。業務種別の識別はid（PK）で行い、表示はnameを使用する |

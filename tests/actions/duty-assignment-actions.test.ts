@@ -29,7 +29,7 @@ describe("DutyAssignment Actions — シフト整合性バリデーション", (
     employeeId = employee.id
 
     const dutyType = await prisma.dutyType.create({
-      data: { code: "TEL", name: "電話対応" },
+      data: { name: "電話対応" },
     })
     dutyTypeId = dutyType.id
   })

@@ -545,7 +545,6 @@ describe("Zod Validation Schemas", () => {
 
   describe("dutyTypeSchema", () => {
     const validData = {
-      code: "TEL",
       name: "電話対応",
       isActive: true,
       sortOrder: 0,
@@ -670,18 +669,8 @@ describe("Zod Validation Schemas", () => {
       }
     })
 
-    it("should reject empty code", () => {
-      const result = dutyTypeSchema.safeParse({ ...validData, code: "" })
-      expect(result.success).toBe(false)
-    })
-
     it("should reject empty name", () => {
       const result = dutyTypeSchema.safeParse({ ...validData, name: "" })
-      expect(result.success).toBe(false)
-    })
-
-    it("should reject code over 20 characters", () => {
-      const result = dutyTypeSchema.safeParse({ ...validData, code: "A".repeat(21) })
       expect(result.success).toBe(false)
     })
 

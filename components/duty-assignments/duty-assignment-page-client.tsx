@@ -48,7 +48,7 @@ type DutyAssignmentPageClientProps = {
   sortOrder: SortOrder
   // 月次ビュー用
   calendarData: DutyCalendarData[]
-  dutyTypeSummary: { code: string; name: string; color: string | null; count: number }[]
+  dutyTypeSummary: { name: string; color: string | null; count: number; sortOrder: number }[]
   calendarTotal: number
   calendarHasMore: boolean
   calendarNextCursor: number | null
@@ -67,7 +67,7 @@ type DutyAssignmentPageClientProps = {
   roles: { id: number; roleName: string }[]
   // フォーム用
   employeeOptions: { id: string; name: string }[]
-  dutyTypeOptions: { id: number; code: string; name: string; defaultReducesCapacity: boolean; defaultStartTime: string | null; defaultEndTime: string | null; defaultNote: string | null }[]
+  dutyTypeOptions: { id: number; name: string; defaultReducesCapacity: boolean; defaultStartTime: string | null; defaultEndTime: string | null; defaultNote: string | null }[]
 }
 
 export function DutyAssignmentPageClient({

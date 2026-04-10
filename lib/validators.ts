@@ -104,7 +104,6 @@ export type ShiftCodeFormData = z.infer<typeof shiftCodeSchema>
 
 // 業務種別スキーマ
 export const dutyTypeSchema = z.object({
-  code: z.string().min(1, "業務コードは必須です").max(20, "20文字以内で入力してください"),
   name: z.string().min(1, "業務名は必須です").max(50, "50文字以内で入力してください"),
   color: z.string().max(20).nullable().optional(),
   isActive: z.boolean().default(true),

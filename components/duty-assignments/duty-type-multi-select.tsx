@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/popover"
 import { ChevronsUpDown } from "lucide-react"
 
-type DutyType = { id: number; code: string; name: string }
+type DutyType = { id: number; name: string }
 
 type DutyTypeMultiSelectProps = {
   dutyTypes: DutyType[]
