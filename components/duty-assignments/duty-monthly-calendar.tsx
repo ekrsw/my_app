@@ -15,7 +15,7 @@ import { ColumnFilterPopover } from "@/components/common/filters/column-filter-p
 import { EmployeeCheckboxFilter } from "@/components/common/filters/employee-checkbox-filter"
 import { useQueryParams } from "@/hooks/use-query-params"
 import { StickyHorizontalScrollbar } from "@/components/ui/sticky-horizontal-scrollbar"
-import { DutyCellPopover } from "@/components/duty-assignments/duty-cell-popover"
+import { DutyCellDialog } from "@/components/duty-assignments/duty-cell-dialog"
 import { Loader2 } from "lucide-react"
 
 type DutyMonthlyCalendarProps = {
@@ -71,7 +71,7 @@ function CellContent({
   return (
     <div
       className={cn(
-        "grid grid-rows-2 h-full w-full px-1 py-1 cursor-pointer",
+        "grid grid-rows-2 h-full w-full px-1 py-1",
         "hover:bg-accent/30 transition-colors"
       )}
     >
@@ -135,6 +135,12 @@ export function DutyMonthlyCalendar({
   const days = useMemo(() => getDaysInMonth(year, month), [year, month])
   const { setParams } = useQueryParams()
   const [employeePopoverOpen, setEmployeePopoverOpen] = useState(false)
+  const [dialogOpen, setDialogOpen] = useState(false)
+  const [selectedCell, setSelectedCell] = useState<{
+    dateStr: string
+    employeeId: string
+    employeeName: string
+  } | null>(null)
 
   const scrollContainerId = useId()
   const scrollContainerRef = useRef<HTMLDivElement>(null)
@@ -201,6 +207,25 @@ export function DutyMonthlyCalendar({
     setParams({ monthlyEmployeeIds: null })
     setEmployeePopoverOpen(false)
   }, [setParams])
+
+  const selectedDuties = useMemo(() => {
+    if (!selectedCell) return []
+    const emp = data.find((e) => e.employeeId === selectedCell.employeeId)
+    return emp?.duties[selectedCell.dateStr] ?? []
+  }, [data, selectedCell])
+
+  const handleCellClick = useCallback(
+    (dateStr: string, employeeId: string, employeeName: string) => {
+      setSelectedCell({ dateStr, employeeId, employeeName })
+      setDialogOpen(true)
+    },
+    []
+  )
+
+  const handleDialogOpenChange = useCallback((open: boolean) => {
+    setDialogOpen(open)
+    if (!open) setSelectedCell(null)
+  }, [])
 
   const filteredData = useMemo(() => {
     let result = data
@@ -278,30 +303,18 @@ export function DutyMonthlyCalendar({
                 <div
                   key={dateStr}
                   className={cn(
-                    "min-h-[4rem] w-16 min-w-16 border-r",
+                    "min-h-[4rem] w-16 min-w-16 border-r cursor-pointer",
                     weekend && "bg-red-50/50"
                   )}
+                  onClick={() =>
+                    handleCellClick(dateStr, emp.employeeId, emp.employeeName)
+                  }
                 >
-                  <DutyCellPopover
-                    duties={duties ?? []}
-                    dateStr={dateStr}
-                    employeeId={emp.employeeId}
-                    employeeName={emp.employeeName}
-                    isAuthenticated={isAuthenticated}
-                    onEdit={onEdit}
-                    onDelete={onDelete}
-                    onAddNew={onAddNew}
-                    editLoadingId={editLoadingId}
-                    deleteLoadingId={deleteLoadingId}
-                  >
-                    <div className="h-full">
-                      <CellContent
-                        duties={duties}
-                        shiftCode={shiftCode}
-                        shiftCodeInfoMap={shiftCodeInfoMap}
-                      />
-                    </div>
-                  </DutyCellPopover>
+                  <CellContent
+                    duties={duties}
+                    shiftCode={shiftCode}
+                    shiftCodeInfoMap={shiftCodeInfoMap}
+                  />
                 </div>
               )
             })}
@@ -342,6 +355,22 @@ export function DutyMonthlyCalendar({
         containerRef={scrollContainerRef}
         containerId={scrollContainerId}
       />
+      {selectedCell && (
+        <DutyCellDialog
+          open={dialogOpen}
+          onOpenChange={handleDialogOpenChange}
+          duties={selectedDuties}
+          dateStr={selectedCell.dateStr}
+          employeeId={selectedCell.employeeId}
+          employeeName={selectedCell.employeeName}
+          isAuthenticated={isAuthenticated}
+          onEdit={onEdit}
+          onDelete={onDelete}
+          onAddNew={onAddNew}
+          editLoadingId={editLoadingId}
+          deleteLoadingId={deleteLoadingId}
+        />
+      )}
     </div>
   )
 }

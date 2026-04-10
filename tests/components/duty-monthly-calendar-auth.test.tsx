@@ -25,33 +25,33 @@ vi.mock("@/components/duty-assignments/duty-assignment-form", () => ({
   ),
 }))
 
-// DutyCellPopover — 認証ガードの振る舞いを再現するモック
-vi.mock("@/components/duty-assignments/duty-cell-popover", () => ({
-  DutyCellPopover: ({
+// DutyCellDialog — 認証ガードの振る舞いを再現するモック
+vi.mock("@/components/duty-assignments/duty-cell-dialog", () => ({
+  DutyCellDialog: ({
+    open,
     isAuthenticated,
     onAddNew,
     dateStr,
     employeeId,
-    children,
   }: {
+    open: boolean
     isAuthenticated: boolean
     onAddNew: (dateStr: string, employeeId: string) => void
     dateStr: string
     employeeId: string
-    children: React.ReactNode
-  }) => (
-    <div data-testid="cell-popover">
-      {children}
-      {isAuthenticated && (
-        <button
-          onClick={() => onAddNew(dateStr, employeeId)}
-          data-testid="popover-add-btn"
-        >
-          新規追加
-        </button>
-      )}
-    </div>
-  ),
+  }) =>
+    open ? (
+      <div data-testid="cell-dialog">
+        {isAuthenticated && (
+          <button
+            onClick={() => onAddNew(dateStr, employeeId)}
+            data-testid="dialog-add-btn"
+          >
+            新規追加
+          </button>
+        )}
+      </div>
+    ) : null,
 }))
 
 // 子コンポーネントで不要なものを軽量モックに置き換え
@@ -113,26 +113,38 @@ const BASE_PROPS = {
 }
 
 describe("月次カレンダー セルクリック認証ガード", () => {
-  it("未ログイン時はPopover内に新規追加ボタンが表示されない", () => {
+  it("未ログイン時はDialog内に新規追加ボタンが表示されない", async () => {
+    const user = userEvent.setup()
     render(
       <DutyAssignmentPageClient {...BASE_PROPS} isAuthenticated={false} />
     )
 
-    // Popoverモックは表示されるが、新規追加ボタンは非表示
-    expect(screen.queryByTestId("popover-add-btn")).not.toBeInTheDocument()
+    // セルをクリックしてDialogを開く
+    const cells = document.querySelectorAll("[class*='cursor-pointer']")
+    if (cells.length > 0) {
+      await user.click(cells[0] as HTMLElement)
+    }
+
+    // Dialog内に新規追加ボタンは非表示
+    expect(screen.queryByTestId("dialog-add-btn")).not.toBeInTheDocument()
   })
 
-  it("ログイン時はPopover内の新規追加ボタンでダイアログが表示される", async () => {
+  it("ログイン時はセルクリック→Dialog内の新規追加ボタンでフォームが表示される", async () => {
     const user = userEvent.setup()
 
     render(
       <DutyAssignmentPageClient {...BASE_PROPS} isAuthenticated={true} />
     )
 
-    // 新規追加ボタンが表示されること
-    const addBtns = screen.getAllByTestId("popover-add-btn")
-    expect(addBtns.length).toBeGreaterThan(0)
-    await user.click(addBtns[0])
+    // セルをクリックしてDialogを開く
+    const cells = document.querySelectorAll("[class*='cursor-pointer']")
+    expect(cells.length).toBeGreaterThan(0)
+    await user.click(cells[0] as HTMLElement)
+
+    // Dialog内の新規追加ボタンをクリック
+    const addBtn = screen.getByTestId("dialog-add-btn")
+    expect(addBtn).toBeInTheDocument()
+    await user.click(addBtn)
 
     // フォームダイアログが表示されること
     expect(screen.getByTestId("duty-form-dialog")).toBeInTheDocument()
