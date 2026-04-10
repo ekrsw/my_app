@@ -231,6 +231,7 @@ model DutyType {
   defaultStartTime       String?   @map("default_start_time") @db.VarChar(5)
   defaultEndTime         String?   @map("default_end_time") @db.VarChar(5)
   defaultNote            String?   @map("default_note") @db.Text
+  defaultTitle           String?   @map("default_title") @db.VarChar(100)
 
   dutyAssignments       DutyAssignment[]
 
@@ -245,6 +246,7 @@ model DutyAssignment {
   startTime  DateTime @map("start_time") @db.Time(6)
   endTime    DateTime @map("end_time") @db.Time(6)
   note              String?  @db.Text
+  title             String?  @db.VarChar(100)
   reducesCapacity   Boolean  @default(true) @map("reduces_capacity")
 
   employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
