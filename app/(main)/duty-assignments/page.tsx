@@ -45,6 +45,7 @@ export default async function DutyAssignmentsPage({ searchParams }: Props) {
     defaultStartTime: dt.defaultStartTime,
     defaultEndTime: dt.defaultEndTime,
     defaultNote: dt.defaultNote,
+    defaultTitle: dt.defaultTitle,
   }))
 
   if (viewMode === "daily") {

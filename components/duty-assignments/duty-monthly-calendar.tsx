@@ -38,18 +38,26 @@ type DutyMonthlyCalendarProps = {
   onLoadMore: () => void
 }
 
-const MAX_DOTS = 6
+const MAX_VISIBLE_TITLES = 2
 
-function DutyDot({ cell }: { cell: DutyCalendarCell }) {
+function DutyTitleRow({ cell }: { cell: DutyCalendarCell }) {
   const palette = cell.dutyTypeColor
     ? COLOR_PALETTE[cell.dutyTypeColor] ?? COLOR_PALETTE["gray"]
     : COLOR_PALETTE["gray"]
 
+  const displayText = cell.title ?? "未入力"
+  const isMissing = !cell.title
+
   return (
-    <span
-      className={cn("inline-block h-2 w-2 rounded-full flex-shrink-0", palette.swatch)}
-      title={`${cell.dutyTypeName} (${cell.startTime}-${cell.endTime})`}
-    />
+    <div
+      className={cn(
+        "truncate text-[10px] leading-4",
+        isMissing ? "text-muted-foreground" : palette.text
+      )}
+      title={`${cell.dutyTypeName}: ${displayText} (${cell.startTime}-${cell.endTime})`}
+    >
+      {displayText}
+    </div>
   )
 }
 
@@ -65,17 +73,17 @@ function CellContent({
   const hasDuties = duties && duties.length > 0
   const shiftInfo = shiftCode ? getShiftCodeInfo(shiftCode, shiftCodeInfoMap) : null
 
-  const visible = hasDuties ? duties.slice(0, MAX_DOTS) : []
-  const remaining = hasDuties ? duties.length - MAX_DOTS : 0
+  const visible = hasDuties ? duties.slice(0, MAX_VISIBLE_TITLES) : []
+  const remaining = hasDuties ? duties.length - MAX_VISIBLE_TITLES : 0
 
   return (
     <div
       className={cn(
-        "grid grid-rows-2 h-full w-full px-1 py-1",
+        "flex flex-col h-full w-full px-1 py-1",
         "hover:bg-accent/30 transition-colors"
       )}
     >
-      <div className="flex items-center justify-center">
+      <div className="flex items-center justify-center shrink-0">
         {shiftInfo && (
           <span
             className={cn(
@@ -88,19 +96,16 @@ function CellContent({
           </span>
         )}
       </div>
-      <div className="flex flex-wrap items-center justify-center gap-0.5">
+      <div className="flex-1 overflow-hidden">
         {hasDuties ? (
           <>
             {visible.map((cell) => (
-              <DutyDot key={cell.id} cell={cell} />
+              <DutyTitleRow key={cell.id} cell={cell} />
             ))}
             {remaining > 0 && (
-              <span
-                className="text-[9px] text-muted-foreground leading-tight"
-                aria-label={`他${remaining}件`}
-              >
-                +{remaining}
-              </span>
+              <div className="text-[9px] text-muted-foreground leading-4 truncate">
+                他{remaining}件
+              </div>
             )}
           </>
         ) : (
