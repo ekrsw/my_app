@@ -4,7 +4,9 @@ import { useState, useCallback, useMemo, useEffect, useRef } from "react"
 import { useQueryParams } from "@/hooks/use-query-params"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { ChevronLeft, ChevronRight, Plus, Search } from "lucide-react"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { CalendarIcon, ChevronLeft, ChevronRight, Plus, Search } from "lucide-react"
 import { DutyViewModeSelect } from "@/components/duty-assignments/duty-view-mode-select"
 import { DutyAssignmentForm } from "@/components/duty-assignments/duty-assignment-form"
 import { DutyDailyView } from "@/components/duty-assignments/duty-daily-view"
@@ -20,7 +22,7 @@ import { ShiftForm } from "@/components/shifts/shift-form"
 import { loadMoreDutyCalendarData, getDutyAssignmentById, deleteDutyAssignment } from "@/lib/actions/duty-assignment-actions"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
-import { toDateString } from "@/lib/date-utils"
+import { toDateString, formatMonth } from "@/lib/date-utils"
 import { SHIFT_CODE_MAP, getColorClasses, type ShiftCodeInfo } from "@/lib/constants"
 import type { Shift } from "@/app/generated/prisma/client"
 import type { LatestShiftHistory } from "@/lib/db/shifts"
@@ -33,6 +35,23 @@ import type {
   ShiftCodeMap,
   SortOrder,
 } from "@/types/duties"
+
+function parseMonthInput(input: string): { year: number; month: number } | null {
+  const trimmed = input.trim()
+  const jaMatch = trimmed.match(/^(\d{4})年(\d{1,2})月?$/)
+  if (jaMatch) {
+    const y = parseInt(jaMatch[1], 10)
+    const m = parseInt(jaMatch[2], 10)
+    if (m >= 1 && m <= 12) return { year: y, month: m }
+  }
+  const slashMatch = trimmed.match(/^(\d{4})[/\-](\d{1,2})$/)
+  if (slashMatch) {
+    const y = parseInt(slashMatch[1], 10)
+    const m = parseInt(slashMatch[2], 10)
+    if (m >= 1 && m <= 12) return { year: y, month: m }
+  }
+  return null
+}
 
 type DutyAssignmentPageClientProps = {
   viewMode: "monthly" | "daily"
@@ -285,7 +304,41 @@ export function DutyAssignmentPageClient({
     [year, month, setParams]
   )
 
-  const formattedMonth = useMemo(() => `${year}年${month}月`, [year, month])
+  const formattedMonth = useMemo(() => formatMonth(new Date(year, month - 1)), [year, month])
+
+  const navigateToYearMonth = useCallback(
+    (newYear: number, newMonth: number) => {
+      setParams({ year: String(newYear), month: String(newMonth) })
+    },
+    [setParams]
+  )
+
+  const [calendarOpen, setCalendarOpen] = useState(false)
+  const [editingMonthValue, setEditingMonthValue] = useState<string | null>(null)
+  const monthInputRef = useRef<HTMLInputElement>(null)
+
+  const yearOptions = useMemo(() => {
+    const currentYear = new Date().getFullYear()
+    return Array.from({ length: 11 }, (_, i) => currentYear - 5 + i)
+  }, [])
+
+  const handleMonthInputCommit = useCallback(() => {
+    if (editingMonthValue !== null) {
+      const parsed = parseMonthInput(editingMonthValue)
+      if (parsed) {
+        navigateToYearMonth(parsed.year, parsed.month)
+      }
+      setEditingMonthValue(null)
+    }
+  }, [editingMonthValue, navigateToYearMonth])
+
+  const handleMonthInputKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault()
+      handleMonthInputCommit()
+      monthInputRef.current?.blur()
+    }
+  }, [handleMonthInputCommit])
 
   // --- 現在のフィルターパラメータ（プリセット保存用） ---
   const currentFilterParams = useMemo(() => {
@@ -421,39 +474,78 @@ export function DutyAssignmentPageClient({
   // --- 月次ビュー ---
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <DutyViewModeSelect value="monthly" />
-          <Button variant="outline" size="icon" onClick={() => navigateMonth(-1)} aria-label="前月">
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <span className="text-sm font-medium min-w-[100px] text-center">
-            {formattedMonth}
-          </span>
-          <Button variant="outline" size="icon" onClick={() => navigateMonth(1)} aria-label="翌月">
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-          <div className="relative">
-            <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-            <Input
-              value={employeeSearchText}
-              onChange={(e) => handleEmployeeSearchChange(e.target.value)}
-              placeholder="従業員名で検索..."
-              className="w-48 pl-8"
-            />
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <FilterPresetManager
-            viewMode="monthly"
-            currentParams={currentFilterParams}
-          />
-          {isAuthenticated && (
-            <Button size="sm" onClick={handleOpenNewForm}>
-              <Plus className="h-4 w-4 mr-1" />
-              新規作成
+      <div className="flex items-center gap-2">
+        <DutyViewModeSelect value="monthly" />
+        <Button variant="outline" size="icon" onClick={() => navigateMonth(-1)} aria-label="前月">
+          <ChevronLeft className="h-4 w-4" />
+        </Button>
+        <Button variant="outline" size="icon" onClick={() => navigateMonth(1)} aria-label="翌月">
+          <ChevronRight className="h-4 w-4" />
+        </Button>
+        <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+          <PopoverTrigger asChild>
+            <Button variant="outline" size="icon" aria-label="年月を選択">
+              <CalendarIcon className="h-4 w-4" />
             </Button>
-          )}
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-3" align="start">
+            <div className="flex items-center gap-2">
+              <Select
+                value={year.toString()}
+                onValueChange={(v) => {
+                  navigateToYearMonth(parseInt(v, 10), month)
+                  setCalendarOpen(false)
+                }}
+              >
+                <SelectTrigger className="w-[100px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {yearOptions.map((y) => (
+                    <SelectItem key={y} value={y.toString()}>
+                      {y}年
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select
+                value={month.toString()}
+                onValueChange={(v) => {
+                  navigateToYearMonth(year, parseInt(v, 10))
+                  setCalendarOpen(false)
+                }}
+              >
+                <SelectTrigger className="w-[80px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
+                    <SelectItem key={m} value={m.toString()}>
+                      {m}月
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </PopoverContent>
+        </Popover>
+        <Input
+          ref={monthInputRef}
+          value={editingMonthValue ?? formattedMonth}
+          onFocus={() => setEditingMonthValue(formattedMonth)}
+          onChange={(e) => setEditingMonthValue(e.target.value)}
+          onBlur={handleMonthInputCommit}
+          onKeyDown={handleMonthInputKeyDown}
+          className="w-[130px] text-center font-medium"
+        />
+        <div className="relative">
+          <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+          <Input
+            value={employeeSearchText}
+            onChange={(e) => handleEmployeeSearchChange(e.target.value)}
+            placeholder="従業員名で検索..."
+            className="w-48 pl-8"
+          />
         </div>
       </div>
 
