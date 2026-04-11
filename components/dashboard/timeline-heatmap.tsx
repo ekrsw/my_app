@@ -255,6 +255,7 @@ export function TimelineHeatmap({
       const bar: DutyBarInput = {
         id: duty.id,
         dutyTypeName: duty.dutyType.name,
+        title: duty.title,
         color: duty.dutyType.color,
         startMinutes: startMin,
         endMinutes: endMin,

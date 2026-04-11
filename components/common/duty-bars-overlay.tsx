@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils"
 export type DutyBarInput = {
   id: number
   dutyTypeName: string
+  title?: string | null
   color: string | null
   startMinutes: number
   endMinutes: number
@@ -138,7 +139,7 @@ export function DutyBarsOverlay({
             onMouseLeave={() => setHoveredId(null)}
           >
             <span className="text-[10px] font-medium truncate leading-tight">
-              {bar.dutyTypeName}
+              {bar.title || bar.dutyTypeName}
             </span>
             {isHovered && (
               <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 z-50 pointer-events-none">
@@ -146,7 +147,14 @@ export function DutyBarsOverlay({
                   {bar.employeeName && (
                     <p className="font-medium">{bar.employeeName}</p>
                   )}
-                  <p>{bar.dutyTypeName}</p>
+                  {bar.title ? (
+                    <>
+                      <p>{bar.title}</p>
+                      <p className="text-muted-foreground">{bar.dutyTypeName}</p>
+                    </>
+                  ) : (
+                    <p>{bar.dutyTypeName}</p>
+                  )}
                   <p className="text-muted-foreground">
                     {formatMinutes(bar.startMinutes)} -{" "}
                     {formatMinutes(bar.endMinutes)}
