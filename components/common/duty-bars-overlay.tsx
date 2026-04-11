@@ -67,6 +67,7 @@ type Props = {
   laneHeight?: number
   laneGap?: number
   maxLanes?: number
+  onBarClick?: (dutyId: number) => void
 }
 
 function formatMinutes(m: number): string {
@@ -85,6 +86,7 @@ export function DutyBarsOverlay({
   laneHeight = 24,
   laneGap = 2,
   maxLanes,
+  onBarClick,
 }: Props) {
   const [hoveredId, setHoveredId] = useState<number | null>(null)
 
@@ -123,7 +125,8 @@ export function DutyBarsOverlay({
           <div
             key={bar.id}
             className={cn(
-              "absolute rounded-sm border border-border/50 flex items-center px-1.5 overflow-hidden transition-shadow cursor-default",
+              "absolute rounded-sm border border-border/50 flex items-center px-1.5 overflow-hidden transition-shadow",
+              onBarClick ? "cursor-pointer" : "cursor-default",
               bgClass,
               textClass,
               isHovered && "shadow-md ring-1 ring-primary/30 z-10"
@@ -137,6 +140,12 @@ export function DutyBarsOverlay({
             }}
             onMouseEnter={() => setHoveredId(bar.id)}
             onMouseLeave={() => setHoveredId(null)}
+            onClick={(e) => {
+              if (onBarClick) {
+                e.stopPropagation()
+                onBarClick(bar.id)
+              }
+            }}
           >
             <span className="text-[10px] font-medium truncate leading-tight">
               {bar.title || bar.dutyTypeName}

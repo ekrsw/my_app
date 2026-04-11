@@ -75,9 +75,11 @@ type Props = {
   shiftLatestHistory: Record<number, LatestShiftHistory>
   todayDateString: string
   dutyAssignments?: DutyAssignmentWithDetails[]
+  employees?: { id: string; name: string }[]
+  dutyTypes?: { id: number; name: string; defaultReducesCapacity: boolean; defaultStartTime: string | null; defaultEndTime: string | null; defaultNote: string | null; defaultTitle: string | null }[]
 }
 
-export function TodayOverviewClient({ shifts, overnightShifts, filterOptions, distinctRoleTypes, isAuthenticated, shiftCodes: shiftCodesData, shiftIdsWithHistory, shiftLatestHistory, todayDateString, dutyAssignments }: Props) {
+export function TodayOverviewClient({ shifts, overnightShifts, filterOptions, distinctRoleTypes, isAuthenticated, shiftCodes: shiftCodesData, shiftIdsWithHistory, shiftLatestHistory, todayDateString, dutyAssignments, employees = [], dutyTypes = [] }: Props) {
   const { setParams, getParam } = useDashboardFilters()
 
   // --- Dynamic height calculation (same pattern as shift-calendar) ---
@@ -513,6 +515,9 @@ export function TodayOverviewClient({ shifts, overnightShifts, filterOptions, di
                 onSupervisorPopoverOpenChange={setTlSupervisorPopoverOpen}
                 onSupervisorRoleConfirm={handleSupervisorRoleConfirm}
                 onSupervisorRoleClear={handleSupervisorRoleClear}
+                isAuthenticated={isAuthenticated}
+                employees={employees}
+                dutyTypes={dutyTypes}
               />
             </TabsContent>
             <TabsContent value="list" className="flex-1 min-h-0">
