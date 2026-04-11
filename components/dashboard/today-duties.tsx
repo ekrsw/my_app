@@ -81,19 +81,19 @@ export function TodayDuties({ duties, employees, dutyTypes, isAuthenticated, tod
                         </span>
                         <span className="text-muted-foreground truncate">
                           {assignment.employee.groups.length > 0
-                            ? assignment.employee.groups.map((eg) => eg.group.name).join(", ")
+                            ? assignment.employee.groups.map((eg) => eg.group.abbreviatedName || eg.group.name).join(", ")
                             : "-"}
                         </span>
-                        <span className="flex items-center gap-2">
+                        <span className="flex items-center gap-2 min-w-0">
                           <Badge variant="outline" className={cn(
-                            "text-xs",
+                            "text-xs shrink-0",
                             palette ? palette.text : ""
                           )}>
                             {formatTime(assignment.startTime)}〜{formatTime(assignment.endTime)}
                           </Badge>
-                          {assignment.note && (
+                          {assignment.title && (
                             <span className="text-xs text-muted-foreground truncate">
-                              {assignment.note}
+                              {assignment.title}
                             </span>
                           )}
                         </span>
@@ -133,10 +133,10 @@ export function TodayDuties({ duties, employees, dutyTypes, isAuthenticated, tod
                 <span>{formatTime(detailTarget.startTime)}〜{formatTime(detailTarget.endTime)}</span>
                 <span className="text-muted-foreground">控除</span>
                 <span>{detailTarget.reducesCapacity ? "対応可能人員から控除" : "控除しない"}</span>
-                {detailTarget.note && (
+                {detailTarget.title && (
                   <>
-                    <span className="text-muted-foreground">備考</span>
-                    <span className="break-words">{detailTarget.note}</span>
+                    <span className="text-muted-foreground">タイトル</span>
+                    <span className="break-words">{detailTarget.title}</span>
                   </>
                 )}
               </div>

@@ -9,6 +9,7 @@ import { GroupForm } from "./group-form"
 type GroupWithCount = {
   id: number
   name: string
+  abbreviatedName: string | null
   _count: { employeeGroups: number }
 }
 
