@@ -15,11 +15,15 @@ import { FilterPresetManager } from "@/components/duty-assignments/filter-preset
 import { GroupMultiSelect } from "@/components/shifts/group-multi-select"
 import { RoleMultiSelect } from "@/components/shifts/role-multi-select"
 import { DutyTypeMultiSelect } from "@/components/duty-assignments/duty-type-multi-select"
+import { ShiftDetailDialog } from "@/components/shifts/shift-detail-dialog"
+import { ShiftForm } from "@/components/shifts/shift-form"
 import { loadMoreDutyCalendarData, getDutyAssignmentById, deleteDutyAssignment } from "@/lib/actions/duty-assignment-actions"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { toDateString } from "@/lib/date-utils"
-import type { ShiftCodeInfo } from "@/lib/constants"
+import { SHIFT_CODE_MAP, getColorClasses, type ShiftCodeInfo } from "@/lib/constants"
+import type { Shift } from "@/app/generated/prisma/client"
+import type { LatestShiftHistory } from "@/lib/db/shifts"
 import type {
   DutyAssignmentWithDetails,
   DutyCalendarData,
@@ -63,6 +67,10 @@ type DutyAssignmentPageClientProps = {
   monthlyDutyUnassigned: boolean
   shiftCodeMap: ShiftCodeMap
   shiftCodeInfoMap: Record<string, ShiftCodeInfo>
+  shiftDataMap: Record<string, Record<string, Shift>>
+  shiftCodes: { id: number; code: string; color: string | null; defaultStartTime: Date | null; defaultEndTime: Date | null; defaultIsHoliday: boolean; isActive: boolean | null; sortOrder: number }[]
+  shiftIdsWithHistory: number[]
+  shiftLatestHistory: Record<number, LatestShiftHistory>
   groups: { id: number; name: string }[]
   roles: { id: number; roleName: string }[]
   // フォーム用
@@ -101,6 +109,10 @@ export function DutyAssignmentPageClient({
   monthlyDutyUnassigned,
   shiftCodeMap,
   shiftCodeInfoMap,
+  shiftDataMap,
+  shiftCodes,
+  shiftIdsWithHistory,
+  shiftLatestHistory,
   groups,
   roles,
   employeeOptions,
@@ -127,6 +139,56 @@ export function DutyAssignmentPageClient({
   const [editLoadingId, setEditLoadingId] = useState<number | null>(null)
   const [deleteLoadingId, setDeleteLoadingId] = useState<number | null>(null)
   const router = useRouter()
+
+  // --- シフトダイアログ状態 ---
+  const [shiftDetailOpen, setShiftDetailOpen] = useState(false)
+  const [shiftFormOpen, setShiftFormOpen] = useState(false)
+  const [editShift, setEditShift] = useState<Shift | undefined>()
+  const [shiftEmployeeId, setShiftEmployeeId] = useState<string>("")
+  const [shiftEmployeeName, setShiftEmployeeName] = useState<string>("")
+  const [shiftDate, setShiftDate] = useState<string>("")
+
+  const shiftCodeInfoMapForDialog = useMemo(() => {
+    const map: Record<string, ShiftCodeInfo> = {}
+    for (const sc of shiftCodes) {
+      const dbColor = getColorClasses(sc.color)
+      const hardcoded = SHIFT_CODE_MAP[sc.code]
+      map[sc.code] = {
+        label: hardcoded?.label ?? sc.code,
+        color: dbColor?.text ?? hardcoded?.color ?? "text-gray-800",
+        bgColor: dbColor?.bg ?? hardcoded?.bgColor ?? "bg-gray-100",
+      }
+    }
+    return map
+  }, [shiftCodes])
+
+  const shiftIdsWithHistorySet = useMemo(
+    () => new Set(shiftIdsWithHistory),
+    [shiftIdsWithHistory]
+  )
+
+  const handleShiftCellClick = useCallback(
+    (employeeId: string, date: string, employeeName: string) => {
+      setShiftEmployeeId(employeeId)
+      setShiftDate(date)
+      setShiftEmployeeName(employeeName)
+
+      const shift = shiftDataMap[employeeId]?.[date]
+      if (shift) {
+        setEditShift(shift)
+        setShiftDetailOpen(true)
+      } else if (isAuthenticated) {
+        setEditShift(undefined)
+        setShiftFormOpen(true)
+      }
+    },
+    [shiftDataMap, isAuthenticated]
+  )
+
+  const handleEditFromDetail = useCallback(() => {
+    setShiftDetailOpen(false)
+    setShiftFormOpen(true)
+  }, [])
 
   const handleOpenNewForm = useCallback(() => {
     setEditingAssignment(undefined)
@@ -426,6 +488,7 @@ export function DutyAssignmentPageClient({
         onEdit={handleEdit}
         onDelete={handleDelete}
         onAddNew={handleAddNew}
+        onShiftCellClick={handleShiftCellClick}
         isAuthenticated={isAuthenticated}
         editLoadingId={editLoadingId}
         deleteLoadingId={deleteLoadingId}
@@ -436,6 +499,32 @@ export function DutyAssignmentPageClient({
         hasMore={calendarHasMoreState}
         isLoadingMore={calendarIsLoadingMore}
         onLoadMore={handleCalendarLoadMore}
+      />
+
+      {editShift && shiftDate && (
+        <ShiftDetailDialog
+          key={`shift-detail-${editShift.id}`}
+          open={shiftDetailOpen}
+          onOpenChange={setShiftDetailOpen}
+          shift={editShift}
+          employeeName={shiftEmployeeName}
+          date={shiftDate}
+          shiftCodeMap={shiftCodeInfoMapForDialog}
+          hasHistory={shiftIdsWithHistorySet.has(editShift.id)}
+          latestHistory={shiftLatestHistory[editShift.id] ?? null}
+          isAuthenticated={isAuthenticated}
+          onEdit={handleEditFromDetail}
+        />
+      )}
+
+      <ShiftForm
+        key={`shift-form-${editShift?.id ?? "new"}-${shiftEmployeeId}-${shiftDate}`}
+        open={shiftFormOpen}
+        onOpenChange={setShiftFormOpen}
+        shift={editShift}
+        employeeId={shiftEmployeeId}
+        date={shiftDate}
+        shiftCodes={shiftCodes}
       />
 
       <DutyAssignmentForm

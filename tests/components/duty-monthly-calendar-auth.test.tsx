@@ -67,6 +67,14 @@ vi.mock("@/components/duty-assignments/filter-preset-manager", () => ({
   FilterPresetManager: () => null,
 }))
 
+vi.mock("@/components/shifts/shift-detail-dialog", () => ({
+  ShiftDetailDialog: () => null,
+}))
+
+vi.mock("@/components/shifts/shift-form", () => ({
+  ShiftForm: () => null,
+}))
+
 import { DutyAssignmentPageClient } from "@/components/duty-assignments/duty-assignment-page-client"
 
 const BASE_PROPS = {
@@ -106,6 +114,10 @@ const BASE_PROPS = {
   monthlyDutyUnassigned: false,
   shiftCodeMap: {},
   shiftCodeInfoMap: {},
+  shiftDataMap: {},
+  shiftCodes: [],
+  shiftIdsWithHistory: [],
+  shiftLatestHistory: {},
   groups: [],
   roles: [],
   employeeOptions: [],
@@ -119,10 +131,10 @@ describe("月次カレンダー セルクリック認証ガード", () => {
       <DutyAssignmentPageClient {...BASE_PROPS} isAuthenticated={false} />
     )
 
-    // セルをクリックしてDialogを開く
-    const cells = document.querySelectorAll("[class*='cursor-pointer']")
-    if (cells.length > 0) {
-      await user.click(cells[0] as HTMLElement)
+    // 下段（業務エリア）をクリックしてDialogを開く
+    const dutyCells = document.querySelectorAll("[class*='flex-\\[4\\]']")
+    if (dutyCells.length > 0) {
+      await user.click(dutyCells[0] as HTMLElement)
     }
 
     // Dialog内に新規追加ボタンは非表示
@@ -136,10 +148,10 @@ describe("月次カレンダー セルクリック認証ガード", () => {
       <DutyAssignmentPageClient {...BASE_PROPS} isAuthenticated={true} />
     )
 
-    // セルをクリックしてDialogを開く
-    const cells = document.querySelectorAll("[class*='cursor-pointer']")
-    expect(cells.length).toBeGreaterThan(0)
-    await user.click(cells[0] as HTMLElement)
+    // 下段（業務エリア）をクリックしてDialogを開く
+    const dutyCells = document.querySelectorAll("[class*='flex-\\[4\\]']")
+    expect(dutyCells.length).toBeGreaterThan(0)
+    await user.click(dutyCells[0] as HTMLElement)
 
     // Dialog内の新規追加ボタンをクリック
     const addBtn = screen.getByTestId("dialog-add-btn")

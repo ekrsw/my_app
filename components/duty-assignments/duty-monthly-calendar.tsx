@@ -26,6 +26,7 @@ type DutyMonthlyCalendarProps = {
   onEdit: (assignmentId: number) => void
   onDelete: (assignmentId: number) => void
   onAddNew: (dateStr: string, employeeId: string) => void
+  onShiftCellClick: (employeeId: string, date: string, employeeName: string) => void
   isAuthenticated: boolean
   editLoadingId: number | null
   deleteLoadingId: number | null
@@ -61,14 +62,49 @@ function DutyTitleRow({ cell }: { cell: DutyCalendarCell }) {
   )
 }
 
-function CellContent({
+function ShiftArea({
+  shiftCode,
+  shiftCodeInfoMap,
+  onClick,
+}: {
+  shiftCode: string | undefined
+  shiftCodeInfoMap: Record<string, ShiftCodeInfo>
+  onClick: (e: React.MouseEvent) => void
+}) {
+  const shiftInfo = shiftCode ? getShiftCodeInfo(shiftCode, shiftCodeInfoMap) : null
+
+  return (
+    <div
+      className="flex items-center justify-center shrink-0 cursor-pointer hover:bg-accent/20 transition-colors px-1 py-0.5"
+      onClick={onClick}
+    >
+      {shiftInfo ? (
+        <span
+          className={cn(
+            "text-[10px] font-medium rounded px-1 leading-tight",
+            shiftInfo.bgColor,
+            shiftInfo.color
+          )}
+        >
+          {shiftCode}
+        </span>
+      ) : (
+        <span className="text-[10px] text-muted-foreground/40">-</span>
+      )}
+    </div>
+  )
+}
+
+function DutyArea({
   duties,
   shiftCode,
   shiftCodeInfoMap,
+  onClick,
 }: {
   duties: DutyCalendarCell[] | undefined
   shiftCode: string | undefined
   shiftCodeInfoMap: Record<string, ShiftCodeInfo>
+  onClick: (e: React.MouseEvent) => void
 }) {
   const hasDuties = duties && duties.length > 0
   const shiftInfo = shiftCode ? getShiftCodeInfo(shiftCode, shiftCodeInfoMap) : null
@@ -78,42 +114,25 @@ function CellContent({
 
   return (
     <div
-      className={cn(
-        "flex flex-col h-full w-full px-1 py-1",
-        "hover:bg-accent/30 transition-colors"
-      )}
+      className="flex-[4] overflow-hidden cursor-pointer hover:bg-accent/30 transition-colors px-1 py-0.5"
+      onClick={onClick}
     >
-      <div className="flex items-center justify-center shrink-0">
-        {shiftInfo && (
-          <span
-            className={cn(
-              "text-[10px] font-medium rounded px-1 leading-tight",
-              shiftInfo.bgColor,
-              shiftInfo.color
-            )}
-          >
-            {shiftCode}
-          </span>
-        )}
-      </div>
-      <div className="flex-1 overflow-hidden">
-        {hasDuties ? (
-          <>
-            {visible.map((cell) => (
-              <DutyTitleRow key={cell.id} cell={cell} />
-            ))}
-            {remaining > 0 && (
-              <div className="text-[9px] text-muted-foreground leading-4 truncate">
-                他{remaining}件
-              </div>
-            )}
-          </>
-        ) : (
-          !shiftInfo && (
-            <span className="text-muted-foreground text-[10px]">-</span>
-          )
-        )}
-      </div>
+      {hasDuties ? (
+        <>
+          {visible.map((cell) => (
+            <DutyTitleRow key={cell.id} cell={cell} />
+          ))}
+          {remaining > 0 && (
+            <div className="text-[9px] text-muted-foreground leading-4 truncate">
+              他{remaining}件
+            </div>
+          )}
+        </>
+      ) : (
+        !shiftInfo && (
+          <span className="text-muted-foreground text-[10px]">-</span>
+        )
+      )}
     </div>
   )
 }
@@ -126,6 +145,7 @@ export function DutyMonthlyCalendar({
   onEdit,
   onDelete,
   onAddNew,
+  onShiftCellClick,
   isAuthenticated,
   editLoadingId,
   deleteLoadingId,
@@ -308,17 +328,26 @@ export function DutyMonthlyCalendar({
                 <div
                   key={dateStr}
                   className={cn(
-                    "min-h-[4rem] w-16 min-w-16 border-r cursor-pointer",
+                    "min-h-[4rem] w-16 min-w-16 border-r flex flex-col",
                     weekend && "bg-red-50/50"
                   )}
-                  onClick={() =>
-                    handleCellClick(dateStr, emp.employeeId, emp.employeeName)
-                  }
                 >
-                  <CellContent
+                  <ShiftArea
+                    shiftCode={shiftCode}
+                    shiftCodeInfoMap={shiftCodeInfoMap}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      onShiftCellClick(emp.employeeId, dateStr, emp.employeeName)
+                    }}
+                  />
+                  <DutyArea
                     duties={duties}
                     shiftCode={shiftCode}
                     shiftCodeInfoMap={shiftCodeInfoMap}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleCellClick(dateStr, emp.employeeId, emp.employeeName)
+                    }}
                   />
                 </div>
               )

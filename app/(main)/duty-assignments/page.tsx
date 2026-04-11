@@ -8,7 +8,7 @@ import {
 } from "@/lib/db/duty-assignments"
 import { getActiveDutyTypes } from "@/lib/db/duty-types"
 import { getAllEmployees } from "@/lib/db/employees"
-import { getShiftsForCalendar } from "@/lib/db/shifts"
+import { getShiftsForCalendar, getShiftIdsWithHistory, getLatestShiftHistoryEntries } from "@/lib/db/shifts"
 import { getActiveShiftCodes } from "@/lib/db/shift-codes"
 import { getGroups } from "@/lib/db/groups"
 import { getFunctionRoles } from "@/lib/db/roles"
@@ -16,6 +16,7 @@ import { getTodayJST } from "@/lib/date-utils"
 import { SHIFT_CODE_MAP, getColorClasses, type ShiftCodeInfo } from "@/lib/constants"
 import { auth } from "@/auth"
 import type { DutyDailySortField, ShiftCodeMap, SortOrder } from "@/types/duties"
+import type { Shift } from "@/app/generated/prisma/client"
 
 type Props = {
   searchParams: Promise<Record<string, string | string[] | undefined>>
@@ -122,6 +123,10 @@ export default async function DutyAssignmentsPage({ searchParams }: Props) {
             roles={[]}
             shiftCodeMap={{}}
             shiftCodeInfoMap={{}}
+            shiftDataMap={{}}
+            shiftCodes={[]}
+            shiftIdsWithHistory={[]}
+            shiftLatestHistory={{}}
             employeeOptions={employeeOptions}
             dutyTypeOptions={dutyTypeOptions}
           />
@@ -163,12 +168,14 @@ export default async function DutyAssignmentsPage({ searchParams }: Props) {
     employeeIds: monthlyEmployeeIds.length > 0 ? monthlyEmployeeIds : undefined,
   }
 
-  const [calendarResult, groups, roles, shiftData, shiftCodes] = await Promise.all([
+  const [calendarResult, groups, roles, shiftData, shiftCodes, shiftIdsWithHistorySet, shiftLatestHistory] = await Promise.all([
     getDutyAssignmentsForCalendar(calendarFilter),
     getGroups(),
     getFunctionRoles(),
     getShiftsForCalendar({ year, month }),
     getActiveShiftCodes(),
+    getShiftIdsWithHistory(year, month),
+    getLatestShiftHistoryEntries(year, month),
   ])
 
   // ShiftCode マスタ → ShiftCodeInfo マップ（DB カラー解決用）
@@ -185,12 +192,16 @@ export default async function DutyAssignmentsPage({ searchParams }: Props) {
 
   // ShiftCalendarData[] → ShiftCodeMap に変換
   const shiftCodeMap: ShiftCodeMap = {}
+  const shiftDataMap: Record<string, Record<string, Shift>> = {}
   for (const emp of shiftData) {
     const shifts: Record<string, string> = {}
+    const shiftObjects: Record<string, Shift> = {}
     for (const [dateStr, shift] of Object.entries(emp.shifts)) {
       if (shift.shiftCode) shifts[dateStr] = shift.shiftCode
+      shiftObjects[dateStr] = shift
     }
     shiftCodeMap[emp.employeeId] = shifts
+    shiftDataMap[emp.employeeId] = shiftObjects
   }
 
   return (
@@ -234,6 +245,10 @@ export default async function DutyAssignmentsPage({ searchParams }: Props) {
           monthlyDutyUnassigned={monthlyDutyUnassigned}
           shiftCodeMap={shiftCodeMap}
           shiftCodeInfoMap={shiftCodeInfoMap}
+          shiftDataMap={shiftDataMap}
+          shiftCodes={shiftCodes}
+          shiftIdsWithHistory={Array.from(shiftIdsWithHistorySet)}
+          shiftLatestHistory={shiftLatestHistory}
           groups={groups.map((g) => ({ id: g.id, name: g.name }))}
           roles={roles.map((r) => ({ id: r.id, roleName: r.roleName }))}
           employeeOptions={employeeOptions}

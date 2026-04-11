@@ -43,6 +43,7 @@ export async function createShift(data: {
     })
     revalidatePath("/")
     revalidatePath("/shifts")
+    revalidatePath("/duty-assignments")
     return { success: true }
   } catch (e: unknown) {
     if (e && typeof e === "object" && "code" in e && e.code === "P2002") {
@@ -101,6 +102,7 @@ export async function revertShiftFromAttendance(
     revalidatePath("/")
     revalidatePath("/shifts")
     revalidatePath("/shifts/history")
+    revalidatePath("/duty-assignments")
     return { success: true }
   } catch {
     return { error: "変更の取消に失敗しました" }
@@ -155,6 +157,7 @@ export async function updateShiftFromAttendance(
     })
     revalidatePath("/")
     revalidatePath("/shifts")
+    revalidatePath("/duty-assignments")
     return { success: true }
   } catch {
     return { error: "勤怠の更新に失敗しました" }
@@ -199,6 +202,7 @@ export async function updateShift(
     })
     revalidatePath("/")
     revalidatePath("/shifts")
+    revalidatePath("/duty-assignments")
     return { success: true }
   } catch {
     return { error: "シフトの更新に失敗しました" }
@@ -221,6 +225,7 @@ export async function deleteShift(id: number) {
     revalidatePath("/")
     revalidatePath("/shifts")
     revalidatePath("/shifts/history")
+    revalidatePath("/duty-assignments")
     return { success: true }
   } catch {
     return { error: "シフトの削除に失敗しました" }
