@@ -153,6 +153,7 @@ export default async function DashboardPage({ searchParams }: Props) {
             shiftIdsWithHistory={[...shiftIdsWithHistorySet]}
             shiftLatestHistory={latestHistoryEntries}
             todayDateString={todayDateString}
+            dutyAssignments={todayDuties}
           />
         </div>
       </PageContainer>
