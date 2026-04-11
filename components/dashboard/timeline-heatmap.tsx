@@ -6,7 +6,9 @@ import { getTimeHHMM, getCurrentJSTTimeHHMM } from "@/lib/capacity-utils"
 import { cn } from "@/lib/utils"
 import { ColumnFilterPopover } from "@/components/common/filters/column-filter-popover"
 import { CheckboxListFilter } from "@/components/common/filters/checkbox-list-filter"
+import { DutyBarsOverlay, computeLaneCount, computeRowHeight, type DutyBarInput } from "@/components/common/duty-bars-overlay"
 import type { TodayShift } from "@/components/dashboard/today-overview-client"
+import type { DutyAssignmentWithDetails } from "@/types/duties"
 
 /** 指定範囲の30分刻みスロットを生成 */
 export function generateTimeSlots(startHour: number, endHour: number): string[] {
@@ -82,6 +84,8 @@ type Props = {
   nameSearch?: string
   onRowCountChange?: (count: number) => void
   distinctRoleTypes: readonly [string, string]
+  // 業務割当オーバーレイ
+  duties?: DutyAssignmentWithDetails[]
   // グループフィルター
   groupOptions: FilterOption[]
   selectedGroupValues: string[]
@@ -114,6 +118,7 @@ export function TimelineHeatmap({
   nameSearch = "",
   onRowCountChange,
   distinctRoleTypes,
+  duties,
   groupOptions,
   selectedGroupValues,
   unassigned,
@@ -141,6 +146,10 @@ export function TimelineHeatmap({
 
   const timeSlots = showFullDay ? TIME_SLOTS_FULL : TIME_SLOTS_DAY
   const hourLabels = showFullDay ? HOUR_LABELS_FULL : HOUR_LABELS_DAY
+
+  // 業務バーの時間軸範囲（ヒートマップの表示範囲と対応）
+  const axisStartMinutes = showFullDay ? 0 : 8 * 60
+  const axisEndMinutes = showFullDay ? 24 * 60 : 22 * 60
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -226,6 +235,37 @@ export function TimelineHeatmap({
 
     return rows.sort((a, b) => a.employeeName.localeCompare(b.employeeName, "ja"))
   }, [shifts, overnightShifts, showFullDay, timeSlots])
+
+  // 業務割当を従業員IDでマップ化（ヒートマップ行に業務バーを重ねるため）
+  const dutyBarsMap = useMemo(() => {
+    if (!duties || duties.length === 0) return new Map<string, DutyBarInput[]>()
+    const map = new Map<string, DutyBarInput[]>()
+    for (const duty of duties) {
+      if (!duty.startTime || !duty.endTime) continue
+      const startHHMM = getTimeHHMM(duty.startTime)
+      const endHHMM = getTimeHHMM(duty.endTime)
+      const startMin =
+        parseInt(startHHMM.split(":")[0], 10) * 60 +
+        parseInt(startHHMM.split(":")[1], 10)
+      let endMin =
+        parseInt(endHHMM.split(":")[0], 10) * 60 +
+        parseInt(endHHMM.split(":")[1], 10)
+      if (endMin <= startMin) endMin = 24 * 60 // 日跨ぎ
+
+      const bar: DutyBarInput = {
+        id: duty.id,
+        dutyTypeName: duty.dutyType.name,
+        color: duty.dutyType.color,
+        startMinutes: startMin,
+        endMinutes: endMin,
+        employeeName: duty.employee.name,
+      }
+      const existing = map.get(duty.employeeId) ?? []
+      existing.push(bar)
+      map.set(duty.employeeId, existing)
+    }
+    return map
+  }, [duties])
 
   // 名前検索フィルタ
   const filteredGrid = useMemo(() => {
@@ -373,6 +413,10 @@ export function TimelineHeatmap({
         <tbody>
           {filteredGrid.map((row) => {
             const emp = row.employee
+            const empBars = dutyBarsMap.get(row.employeeId) ?? []
+            const hasDuties = empBars.length > 0
+            const laneCount = hasDuties ? computeLaneCount(empBars) : 0
+            const rowHeight = hasDuties ? computeRowHeight(laneCount, 20, 2) : 28
             return (
               <tr key={row.employeeId} className="border-t border-border">
                 <td className="sticky left-0 z-10 bg-background px-3 py-1 font-medium whitespace-nowrap shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)]">
@@ -387,19 +431,38 @@ export function TimelineHeatmap({
                     "-"
                   )}
                 </td>
-                {row.presence.map((present, i) => (
-                  <td
-                    key={i}
-                    className={cn(
-                      "w-9 min-w-9 h-7 px-0",
-                      i % 2 === 0 && "border-l border-border",
-                      present &&
-                        (i === currentSlotIndex
-                          ? "bg-primary/40 dark:bg-primary/50"
-                          : "bg-primary/20 dark:bg-primary/30")
+                <td colSpan={timeSlots.length} className="p-0" style={{ height: rowHeight }}>
+                  <div className="relative w-full" style={{ height: rowHeight }}>
+                    {/* 在席レイヤー（背景） */}
+                    <div className="absolute inset-0 flex">
+                      {row.presence.map((present, i) => (
+                        <div
+                          key={i}
+                          className={cn(
+                            "w-9 min-w-9 shrink-0 h-full",
+                            i % 2 === 0 && "border-l border-border",
+                            present &&
+                              (i === currentSlotIndex
+                                ? "bg-primary/40 dark:bg-primary/50"
+                                : "bg-primary/20 dark:bg-primary/30")
+                          )}
+                        />
+                      ))}
+                    </div>
+                    {/* 業務バーオーバーレイ */}
+                    {hasDuties && (
+                      <div className="absolute inset-x-0 top-0">
+                        <DutyBarsOverlay
+                          bars={empBars}
+                          axisStartMinutes={axisStartMinutes}
+                          axisEndMinutes={axisEndMinutes}
+                          laneHeight={20}
+                          laneGap={2}
+                        />
+                      </div>
                     )}
-                  />
-                ))}
+                  </div>
+                </td>
               </tr>
             )
           })}

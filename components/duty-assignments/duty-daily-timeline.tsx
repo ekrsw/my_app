@@ -1,27 +1,23 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useMemo } from "react"
 import { getTimeHHMM } from "@/lib/capacity-utils"
-import { COLOR_PALETTE } from "@/lib/constants"
-import { cn } from "@/lib/utils"
+import {
+  DutyBarsOverlay,
+  computeLaneCount,
+  computeRowHeight,
+  type DutyBarInput,
+} from "@/components/common/duty-bars-overlay"
 import type { DutyAssignmentWithDetails } from "@/types/duties"
 
 type DutyDailyTimelineProps = {
   data: DutyAssignmentWithDetails[]
 }
 
-type DutyBar = {
-  duty: DutyAssignmentWithDetails
-  startMinutes: number
-  endMinutes: number
-  lane: number
-}
-
 type EmployeeRow = {
   employeeId: string
   employeeName: string
-  bars: DutyBar[]
-  laneCount: number
+  bars: DutyBarInput[]
 }
 
 /** "HH:mm" -> total minutes from 00:00 */
@@ -43,8 +39,6 @@ const LANE_HEIGHT = 28
 const LANE_GAP = 2
 
 export function DutyDailyTimeline({ data }: DutyDailyTimelineProps) {
-  const [hoveredDutyId, setHoveredDutyId] = useState<number | null>(null)
-
   const { employeeRows, axisStartMinutes, axisEndMinutes, hourLabels } = useMemo(() => {
     if (data.length === 0) {
       return {
@@ -55,11 +49,13 @@ export function DutyDailyTimeline({ data }: DutyDailyTimelineProps) {
       }
     }
 
-    // Gather all duties by employee
-    const employeeMap = new Map<string, {
-      name: string
-      duties: { duty: DutyAssignmentWithDetails; startMin: number; endMin: number }[]
-    }>()
+    const employeeMap = new Map<
+      string,
+      {
+        name: string
+        duties: { duty: DutyAssignmentWithDetails; startMin: number; endMin: number }[]
+      }
+    >()
 
     let globalMin = DEFAULT_START_HOUR * 60
     let globalMax = DEFAULT_END_HOUR * 60
@@ -72,12 +68,11 @@ export function DutyDailyTimeline({ data }: DutyDailyTimelineProps) {
       let startMin = timeToMinutes(startHHMM)
       let endMin = timeToMinutes(endHHMM)
 
-      // Overnight duty: only show current day portion (startTime to 24:00)
+      // 日跨ぎ業務: 当日分のみ (startTime → 24:00)
       if (endMin < startMin) {
         endMin = 24 * 60
       }
 
-      // Auto-extend axis range
       if (startMin < globalMin) globalMin = startMin
       if (endMin > globalMax) globalMax = endMin
 
@@ -88,51 +83,28 @@ export function DutyDailyTimeline({ data }: DutyDailyTimelineProps) {
       employeeMap.get(empId)!.duties.push({ duty, startMin, endMin })
     }
 
-    // Snap to full hours
+    // 時間軸をフル時間に丸める
     const axisStart = Math.floor(globalMin / 60) * 60
     const axisEnd = Math.ceil(globalMax / 60) * 60
 
-    // Build employee rows with lane assignment (greedy algorithm)
+    // DutyBarInput に変換（レーン計算は DutyBarsOverlay に委譲）
     const rows: EmployeeRow[] = []
 
     for (const [empId, { name, duties }] of employeeMap) {
-      // Sort by start time
-      const sorted = [...duties].sort((a, b) => a.startMin - b.startMin)
-
-      // Greedy lane assignment: track end time per lane
-      const laneEnds: number[] = []
-      const bars: DutyBar[] = []
-
-      for (const { duty, startMin, endMin } of sorted) {
-        // Find first lane where this duty fits
-        let assignedLane = -1
-        for (let i = 0; i < laneEnds.length; i++) {
-          if (laneEnds[i] <= startMin) {
-            assignedLane = i
-            laneEnds[i] = endMin
-            break
-          }
-        }
-        if (assignedLane === -1) {
-          assignedLane = laneEnds.length
-          laneEnds.push(endMin)
-        }
-
-        bars.push({ duty, startMinutes: startMin, endMinutes: endMin, lane: assignedLane })
-      }
-
-      rows.push({
-        employeeId: empId,
+      const bars: DutyBarInput[] = duties.map(({ duty, startMin, endMin }) => ({
+        id: duty.id,
+        dutyTypeName: duty.dutyType.name,
+        color: duty.dutyType.color,
+        startMinutes: startMin,
+        endMinutes: endMin,
         employeeName: name,
-        bars,
-        laneCount: Math.max(laneEnds.length, 1),
-      })
+      }))
+
+      rows.push({ employeeId: empId, employeeName: name, bars })
     }
 
-    // Sort by employee name
     rows.sort((a, b) => a.employeeName.localeCompare(b.employeeName, "ja"))
 
-    // Hour labels
     const labels: number[] = []
     for (let m = axisStart; m <= axisEnd; m += 60) {
       labels.push(m)
@@ -157,13 +129,9 @@ export function DutyDailyTimeline({ data }: DutyDailyTimelineProps) {
     return ((minutes - axisStartMinutes) / totalAxisMinutes) * 100
   }
 
-  function getWidthPercent(startMin: number, endMin: number): number {
-    return ((endMin - startMin) / totalAxisMinutes) * 100
-  }
-
   return (
     <div className="mb-4 rounded-md border bg-background overflow-x-auto">
-      {/* Time axis header */}
+      {/* 時間軸ヘッダー */}
       <div className="flex border-b">
         <div
           className="shrink-0 text-xs text-muted-foreground font-medium px-2 py-1 border-r bg-muted/30"
@@ -186,9 +154,10 @@ export function DutyDailyTimeline({ data }: DutyDailyTimelineProps) {
         </div>
       </div>
 
-      {/* Employee rows */}
+      {/* 従業員ごとの行 */}
       {employeeRows.map((empRow) => {
-        const rowHeight = empRow.laneCount * LANE_HEIGHT + (empRow.laneCount - 1) * LANE_GAP + 8
+        const laneCount = computeLaneCount(empRow.bars)
+        const rowHeight = computeRowHeight(laneCount, LANE_HEIGHT, LANE_GAP)
 
         return (
           <div key={empRow.employeeId} className="flex border-b last:border-b-0">
@@ -203,7 +172,7 @@ export function DutyDailyTimeline({ data }: DutyDailyTimelineProps) {
               className="relative flex-1"
               style={{ height: rowHeight }}
             >
-              {/* Grid lines */}
+              {/* グリッド線 */}
               {hourLabels.map((m) => (
                 <div
                   key={m}
@@ -212,57 +181,14 @@ export function DutyDailyTimeline({ data }: DutyDailyTimelineProps) {
                 />
               ))}
 
-              {/* Duty bars */}
-              {empRow.bars.map((bar) => {
-                const palette = bar.duty.dutyType.color
-                  ? COLOR_PALETTE[bar.duty.dutyType.color]
-                  : null
-                const bgClass = palette?.bg ?? "bg-gray-200"
-                const textClass = palette?.text ?? "text-gray-800"
-                const isHovered = hoveredDutyId === bar.duty.id
-
-                const topOffset = 4 + bar.lane * (LANE_HEIGHT + LANE_GAP)
-
-                return (
-                  <div
-                    key={bar.duty.id}
-                    className={cn(
-                      "absolute rounded-sm border border-border/50 flex items-center px-1.5 overflow-hidden transition-shadow",
-                      bgClass,
-                      textClass,
-                      isHovered && "shadow-md ring-1 ring-primary/30 z-10"
-                    )}
-                    style={{
-                      left: `${getLeftPercent(bar.startMinutes)}%`,
-                      width: `${getWidthPercent(bar.startMinutes, bar.endMinutes)}%`,
-                      top: topOffset,
-                      height: LANE_HEIGHT,
-                      minWidth: 4,
-                    }}
-                    onMouseEnter={() => setHoveredDutyId(bar.duty.id)}
-                    onMouseLeave={() => setHoveredDutyId(null)}
-                  >
-                    <span className="text-[10px] font-medium truncate leading-tight">
-                      {bar.duty.dutyType.name}
-                    </span>
-
-                    {/* Tooltip */}
-                    {isHovered && (
-                      <div
-                        className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 z-50 pointer-events-none"
-                      >
-                        <div className="bg-popover text-popover-foreground border rounded-md shadow-md px-2.5 py-1.5 text-xs whitespace-nowrap">
-                          <p className="font-medium">{bar.duty.employee.name}</p>
-                          <p>{bar.duty.dutyType.name}</p>
-                          <p className="text-muted-foreground">
-                            {getTimeHHMM(bar.duty.startTime!)} - {getTimeHHMM(bar.duty.endTime!)}
-                          </p>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )
-              })}
+              {/* 業務バー（共有コンポーネント） */}
+              <DutyBarsOverlay
+                bars={empRow.bars}
+                axisStartMinutes={axisStartMinutes}
+                axisEndMinutes={axisEndMinutes}
+                laneHeight={LANE_HEIGHT}
+                laneGap={LANE_GAP}
+              />
             </div>
           </div>
         )

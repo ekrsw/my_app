@@ -30,6 +30,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { cn } from "@/lib/utils"
 import type { Shift, Employee, Group, EmployeeGroup, EmployeeFunctionRole, FunctionRole } from "@/app/generated/prisma/client"
 import type { DashboardFilterOptions } from "@/types"
+import type { DutyAssignmentWithDetails } from "@/types/duties"
 
 export type TodayShift = Shift & {
   employee: (Employee & {
@@ -73,9 +74,10 @@ type Props = {
   shiftIdsWithHistory: number[]
   shiftLatestHistory: Record<number, LatestShiftHistory>
   todayDateString: string
+  dutyAssignments?: DutyAssignmentWithDetails[]
 }
 
-export function TodayOverviewClient({ shifts, overnightShifts, filterOptions, distinctRoleTypes, isAuthenticated, shiftCodes: shiftCodesData, shiftIdsWithHistory, shiftLatestHistory, todayDateString }: Props) {
+export function TodayOverviewClient({ shifts, overnightShifts, filterOptions, distinctRoleTypes, isAuthenticated, shiftCodes: shiftCodesData, shiftIdsWithHistory, shiftLatestHistory, todayDateString, dutyAssignments }: Props) {
   const { setParams, getParam } = useDashboardFilters()
 
   // --- Dynamic height calculation (same pattern as shift-calendar) ---
@@ -490,6 +492,7 @@ export function TodayOverviewClient({ shifts, overnightShifts, filterOptions, di
                 nameSearch={nameSearch}
                 onRowCountChange={setTimelineRowCount}
                 distinctRoleTypes={distinctRoleTypes}
+                duties={dutyAssignments}
                 groupOptions={groupOptions}
                 selectedGroupValues={selectedGroupValues}
                 unassigned={unassigned}
