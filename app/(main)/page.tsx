@@ -154,6 +154,8 @@ export default async function DashboardPage({ searchParams }: Props) {
             shiftLatestHistory={latestHistoryEntries}
             todayDateString={todayDateString}
             dutyAssignments={todayDuties}
+            employees={allEmployees.map((e) => ({ id: e.id, name: e.name }))}
+            dutyTypes={dutyTypes.map((dt) => ({ id: dt.id, name: dt.name, defaultReducesCapacity: dt.defaultReducesCapacity, defaultStartTime: dt.defaultStartTime, defaultEndTime: dt.defaultEndTime, defaultNote: dt.defaultNote, defaultTitle: dt.defaultTitle }))}
           />
         </div>
       </PageContainer>

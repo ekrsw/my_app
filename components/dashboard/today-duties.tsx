@@ -4,13 +4,8 @@ import React, { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
 import { DutyAssignmentForm } from "@/components/duty-assignments/duty-assignment-form"
+import { DutyAssignmentDetailDialog } from "@/components/duty-assignments/duty-assignment-detail-dialog"
 import { COLOR_PALETTE } from "@/lib/constants"
 import { cn, formatTime } from "@/lib/utils"
 import { Plus } from "lucide-react"
@@ -27,7 +22,6 @@ type Props = {
 export function TodayDuties({ duties, employees, dutyTypes, isAuthenticated, todayDateString }: Props) {
   const [createOpen, setCreateOpen] = useState(false)
   const [detailTarget, setDetailTarget] = useState<DutyAssignmentWithDetails | null>(null)
-  const [editTarget, setEditTarget] = useState<DutyAssignmentWithDetails | null>(null)
 
   // 業務種別ごとにグルーピング
   const grouped = duties.reduce<Record<number, { dutyType: DutyAssignmentWithDetails["dutyType"]; assignments: DutyAssignmentWithDetails[] }>>(
@@ -116,59 +110,15 @@ export function TodayDuties({ duties, employees, dutyTypes, isAuthenticated, tod
         onOpenChange={setCreateOpen}
       />
 
-      {/* 詳細ダイアログ */}
-      <Dialog open={!!detailTarget} onOpenChange={(v) => !v && setDetailTarget(null)}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>業務割当の詳細</DialogTitle>
-          </DialogHeader>
-          {detailTarget && (
-            <div className="space-y-3">
-              <div className="grid grid-cols-[5rem_1fr] gap-y-2 text-sm">
-                <span className="text-muted-foreground">業務種別</span>
-                <span>{detailTarget.dutyType.name}</span>
-                <span className="text-muted-foreground">従業員</span>
-                <span>{detailTarget.employee.name}</span>
-                <span className="text-muted-foreground">時間帯</span>
-                <span>{formatTime(detailTarget.startTime)}〜{formatTime(detailTarget.endTime)}</span>
-                <span className="text-muted-foreground">控除</span>
-                <span>{detailTarget.reducesCapacity ? "対応可能人員から控除" : "控除しない"}</span>
-                {detailTarget.title && (
-                  <>
-                    <span className="text-muted-foreground">タイトル</span>
-                    <span className="break-words">{detailTarget.title}</span>
-                  </>
-                )}
-              </div>
-              {isAuthenticated && (
-                <div className="flex justify-end gap-2 pt-2">
-                  <Button
-                    size="sm"
-                    onClick={() => {
-                      setDetailTarget(null)
-                      setEditTarget(detailTarget)
-                    }}
-                  >
-                    編集
-                  </Button>
-                </div>
-              )}
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* 編集フォーム */}
-      {editTarget && (
-        <DutyAssignmentForm
-          employees={employees}
-          dutyTypes={dutyTypes}
-          dutyAssignment={editTarget}
-          open={!!editTarget}
-          onOpenChange={(v) => !v && setEditTarget(null)}
-        />
-      )}
-
+      {/* 詳細ダイアログ（共通コンポーネント） */}
+      <DutyAssignmentDetailDialog
+        open={!!detailTarget}
+        onOpenChange={(v) => !v && setDetailTarget(null)}
+        duty={detailTarget}
+        isAuthenticated={isAuthenticated}
+        employees={employees}
+        dutyTypes={dutyTypes}
+      />
     </>
   )
 }

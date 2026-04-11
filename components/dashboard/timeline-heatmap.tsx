@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils"
 import { ColumnFilterPopover } from "@/components/common/filters/column-filter-popover"
 import { CheckboxListFilter } from "@/components/common/filters/checkbox-list-filter"
 import { DutyBarsOverlay, computeLaneCount, computeRowHeight, type DutyBarInput } from "@/components/common/duty-bars-overlay"
+import { DutyAssignmentDetailDialog } from "@/components/duty-assignments/duty-assignment-detail-dialog"
 import type { TodayShift } from "@/components/dashboard/today-overview-client"
 import type { DutyAssignmentWithDetails } from "@/types/duties"
 
@@ -109,6 +110,10 @@ type Props = {
   onSupervisorPopoverOpenChange: (open: boolean) => void
   onSupervisorRoleConfirm: (names: string[]) => void
   onSupervisorRoleClear: () => void
+  // 業務割当詳細ダイアログ用
+  isAuthenticated?: boolean
+  employees?: { id: string; name: string }[]
+  dutyTypes?: { id: number; name: string; defaultReducesCapacity: boolean; defaultStartTime: string | null; defaultEndTime: string | null; defaultNote: string | null; defaultTitle: string | null }[]
 }
 
 export function TimelineHeatmap({
@@ -139,10 +144,19 @@ export function TimelineHeatmap({
   onSupervisorPopoverOpenChange,
   onSupervisorRoleConfirm,
   onSupervisorRoleClear,
+  isAuthenticated = false,
+  employees = [],
+  dutyTypes = [],
 }: Props) {
   const [currentTime, setCurrentTime] = useState(getCurrentJSTTimeHHMM)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const [maxHeight, setMaxHeight] = useState<number>(600)
+  const [selectedDutyId, setSelectedDutyId] = useState<number | null>(null)
+
+  const selectedDuty = useMemo(
+    () => (selectedDutyId !== null ? (duties?.find((d) => d.id === selectedDutyId) ?? null) : null),
+    [selectedDutyId, duties]
+  )
 
   const timeSlots = showFullDay ? TIME_SLOTS_FULL : TIME_SLOTS_DAY
   const hourLabels = showFullDay ? HOUR_LABELS_FULL : HOUR_LABELS_DAY
@@ -459,6 +473,7 @@ export function TimelineHeatmap({
                           axisEndMinutes={axisEndMinutes}
                           laneHeight={20}
                           laneGap={2}
+                          onBarClick={setSelectedDutyId}
                         />
                       </div>
                     )}
@@ -495,6 +510,16 @@ export function TimelineHeatmap({
         </tfoot>
       </table>
       </div>
+
+      {/* 業務割当詳細ダイアログ */}
+      <DutyAssignmentDetailDialog
+        open={selectedDutyId !== null}
+        onOpenChange={(open) => { if (!open) setSelectedDutyId(null) }}
+        duty={selectedDuty}
+        isAuthenticated={isAuthenticated}
+        employees={employees}
+        dutyTypes={dutyTypes}
+      />
     </div>
   )
 }
