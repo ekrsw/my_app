@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
-import { describe, it, expect, vi } from "vitest"
+import { describe, it, expect, vi, beforeEach } from "vitest"
 
 // --- モック ---
 
@@ -13,8 +13,8 @@ vi.mock("next/server", () => ({
 
 // next/navigation
 vi.mock("next/navigation", () => ({
-  useSearchParams: () => new URLSearchParams(),
-  useRouter: () => ({ replace: vi.fn(), refresh: vi.fn() }),
+  useSearchParams: vi.fn(() => new URLSearchParams()),
+  useRouter: vi.fn(() => ({ replace: vi.fn(), refresh: vi.fn(), push: vi.fn() })),
   usePathname: () => "/duties",
 }))
 
@@ -75,6 +75,7 @@ vi.mock("@/components/shifts/shift-form", () => ({
   ShiftForm: () => null,
 }))
 
+import { useSearchParams, useRouter } from "next/navigation"
 import { DutyAssignmentPageClient } from "@/components/duty-assignments/duty-assignment-page-client"
 
 const BASE_PROPS = {
@@ -160,5 +161,31 @@ describe("月次カレンダー セルクリック認証ガード", () => {
 
     // フォームダイアログが表示されること
     expect(screen.getByTestId("duty-form-dialog")).toBeInTheDocument()
+  })
+})
+
+describe("月次カレンダー 従業員名検索 URLパラメータ初期化", () => {
+  beforeEach(() => {
+    vi.mocked(useSearchParams).mockReturnValue(
+      new URLSearchParams() as unknown as ReturnType<typeof useSearchParams>
+    )
+    vi.mocked(useRouter).mockReturnValue(
+      { replace: vi.fn(), refresh: vi.fn(), push: vi.fn() } as unknown as ReturnType<typeof useRouter>
+    )
+  })
+
+  it("URLパラメータ monthlyEmployeeSearch の値で検索ボックスが初期化される", () => {
+    vi.mocked(useSearchParams).mockReturnValue(
+      new URLSearchParams("monthlyEmployeeSearch=テスト太郎") as unknown as ReturnType<typeof useSearchParams>
+    )
+    render(<DutyAssignmentPageClient {...BASE_PROPS} isAuthenticated={true} />)
+    const searchInput = screen.getByPlaceholderText("従業員名で検索...")
+    expect(searchInput).toHaveValue("テスト太郎")
+  })
+
+  it("URLパラメータが空の場合は検索ボックスが空で初期化される", () => {
+    render(<DutyAssignmentPageClient {...BASE_PROPS} isAuthenticated={true} />)
+    const searchInput = screen.getByPlaceholderText("従業員名で検索...")
+    expect(searchInput).toHaveValue("")
   })
 })
