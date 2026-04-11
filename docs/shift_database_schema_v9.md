@@ -67,6 +67,7 @@ erDiagram
     groups {
         integer id PK
         varchar name
+        varchar abbreviated_name
     }
 
     employees {
@@ -238,6 +239,7 @@ erDiagram
 |---------|---------|------|-----------|------|
 | id | SERIAL | NO | auto_increment | 主キー |
 | name | VARCHAR(50) | NO | - | グループ名（ユニーク） |
+| abbreviated_name | VARCHAR(10) | YES | - | グループ省略名 |
 
 **制約**: PK(id), UNIQUE(name)
 
@@ -1028,3 +1030,4 @@ groups (1) ────< (N) employee_groups (N) >────(1) employees
 | v20 | 2026-03-02 | shift_codesテーブルにcolor VARCHAR(20)カラムを追加。Tailwind色キー（blue, red等）を格納し、フォームからカラースウォッチUIで選択可能に。既存9コードには現行ハードコード色をマイグレーションで設定。colorがNULLの場合はSHIFT_CODE_MAPのハードコードにフォールバック |
 | v21 | 2026-04-10 | duty_types（業務種別マスタ）、duty_assignments（業務割当データ）テーブルのドキュメントを追加。duty_typesにdefault_start_time VARCHAR(5)、default_end_time VARCHAR(5)、default_note TEXTカラムを追加。業務種別マスタにデフォルト開始時刻・終了時刻・備考を設定可能にし、業務割当作成時にプリフィルされる |
 | v22 | 2026-04-10 | duty_typesテーブルからcode VARCHAR(20)カラムとUNIQUE(code)制約を削除。業務種別の識別はid（PK）で行い、表示はnameを使用する |
+| v23 | 2026-04-11 | groupsテーブルにabbreviated_name VARCHAR(10)カラムを追加。ダッシュボードの本日の業務エリアでグループ省略名を優先表示する |

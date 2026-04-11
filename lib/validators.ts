@@ -2,6 +2,10 @@ import { z } from "zod"
 
 export const groupSchema = z.object({
   name: z.string().min(1, "グループ名は必須です").max(50, "50文字以内で入力してください"),
+  abbreviatedName: z.union([z.string(), z.null()])
+    .transform((v) => (v === null ? null : v.trim() === "" ? null : v.trim()))
+    .pipe(z.string().max(10, "10文字以内で入力してください").nullable())
+    .optional(),
 })
 
 export const employeeSchema = z.object({

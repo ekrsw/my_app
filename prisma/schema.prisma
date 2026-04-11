@@ -11,6 +11,7 @@ datasource db {
 model Group {
   id             Int                    @id @default(autoincrement())
   name           String                 @unique @db.VarChar(50)
+  abbreviatedName String?               @map("abbreviated_name") @db.VarChar(10)
   employeeGroups EmployeeGroup[]
   groupHistory   EmployeeGroupHistory[]
 
