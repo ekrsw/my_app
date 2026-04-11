@@ -33,6 +33,56 @@ describe("Zod Validation Schemas", () => {
       const result = groupSchema.safeParse({ name: "あ".repeat(50) })
       expect(result.success).toBe(true)
     })
+
+    it("should accept abbreviatedName", () => {
+      const result = groupSchema.safeParse({ name: "開発部", abbreviatedName: "開発" })
+      expect(result.success).toBe(true)
+      if (result.success) {
+        expect(result.data.abbreviatedName).toBe("開発")
+      }
+    })
+
+    it("should transform empty abbreviatedName to null", () => {
+      const result = groupSchema.safeParse({ name: "開発部", abbreviatedName: "" })
+      expect(result.success).toBe(true)
+      if (result.success) {
+        expect(result.data.abbreviatedName).toBeNull()
+      }
+    })
+
+    it("should reject abbreviatedName over 10 characters", () => {
+      const result = groupSchema.safeParse({ name: "開発部", abbreviatedName: "あ".repeat(11) })
+      expect(result.success).toBe(false)
+    })
+
+    it("should accept null abbreviatedName", () => {
+      const result = groupSchema.safeParse({ name: "開発部", abbreviatedName: null })
+      expect(result.success).toBe(true)
+      if (result.success) {
+        expect(result.data.abbreviatedName).toBeNull()
+      }
+    })
+
+    it("should accept missing abbreviatedName", () => {
+      const result = groupSchema.safeParse({ name: "開発部" })
+      expect(result.success).toBe(true)
+    })
+
+    it("should trim whitespace-only abbreviatedName to null", () => {
+      const result = groupSchema.safeParse({ name: "開発部", abbreviatedName: "   " })
+      expect(result.success).toBe(true)
+      if (result.success) {
+        expect(result.data.abbreviatedName).toBeNull()
+      }
+    })
+
+    it("should trim whitespace from abbreviatedName", () => {
+      const result = groupSchema.safeParse({ name: "開発部", abbreviatedName: " 開発 " })
+      expect(result.success).toBe(true)
+      if (result.success) {
+        expect(result.data.abbreviatedName).toBe("開発")
+      }
+    })
   })
 
   describe("employeeSchema", () => {

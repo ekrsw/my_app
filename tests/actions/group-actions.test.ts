@@ -38,6 +38,28 @@ describe("Group Actions", () => {
       expect(groups[0].name).toBe("開発部")
     })
 
+    it("should create a group with abbreviatedName", async () => {
+      const result = await createGroup(
+        makeFormData({ name: "開発部", abbreviatedName: "開発" })
+      )
+
+      expect(result).toEqual({ success: true })
+
+      const group = await prisma.group.findFirst({ where: { name: "開発部" } })
+      expect(group!.abbreviatedName).toBe("開発")
+    })
+
+    it("should create a group with empty abbreviatedName as null", async () => {
+      const result = await createGroup(
+        makeFormData({ name: "開発部", abbreviatedName: "" })
+      )
+
+      expect(result).toEqual({ success: true })
+
+      const group = await prisma.group.findFirst({ where: { name: "開発部" } })
+      expect(group!.abbreviatedName).toBeNull()
+    })
+
     it("should return error for duplicate group name (P2002)", async () => {
       await prisma.group.create({ data: { name: "開発部" } })
 
@@ -69,6 +91,24 @@ describe("Group Actions", () => {
         where: { id: group.id },
       })
       expect(updated!.name).toBe("技術部")
+    })
+
+    it("should update abbreviatedName", async () => {
+      const group = await prisma.group.create({
+        data: { name: "開発部", abbreviatedName: "開発" },
+      })
+
+      const result = await updateGroup(
+        group.id,
+        makeFormData({ name: "開発部", abbreviatedName: "Dev" })
+      )
+
+      expect(result).toEqual({ success: true })
+
+      const updated = await prisma.group.findUnique({
+        where: { id: group.id },
+      })
+      expect(updated!.abbreviatedName).toBe("Dev")
     })
 
     it("should return error for duplicate name on update", async () => {
