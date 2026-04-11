@@ -44,7 +44,16 @@ export async function getTodayOverview(filter: DashboardOverviewFilter = {}) {
   const roleTypes = await getRoleTypes()
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const employeeWhere: any = {}
+  const employeeWhere: any = {
+    AND: [
+      {
+        OR: [
+          { terminationDate: null },
+          { terminationDate: { gte: today } },
+        ],
+      },
+    ],
+  }
 
   const groupDateFilter = currentGroupDateWhere(today)
   const roleDateFilter = currentRoleDateWhere(today)
@@ -160,6 +169,12 @@ export async function getDashboardFilterOptions(): Promise<DashboardFilterOption
       shiftDate: today,
       startTime: { not: null },
       isHoliday: { not: true },
+      employee: {
+        OR: [
+          { terminationDate: null },
+          { terminationDate: { gte: today } },
+        ],
+      },
     },
     include: {
       employee: {
@@ -237,6 +252,12 @@ export async function getTodayRemoteWorkers() {
     where: {
       shiftDate: today,
       isRemote: true,
+      employee: {
+        OR: [
+          { terminationDate: null },
+          { terminationDate: { gte: today } },
+        ],
+      },
     },
     include: {
       employee: {
@@ -296,6 +317,12 @@ export async function getYesterdayOvernightShifts() {
       startTime: { not: null },
       endTime: { not: null },
       isHoliday: { not: true },
+      employee: {
+        OR: [
+          { terminationDate: null },
+          { terminationDate: { gte: today } },
+        ],
+      },
     },
     include: {
       employee: {

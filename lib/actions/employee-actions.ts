@@ -81,6 +81,8 @@ export async function createEmployee(formData: FormData) {
     })
 
     revalidatePath("/employees")
+    revalidatePath("/duty-assignments")
+    revalidatePath("/")
     return { success: true }
   } catch {
     return { error: "従業員の作成に失敗しました" }
@@ -115,6 +117,8 @@ export async function updateEmployee(id: string, formData: FormData) {
     await prisma.employee.update({ where: { id }, data })
     revalidatePath("/employees")
     revalidatePath(`/employees/${id}`)
+    revalidatePath("/duty-assignments")
+    revalidatePath("/")
     return { success: true }
   } catch {
     return { error: "従業員の更新に失敗しました" }
@@ -145,6 +149,8 @@ export async function deleteEmployee(id: string) {
       await tx.employee.delete({ where: { id } })
     })
     revalidatePath("/employees")
+    revalidatePath("/duty-assignments")
+    revalidatePath("/")
     return { success: true }
   } catch {
     return { error: "従業員の削除に失敗しました" }
@@ -273,6 +279,8 @@ export async function updateEmployeeWithRoles(
 
     revalidatePath("/employees")
     revalidatePath(`/employees/${id}`)
+    revalidatePath("/duty-assignments")
+    revalidatePath("/")
     return { success: true }
   } catch (e: unknown) {
     if (e && typeof e === "object" && "message" in e && typeof e.message === "string" && e.message.includes("employee_positions_no_overlap")) {

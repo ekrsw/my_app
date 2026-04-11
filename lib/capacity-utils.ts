@@ -68,16 +68,26 @@ export function isDutyActive(
   return isTimeInRange(getTimeHHMM(startTime), getTimeHHMM(endTime), now)
 }
 
-/** シフトの出勤・退勤時刻から現在出勤中かどうかを判定（深夜跨ぎ対応） */
+/** シフトの出勤・退勤時刻から現在出勤中かどうかを判定（深夜跨ぎ対応）
+ * @param forTodayShift true の場合、日跨ぎシフト（start > end）は「開始時刻以降のみ在勤」とみなす。
+ *   深夜〜終了時刻の範囲（例: 0:00〜08:00）は翌日の getYesterdayOvernightShifts が担当するため。
+ */
 export function isWorkerPresent(
   startTime: Date | string | null,
   endTime: Date | string | null,
-  now: string
+  now: string,
+  forTodayShift?: boolean
 ): boolean {
   if (!startTime) return false
   const start = getTimeHHMM(startTime)
   if (!endTime) return start <= now
-  return isTimeInRange(start, getTimeHHMM(endTime), now)
+  const end = getTimeHHMM(endTime)
+  if (forTodayShift && start > end) {
+    // 今日のシフトで日跨ぎ（例: 22:00-08:00）: 開始時刻以降のみ在勤とみなす
+    // 深夜0:00〜終了時刻の範囲は翌日の overnight 処理（isYesterdayOvernight）が担う
+    return now >= start
+  }
+  return isTimeInRange(start, end, now)
 }
 
 /** キャパシティを計算。出勤中・当番中ともにリアルタイム判定。reducesCapacity=false の当番は控除しない */
@@ -151,7 +161,7 @@ export function calculateFilteredCapacity(
   for (const shift of shifts) {
     const isPresent = shift.isYesterdayOvernight
       ? (!!shift.endTime && currentTime <= getTimeHHMM(shift.endTime))
-      : isWorkerPresent(shift.startTime, shift.endTime, currentTime)
+      : isWorkerPresent(shift.startTime, shift.endTime, currentTime, true)
 
     if (shift.employeeId && !seen.has(shift.employeeId) && isPresent) {
       seen.add(shift.employeeId)
@@ -219,7 +229,7 @@ export function extractFilterOptions(
   for (const shift of shifts) {
     const isPresent = shift.isYesterdayOvernight
       ? (!!shift.endTime && currentTime <= getTimeHHMM(shift.endTime))
-      : isWorkerPresent(shift.startTime, shift.endTime, currentTime)
+      : isWorkerPresent(shift.startTime, shift.endTime, currentTime, true)
     if (shift.employeeId && !seen.has(shift.employeeId) && isPresent) {
       seen.add(shift.employeeId)
       for (const g of shift.groups) {
