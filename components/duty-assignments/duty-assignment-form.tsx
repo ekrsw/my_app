@@ -57,6 +57,7 @@ type DutyAssignmentFormProps = {
   dutyAssignment?: DutyAssignmentWithDetails
   open?: boolean
   onOpenChange?: (open: boolean) => void
+  onSuccess?: () => void
 }
 
 function timeToInput(d: Date | string | null): string {
@@ -79,6 +80,7 @@ export function DutyAssignmentForm({
   dutyAssignment,
   open: controlledOpen,
   onOpenChange,
+  onSuccess,
 }: DutyAssignmentFormProps) {
   const isControlled = controlledOpen !== undefined
   const [internalOpen, setInternalOpen] = useState(false)
@@ -162,6 +164,7 @@ export function DutyAssignmentForm({
       toast.error(result.error)
     } else {
       toast.success(isEdit ? "業務割当を更新しました" : "業務割当を作成しました")
+      onSuccess?.()
       setOpen(false)
     }
   }

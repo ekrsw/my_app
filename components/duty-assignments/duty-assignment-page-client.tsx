@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback, useMemo, useEffect } from "react"
+import { useState, useCallback, useMemo, useEffect, useRef } from "react"
 import { useQueryParams } from "@/hooks/use-query-params"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -250,8 +250,23 @@ export function DutyAssignmentPageClient({
     }
   }, [calendarHasMoreState, calendarNextCursorState, calendarIsLoadingMore, calendarFilter])
 
-  // --- 月次: 従業員名テキスト検索 ---
-  const [employeeSearchText, setEmployeeSearchText] = useState("")
+  // --- 月次: 従業員名テキスト検索（URLパラメータと同期） ---
+  const [employeeSearchText, setEmployeeSearchText] = useState(getParam("monthlyEmployeeSearch") ?? "")
+  const employeeSearchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const handleEmployeeSearchChange = useCallback((value: string) => {
+    setEmployeeSearchText(value)
+    if (employeeSearchTimerRef.current) clearTimeout(employeeSearchTimerRef.current)
+    employeeSearchTimerRef.current = setTimeout(() => {
+      setParams({ monthlyEmployeeSearch: value || null })
+    }, 300)
+  }, [setParams])
+
+  useEffect(() => {
+    return () => {
+      if (employeeSearchTimerRef.current) clearTimeout(employeeSearchTimerRef.current)
+    }
+  }, [])
 
   // --- 月次: 月ナビゲーション ---
   const navigateMonth = useCallback(
@@ -422,7 +437,7 @@ export function DutyAssignmentPageClient({
             <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
             <Input
               value={employeeSearchText}
-              onChange={(e) => setEmployeeSearchText(e.target.value)}
+              onChange={(e) => handleEmployeeSearchChange(e.target.value)}
               placeholder="従業員名で検索..."
               className="w-48 pl-8"
             />
@@ -535,6 +550,7 @@ export function DutyAssignmentPageClient({
         dutyAssignment={editingAssignment}
         open={formOpen}
         onOpenChange={setFormOpen}
+        onSuccess={() => router.refresh()}
       />
     </div>
   )

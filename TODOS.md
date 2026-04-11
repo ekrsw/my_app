@@ -140,3 +140,33 @@
 **Depends on:** タイトルカラム追加の実装完了
 
 **Context:** duty-assignment-form.tsx:115-124 の handleDutyTypeChange が対象。現在は新規・編集問わず全 default 値を上書きする。title は今回のPRで「新規のみ」に修正されるが、startTime/endTime/note/reducesCapacity も同じパターンにすべき。
+
+## バグ: フィルタープリセットに monthlyEmployeeSearch が含まれない
+
+**What:** `FilterPresetManager` がURLパラメータをプリセットとして保存する際、`monthlyEmployeeSearch`（従業員名テキスト検索）が除外されている。保存したプリセットを復元しても従業員名フィルターは復元されない。
+
+**Why:** v0.2.8.0 で従業員名検索をURLパラメータ `monthlyEmployeeSearch` に永続化したが、FilterPresetManager の保存対象パラメータに含めなかった。Adversarial review (v0.2.8.0) で発見。
+
+**Pros:** プリセット保存・復元で従業員名フィルターも含めた完全な状態が復元される。
+**Cons:** FilterPresetManager の保存ロジックに `monthlyEmployeeSearch` を追加する必要がある（軽微な変更）。
+
+**Effort:** XS (human) → XS (CC+gstack) | **Priority:** P2 | **Risk:** Low
+
+**Depends on:** なし（独立した修正）
+
+**Context:** `components/duty-assignments/filter-preset-manager.tsx` の保存対象URLパラメータリストに `monthlyEmployeeSearch` を追加する。復元時も同様に適用する。
+
+## セキュリティ: employeeSearch の LIKE 特殊文字（%/_）未エスケープ
+
+**What:** `lib/db/duty-assignments.ts` の `getDutyAssignmentsForCalendar` 関数で、`employeeSearch` を LIKE クエリに使用する際に `%` や `_` がエスケープされていない。ユーザーが `%` を検索すると全件ヒットし、`_` は任意の1文字にマッチする。
+
+**Why:** SQLインジェクションではなく、意図しない検索結果を招く UX バグ。`%test%` を入力すると「testを含む」ではなく「任意の文字列を含む」全件が返る。Adversarial review (v0.2.8.0) で発見。
+
+**Pros:** 検索の精度が正確になる。ユーザーが `%` を入力してもリテラル検索が行われる。
+**Cons:** エスケープ処理を追加する必要がある（小規模な変更）。
+
+**Effort:** XS (human) → XS (CC+gstack) | **Priority:** P2 | **Risk:** Low
+
+**Depends on:** なし（独立した修正）
+
+**Context:** `lib/db/duty-assignments.ts` で `employeeSearch` を `{ contains: employeeSearch, mode: "insensitive" }` に使用している箇所を確認する。Prisma の場合は `%` や `_` を `\%`、`\_` にエスケープしてから渡す（または raw SQL に切り替えてプレースホルダーを使う）。

@@ -155,6 +155,9 @@ export default async function DutyAssignmentsPage({ searchParams }: Props) {
     ? params.monthlyDutyTypeIds.split(",").map(Number).filter(Boolean)
     : []
   const monthlyDutyUnassigned = params.monthlyDutyUnassigned === "true"
+  const monthlyEmployeeSearch = typeof params.monthlyEmployeeSearch === "string"
+    ? params.monthlyEmployeeSearch
+    : undefined
 
   const calendarFilter = {
     year,
@@ -166,6 +169,7 @@ export default async function DutyAssignmentsPage({ searchParams }: Props) {
     dutyTypeIds: monthlyDutyTypeIds.length > 0 ? monthlyDutyTypeIds : undefined,
     dutyUnassigned: monthlyDutyUnassigned || undefined,
     employeeIds: monthlyEmployeeIds.length > 0 ? monthlyEmployeeIds : undefined,
+    employeeSearch: monthlyEmployeeSearch || undefined,
   }
 
   const [calendarResult, groups, roles, shiftData, shiftCodes, shiftIdsWithHistorySet, shiftLatestHistory] = await Promise.all([
