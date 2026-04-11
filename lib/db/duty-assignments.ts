@@ -6,7 +6,15 @@ export async function getTodayDutyAssignments() {
   const today = getTodayJST()
 
   return prisma.dutyAssignment.findMany({
-    where: { dutyDate: today },
+    where: {
+      dutyDate: today,
+      employee: {
+        OR: [
+          { terminationDate: null },
+          { terminationDate: { gte: today } },
+        ],
+      },
+    },
     include: {
       employee: {
         include: {
@@ -36,7 +44,15 @@ export async function getYesterdayOvernightDutyAssignments() {
   const yesterday = new Date(today.getTime() - 24 * 60 * 60 * 1000)
 
   const yesterdayDuties = await prisma.dutyAssignment.findMany({
-    where: { dutyDate: yesterday },
+    where: {
+      dutyDate: yesterday,
+      employee: {
+        OR: [
+          { terminationDate: null },
+          { terminationDate: { gte: today } },
+        ],
+      },
+    },
     include: {
       employee: {
         include: {
