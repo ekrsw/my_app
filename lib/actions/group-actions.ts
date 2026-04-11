@@ -9,6 +9,7 @@ export async function createGroup(formData: FormData) {
   await requireAuth()
   const parsed = groupSchema.safeParse({
     name: formData.get("name"),
+    abbreviatedName: formData.get("abbreviatedName"),
   })
 
   if (!parsed.success) {
@@ -31,6 +32,7 @@ export async function updateGroup(id: number, formData: FormData) {
   await requireAuth()
   const parsed = groupSchema.safeParse({
     name: formData.get("name"),
+    abbreviatedName: formData.get("abbreviatedName"),
   })
 
   if (!parsed.success) {

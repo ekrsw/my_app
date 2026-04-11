@@ -196,6 +196,16 @@ export function DutyAssignmentForm({
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
+            <Label htmlFor="title">タイトル</Label>
+            <Input
+              id="title"
+              placeholder="業務の具体的な内容（例: A社訪問）"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              maxLength={100}
+            />
+          </div>
+          <div className="space-y-2">
             <Label>従業員 *</Label>
             <Popover
               open={employeePopoverOpen}
@@ -309,16 +319,6 @@ export function DutyAssignmentForm({
                 required
               />
             </div>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="title">タイトル</Label>
-            <Input
-              id="title"
-              placeholder="業務の具体的な内容（例: A社訪問）"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              maxLength={100}
-            />
           </div>
           <div className="space-y-2">
             <Label htmlFor="note">備考</Label>

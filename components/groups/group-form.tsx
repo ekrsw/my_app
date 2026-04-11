@@ -27,7 +27,7 @@ import {
 } from "@/components/ui/alert-dialog"
 
 type GroupFormProps = {
-  group?: { id: number; name: string }
+  group?: { id: number; name: string; abbreviatedName: string | null }
   open?: boolean
   onOpenChange?: (open: boolean) => void
 }
@@ -95,6 +95,17 @@ export function GroupForm({ group, open: controlledOpen, onOpenChange }: GroupFo
               key={group?.id ?? "new"}
               required
               maxLength={50}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="abbreviatedName">省略名</Label>
+            <Input
+              id="abbreviatedName"
+              name="abbreviatedName"
+              defaultValue={group?.abbreviatedName ?? ""}
+              key={`abbr-${group?.id ?? "new"}`}
+              maxLength={10}
+              placeholder="10文字以内"
             />
           </div>
           <div className="flex justify-end gap-2">
