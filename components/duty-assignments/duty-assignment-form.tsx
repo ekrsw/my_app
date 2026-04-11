@@ -202,7 +202,7 @@ export function DutyAssignmentForm({
             <Label htmlFor="title">タイトル</Label>
             <Input
               id="title"
-              placeholder="業務の具体的な内容（例: A社訪問）"
+              placeholder="業務の具体的な内容（例: 研修資料作成）"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               maxLength={100}

@@ -94,6 +94,7 @@ export function DutyDailyTimeline({ data }: DutyDailyTimelineProps) {
       const bars: DutyBarInput[] = duties.map(({ duty, startMin, endMin }) => ({
         id: duty.id,
         dutyTypeName: duty.dutyType.name,
+        title: duty.title,
         color: duty.dutyType.color,
         startMinutes: startMin,
         endMinutes: endMin,
