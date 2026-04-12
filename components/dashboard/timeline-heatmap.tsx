@@ -458,12 +458,20 @@ export function TimelineHeatmap({
             const todayShift = shiftByEmployeeId.get(row.employeeId)
             const isClickable = !!todayShift && !!onShiftCellClick
             return (
-              <tr key={row.employeeId} className="border-t border-border">
+              <tr
+                key={row.employeeId}
+                className={cn(
+                  "border-t border-border",
+                  isClickable && "cursor-pointer group"
+                )}
+                onClick={isClickable ? () => onShiftCellClick!(todayShift!) : undefined}
+              >
                 <td className="sticky left-0 z-10 bg-background px-3 py-1 font-medium whitespace-nowrap shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)]">
                   {emp ? (
                     <Link
                       href={`/employees/${emp.id}`}
                       className="hover:underline hover:text-primary"
+                      onClick={(e) => e.stopPropagation()}
                     >
                       {emp.name}
                     </Link>
@@ -486,15 +494,16 @@ export function TimelineHeatmap({
                                   ? "bg-primary/40 dark:bg-primary/50"
                                   : "bg-primary/20 dark:bg-primary/30")
                               : row.lunchBreak[i] && "bg-yellow-100 dark:bg-yellow-900/30",
-                            present && isClickable && "cursor-pointer hover:opacity-80"
+                            isClickable && present && "group-hover:opacity-80",
+                            isClickable && !present && row.lunchBreak[i] && "group-hover:bg-yellow-200 dark:group-hover:bg-yellow-800/30",
+                            isClickable && !present && !row.lunchBreak[i] && "group-hover:bg-accent"
                           )}
-                          onClick={present && isClickable ? () => onShiftCellClick!(todayShift!) : undefined}
                         />
                       ))}
                     </div>
                     {/* 業務バーオーバーレイ */}
                     {hasDuties && (
-                      <div className="absolute inset-x-0 top-0" onClick={(e) => e.stopPropagation()}>
+                      <div className="absolute inset-x-0 top-0 pointer-events-none [&>*]:pointer-events-auto">
                         <DutyBarsOverlay
                           bars={empBars}
                           axisStartMinutes={axisStartMinutes}
