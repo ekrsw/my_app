@@ -20,6 +20,8 @@ export async function createShiftCode(formData: FormData) {
     defaultIsHoliday: formData.get("defaultIsHoliday") === "true",
     isActive: formData.get("isActive") === "true",
     sortOrder: formData.get("sortOrder"),
+    defaultLunchBreakStart: formData.get("defaultLunchBreakStart") || null,
+    defaultLunchBreakEnd: formData.get("defaultLunchBreakEnd") || null,
   })
 
   if (!parsed.success) {
@@ -36,6 +38,8 @@ export async function createShiftCode(formData: FormData) {
         defaultIsHoliday: parsed.data.defaultIsHoliday,
         isActive: parsed.data.isActive,
         sortOrder: parsed.data.sortOrder,
+        defaultLunchBreakStart: toTimeOrNull(parsed.data.defaultLunchBreakStart),
+        defaultLunchBreakEnd: toTimeOrNull(parsed.data.defaultLunchBreakEnd),
       },
     })
     revalidatePath("/shift-codes")
@@ -58,6 +62,8 @@ export async function updateShiftCode(id: number, formData: FormData) {
     defaultIsHoliday: formData.get("defaultIsHoliday") === "true",
     isActive: formData.get("isActive") === "true",
     sortOrder: formData.get("sortOrder"),
+    defaultLunchBreakStart: formData.get("defaultLunchBreakStart") || null,
+    defaultLunchBreakEnd: formData.get("defaultLunchBreakEnd") || null,
   })
 
   if (!parsed.success) {
@@ -75,6 +81,8 @@ export async function updateShiftCode(id: number, formData: FormData) {
         defaultIsHoliday: parsed.data.defaultIsHoliday,
         isActive: parsed.data.isActive,
         sortOrder: parsed.data.sortOrder,
+        defaultLunchBreakStart: toTimeOrNull(parsed.data.defaultLunchBreakStart),
+        defaultLunchBreakEnd: toTimeOrNull(parsed.data.defaultLunchBreakEnd),
       },
     })
     revalidatePath("/shift-codes")

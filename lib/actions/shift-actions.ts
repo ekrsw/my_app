@@ -17,6 +17,8 @@ export async function createShift(data: {
   endTime?: string | null
   isHoliday?: boolean
   isRemote?: boolean
+  lunchBreakStart?: string | null
+  lunchBreakEnd?: string | null
 }) {
   await requireAuth()
   const parsed = shiftSchema.safeParse(data)
@@ -39,6 +41,12 @@ export async function createShift(data: {
           : null,
         isHoliday: parsed.data.isHoliday,
         isRemote: parsed.data.isRemote,
+        lunchBreakStart: parsed.data.lunchBreakStart
+          ? new Date(`1970-01-01T${parsed.data.lunchBreakStart}Z`)
+          : null,
+        lunchBreakEnd: parsed.data.lunchBreakEnd
+          ? new Date(`1970-01-01T${parsed.data.lunchBreakEnd}Z`)
+          : null,
       },
     })
     revalidatePath("/")
@@ -92,6 +100,8 @@ export async function revertShiftFromAttendance(
           endTime: history.endTime,
           isHoliday: history.isHoliday ?? false,
           isRemote: history.isRemote ?? false,
+          lunchBreakStart: history.lunchBreakStart,
+          lunchBreakEnd: history.lunchBreakEnd,
         },
       })
 
@@ -118,6 +128,8 @@ export async function updateShiftFromAttendance(
     endTime?: string | null
     isHoliday?: boolean
     isRemote?: boolean
+    lunchBreakStart?: string | null
+    lunchBreakEnd?: string | null
   }
 ) {
   await requireAuth()
@@ -137,6 +149,12 @@ export async function updateShiftFromAttendance(
             : null,
           isHoliday: data.isHoliday,
           isRemote: data.isRemote,
+          lunchBreakStart: data.lunchBreakStart !== undefined
+            ? (data.lunchBreakStart ? new Date(`1970-01-01T${data.lunchBreakStart}Z`) : null)
+            : undefined,
+          lunchBreakEnd: data.lunchBreakEnd !== undefined
+            ? (data.lunchBreakEnd ? new Date(`1970-01-01T${data.lunchBreakEnd}Z`) : null)
+            : undefined,
         },
       })
 
@@ -152,6 +170,12 @@ export async function updateShiftFromAttendance(
             : null,
           newIsHoliday: data.isHoliday ?? false,
           newIsRemote: data.isRemote ?? false,
+          newLunchBreakStart: data.lunchBreakStart !== undefined
+            ? (data.lunchBreakStart ? new Date(`1970-01-01T${data.lunchBreakStart}Z`) : null)
+            : undefined,
+          newLunchBreakEnd: data.lunchBreakEnd !== undefined
+            ? (data.lunchBreakEnd ? new Date(`1970-01-01T${data.lunchBreakEnd}Z`) : null)
+            : undefined,
         },
       })
     })
@@ -174,6 +198,8 @@ export async function updateShift(
     isRemote?: boolean
     note?: string | null
     skipHistory?: boolean
+    lunchBreakStart?: string | null
+    lunchBreakEnd?: string | null
   }
 ) {
   await requireAuth()
@@ -197,6 +223,12 @@ export async function updateShift(
             : null,
           isHoliday: data.isHoliday,
           isRemote: data.isRemote,
+          lunchBreakStart: data.lunchBreakStart !== undefined
+            ? (data.lunchBreakStart ? new Date(`1970-01-01T${data.lunchBreakStart}Z`) : null)
+            : undefined,
+          lunchBreakEnd: data.lunchBreakEnd !== undefined
+            ? (data.lunchBreakEnd ? new Date(`1970-01-01T${data.lunchBreakEnd}Z`) : null)
+            : undefined,
         },
       })
     })
@@ -333,6 +365,8 @@ export async function restoreShiftVersion(shiftId: number, version: number) {
         endTime: history.endTime,
         isHoliday: history.isHoliday ?? false,
         isRemote: history.isRemote ?? false,
+        lunchBreakStart: history.lunchBreakStart,
+        lunchBreakEnd: history.lunchBreakEnd,
       },
     })
 

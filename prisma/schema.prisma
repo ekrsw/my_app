@@ -40,14 +40,16 @@ model Employee {
 }
 
 model Shift {
-  id          Int       @id @default(autoincrement())
-  employeeId  String?   @map("employee_id") @db.Uuid
-  shiftDate   DateTime  @map("shift_date") @db.Date
-  shiftCode   String?   @map("shift_code") @db.VarChar(20)
-  startTime   DateTime? @map("start_time") @db.Time(6)
-  endTime     DateTime? @map("end_time") @db.Time(6)
-  isHoliday   Boolean?  @default(false) @map("is_holiday")
-  isRemote    Boolean   @default(false) @map("is_remote")
+  id               Int       @id @default(autoincrement())
+  employeeId       String?   @map("employee_id") @db.Uuid
+  shiftDate        DateTime  @map("shift_date") @db.Date
+  shiftCode        String?   @map("shift_code") @db.VarChar(20)
+  startTime        DateTime? @map("start_time") @db.Time(6)
+  endTime          DateTime? @map("end_time") @db.Time(6)
+  isHoliday        Boolean?  @default(false) @map("is_holiday")
+  isRemote         Boolean   @default(false) @map("is_remote")
+  lunchBreakStart  DateTime? @map("lunch_break_start") @db.Time(6)
+  lunchBreakEnd    DateTime? @map("lunch_break_end") @db.Time(6)
 
   employee Employee? @relation(fields: [employeeId], references: [id], onDelete: Cascade)
 
@@ -83,23 +85,27 @@ model EmployeeFunctionRole {
 }
 
 model ShiftChangeHistory {
-  id             Int       @id @default(autoincrement())
-  shiftId        Int       @map("shift_id")
-  employeeId     String?   @map("employee_id") @db.Uuid
-  shiftDate      DateTime  @map("shift_date") @db.Date
-  shiftCode      String?   @map("shift_code") @db.VarChar(20)
-  startTime      DateTime? @map("start_time") @db.Time(6)
-  endTime        DateTime? @map("end_time") @db.Time(6)
-  isHoliday      Boolean?  @map("is_holiday")
-  isRemote       Boolean?  @map("is_remote")
-  newShiftCode   String?   @map("new_shift_code") @db.VarChar(20)
-  newStartTime   DateTime? @map("new_start_time") @db.Time(6)
-  newEndTime     DateTime? @map("new_end_time") @db.Time(6)
-  newIsHoliday   Boolean?  @map("new_is_holiday")
-  newIsRemote    Boolean?  @map("new_is_remote")
-  version        Int
-  changedAt      DateTime  @default(now()) @map("changed_at")
-  note           String?   @db.VarChar(255)
+  id                  Int       @id @default(autoincrement())
+  shiftId             Int       @map("shift_id")
+  employeeId          String?   @map("employee_id") @db.Uuid
+  shiftDate           DateTime  @map("shift_date") @db.Date
+  shiftCode           String?   @map("shift_code") @db.VarChar(20)
+  startTime           DateTime? @map("start_time") @db.Time(6)
+  endTime             DateTime? @map("end_time") @db.Time(6)
+  isHoliday           Boolean?  @map("is_holiday")
+  isRemote            Boolean?  @map("is_remote")
+  lunchBreakStart     DateTime? @map("lunch_break_start") @db.Time(6)
+  lunchBreakEnd       DateTime? @map("lunch_break_end") @db.Time(6)
+  newShiftCode        String?   @map("new_shift_code") @db.VarChar(20)
+  newStartTime        DateTime? @map("new_start_time") @db.Time(6)
+  newEndTime          DateTime? @map("new_end_time") @db.Time(6)
+  newIsHoliday        Boolean?  @map("new_is_holiday")
+  newIsRemote         Boolean?  @map("new_is_remote")
+  newLunchBreakStart  DateTime? @map("new_lunch_break_start") @db.Time(6)
+  newLunchBreakEnd    DateTime? @map("new_lunch_break_end") @db.Time(6)
+  version             Int
+  changedAt           DateTime  @default(now()) @map("changed_at")
+  note                String?   @db.VarChar(255)
 
   employee Employee? @relation(fields: [employeeId], references: [id], onDelete: Cascade)
 
@@ -172,14 +178,16 @@ model EmployeeFunctionRoleHistory {
 }
 
 model ShiftCode {
-  id                 Int       @id @default(autoincrement())
-  code               String    @unique @db.VarChar(20)
-  color              String?   @db.VarChar(20)
-  defaultStartTime   DateTime? @map("default_start_time") @db.Time(6)
-  defaultEndTime     DateTime? @map("default_end_time") @db.Time(6)
-  defaultIsHoliday   Boolean   @default(false) @map("default_is_holiday")
-  isActive           Boolean?  @default(true) @map("is_active")
-  sortOrder          Int       @default(0) @map("sort_order")
+  id                       Int       @id @default(autoincrement())
+  code                     String    @unique @db.VarChar(20)
+  color                    String?   @db.VarChar(20)
+  defaultStartTime         DateTime? @map("default_start_time") @db.Time(6)
+  defaultEndTime           DateTime? @map("default_end_time") @db.Time(6)
+  defaultIsHoliday         Boolean   @default(false) @map("default_is_holiday")
+  isActive                 Boolean?  @default(true) @map("is_active")
+  sortOrder                Int       @default(0) @map("sort_order")
+  defaultLunchBreakStart   DateTime? @map("default_lunch_break_start") @db.Time(6)
+  defaultLunchBreakEnd     DateTime? @map("default_lunch_break_end") @db.Time(6)
 
   @@map("shift_codes")
 }

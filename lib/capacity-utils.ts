@@ -59,6 +59,18 @@ export function isTimeInRange(start: string, end: string, now: string): boolean 
   return now >= start || now <= end
 }
 
+/** 昼休憩中かどうかを判定（半開区間 [start, end) で判定） */
+export function isLunchBreak(
+  lunchStart: Date | string | null | undefined,
+  lunchEnd: Date | string | null | undefined,
+  slot: string
+): boolean {
+  if (!lunchStart || !lunchEnd) return false
+  const start = getTimeHHMM(lunchStart)
+  const end = getTimeHHMM(lunchEnd)
+  return slot >= start && slot < end
+}
+
 /** 当番が現在アクティブかどうかを判定（深夜跨ぎ対応） */
 export function isDutyActive(
   startTime: Date | string,
@@ -76,10 +88,13 @@ export function isWorkerPresent(
   startTime: Date | string | null,
   endTime: Date | string | null,
   now: string,
-  forTodayShift?: boolean
+  forTodayShift?: boolean,
+  lunchBreakStart?: Date | string | null,
+  lunchBreakEnd?: Date | string | null
 ): boolean {
   if (!startTime) return false
   const start = getTimeHHMM(startTime)
+  if (isLunchBreak(lunchBreakStart, lunchBreakEnd, now)) return false
   if (!endTime) return start <= now
   const end = getTimeHHMM(endTime)
   if (forTodayShift && start > end) {
@@ -92,13 +107,13 @@ export function isWorkerPresent(
 
 /** キャパシティを計算。出勤中・当番中ともにリアルタイム判定。reducesCapacity=false の当番は控除しない */
 export function calculateCapacity(
-  shifts: Array<{ employeeId: string | null; startTime: Date | string | null; endTime: Date | string | null }>,
+  shifts: Array<{ employeeId: string | null; startTime: Date | string | null; endTime: Date | string | null; lunchBreakStart?: Date | string | null; lunchBreakEnd?: Date | string | null }>,
   duties: DutyInput[],
   currentTime: string
 ): { total: number; onDuty: number; available: number } {
   const presentEmployeeIds = new Set<string>()
   for (const shift of shifts) {
-    if (shift.employeeId && isWorkerPresent(shift.startTime, shift.endTime, currentTime)) {
+    if (shift.employeeId && isWorkerPresent(shift.startTime, shift.endTime, currentTime, undefined, shift.lunchBreakStart, shift.lunchBreakEnd)) {
       presentEmployeeIds.add(shift.employeeId)
     }
   }
@@ -130,6 +145,8 @@ export type ShiftWithDetails = {
   employeeId: string | null
   startTime: Date | string | null
   endTime: Date | string | null
+  lunchBreakStart?: Date | string | null
+  lunchBreakEnd?: Date | string | null
   groups: Array<{ id: number; name: string }>
   roles: Array<{ roleType: string; roleName: string; startDate?: Date | string | null; endDate?: Date | string | null }>
   isYesterdayOvernight?: boolean
@@ -161,7 +178,7 @@ export function calculateFilteredCapacity(
   for (const shift of shifts) {
     const isPresent = shift.isYesterdayOvernight
       ? (!!shift.endTime && currentTime <= getTimeHHMM(shift.endTime))
-      : isWorkerPresent(shift.startTime, shift.endTime, currentTime, true)
+      : isWorkerPresent(shift.startTime, shift.endTime, currentTime, true, shift.lunchBreakStart, shift.lunchBreakEnd)
 
     if (shift.employeeId && !seen.has(shift.employeeId) && isPresent) {
       seen.add(shift.employeeId)
@@ -229,7 +246,7 @@ export function extractFilterOptions(
   for (const shift of shifts) {
     const isPresent = shift.isYesterdayOvernight
       ? (!!shift.endTime && currentTime <= getTimeHHMM(shift.endTime))
-      : isWorkerPresent(shift.startTime, shift.endTime, currentTime, true)
+      : isWorkerPresent(shift.startTime, shift.endTime, currentTime, true, shift.lunchBreakStart, shift.lunchBreakEnd)
     if (shift.employeeId && !seen.has(shift.employeeId) && isPresent) {
       seen.add(shift.employeeId)
       for (const g of shift.groups) {
