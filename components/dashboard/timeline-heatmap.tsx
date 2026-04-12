@@ -88,6 +88,7 @@ type Props = {
   showFullDay?: boolean
   nameSearch?: string
   onRowCountChange?: (count: number) => void
+  onShiftCellClick?: (shift: TodayShift) => void
   distinctRoleTypes: readonly [string, string]
   // 業務割当オーバーレイ
   duties?: DutyAssignmentWithDetails[]
@@ -126,6 +127,7 @@ export function TimelineHeatmap({
   showFullDay = false,
   nameSearch = "",
   onRowCountChange,
+  onShiftCellClick,
   distinctRoleTypes,
   duties,
   groupOptions,
@@ -293,6 +295,16 @@ export function TimelineHeatmap({
     return map
   }, [duties])
 
+  // 今日のシフトをemployeeIdで逆引き（セルクリック時に使用）
+  const shiftByEmployeeId = useMemo(() => {
+    const map = new Map<string, TodayShift>()
+    for (const shift of shifts) {
+      const empId = shift.employee?.id
+      if (empId) map.set(empId, shift)
+    }
+    return map
+  }, [shifts])
+
   // 名前検索フィルタ
   const filteredGrid = useMemo(() => {
     if (!nameSearch.trim()) return mergedGrid
@@ -443,6 +455,8 @@ export function TimelineHeatmap({
             const hasDuties = empBars.length > 0
             const laneCount = hasDuties ? computeLaneCount(empBars) : 0
             const rowHeight = hasDuties ? computeRowHeight(laneCount, 20, 2) : 28
+            const todayShift = shiftByEmployeeId.get(row.employeeId)
+            const isClickable = !!todayShift && !!onShiftCellClick
             return (
               <tr key={row.employeeId} className="border-t border-border">
                 <td className="sticky left-0 z-10 bg-background px-3 py-1 font-medium whitespace-nowrap shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)]">
@@ -471,14 +485,16 @@ export function TimelineHeatmap({
                               ? (i === currentSlotIndex
                                   ? "bg-primary/40 dark:bg-primary/50"
                                   : "bg-primary/20 dark:bg-primary/30")
-                              : row.lunchBreak[i] && "bg-yellow-100 dark:bg-yellow-900/30"
+                              : row.lunchBreak[i] && "bg-yellow-100 dark:bg-yellow-900/30",
+                            present && isClickable && "cursor-pointer hover:opacity-80"
                           )}
+                          onClick={present && isClickable ? () => onShiftCellClick!(todayShift!) : undefined}
                         />
                       ))}
                     </div>
                     {/* 業務バーオーバーレイ */}
                     {hasDuties && (
-                      <div className="absolute inset-x-0 top-0">
+                      <div className="absolute inset-x-0 top-0" onClick={(e) => e.stopPropagation()}>
                         <DutyBarsOverlay
                           bars={empBars}
                           axisStartMinutes={axisStartMinutes}
