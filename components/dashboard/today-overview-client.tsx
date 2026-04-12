@@ -495,6 +495,7 @@ export function TodayOverviewClient({ shifts, overnightShifts, filterOptions, di
                 showFullDay={!excludeNightShift}
                 nameSearch={nameSearch}
                 onRowCountChange={setTimelineRowCount}
+                onShiftCellClick={handleRowClick}
                 distinctRoleTypes={distinctRoleTypes}
                 duties={dutyAssignments}
                 groupOptions={groupOptions}

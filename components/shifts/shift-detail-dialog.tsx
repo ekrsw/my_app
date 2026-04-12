@@ -94,6 +94,16 @@ export function ShiftDetailDialog({
             </span>
           </div>
 
+          {/* 昼休憩 */}
+          {(shift.lunchBreakStart && shift.lunchBreakEnd) && (
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-muted-foreground">昼休憩</span>
+              <span className="text-sm font-medium">
+                {formatTime(shift.lunchBreakStart)} 〜 {formatTime(shift.lunchBreakEnd)}
+              </span>
+            </div>
+          )}
+
           <Separator />
 
           {/* 休日 */}
