@@ -30,6 +30,8 @@ type ActiveShiftCode = {
   defaultIsHoliday: boolean
   isActive: boolean | null
   sortOrder: number
+  defaultLunchBreakStart: Date | null
+  defaultLunchBreakEnd: Date | null
 }
 
 type ShiftPageClientProps = {

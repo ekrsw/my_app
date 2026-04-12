@@ -39,6 +39,8 @@ type ShiftCodeFormProps = {
     defaultIsHoliday: boolean
     isActive: boolean | null
     sortOrder: number
+    defaultLunchBreakStart: Date | null
+    defaultLunchBreakEnd: Date | null
   }
   open?: boolean
   onOpenChange?: (open: boolean) => void
@@ -155,6 +157,28 @@ export function ShiftCodeForm({ shiftCode, open: controlledOpen, onOpenChange }:
                 type="time"
                 defaultValue={timeToInput(shiftCode?.defaultEndTime ?? null)}
                 key={`end-${shiftCode?.id ?? "new"}`}
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="defaultLunchBreakStart">昼休憩開始</Label>
+              <Input
+                id="defaultLunchBreakStart"
+                name="defaultLunchBreakStart"
+                type="time"
+                defaultValue={timeToInput(shiftCode?.defaultLunchBreakStart ?? null)}
+                key={`lunchStart-${shiftCode?.id ?? "new"}`}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="defaultLunchBreakEnd">昼休憩終了</Label>
+              <Input
+                id="defaultLunchBreakEnd"
+                name="defaultLunchBreakEnd"
+                type="time"
+                defaultValue={timeToInput(shiftCode?.defaultLunchBreakEnd ?? null)}
+                key={`lunchEnd-${shiftCode?.id ?? "new"}`}
               />
             </div>
           </div>

@@ -42,6 +42,8 @@ type ActiveShiftCode = {
   defaultIsHoliday: boolean
   isActive: boolean | null
   sortOrder: number
+  defaultLunchBreakStart: Date | null
+  defaultLunchBreakEnd: Date | null
 }
 
 type AttendanceEditFormProps = {
@@ -55,6 +57,8 @@ type AttendanceEditFormProps = {
     endTime: Date | null
     isHoliday: boolean | null
     isRemote: boolean
+    lunchBreakStart: Date | null
+    lunchBreakEnd: Date | null
   }
   employeeName: string
   shiftCodes: ActiveShiftCode[]
@@ -89,6 +93,8 @@ function AttendanceEditFormInner({
   const [isRemote, setIsRemote] = useState(shift.isRemote ?? false)
   const startTimeRef = useRef<HTMLInputElement>(null)
   const endTimeRef = useRef<HTMLInputElement>(null)
+  const lunchBreakStartRef = useRef<HTMLInputElement>(null)
+  const lunchBreakEndRef = useRef<HTMLInputElement>(null)
 
   function getSelectValue(shiftCode: string | null): string {
     if (!shiftCode) return NONE_VALUE
@@ -117,6 +123,12 @@ function AttendanceEditFormInner({
       if (endTimeRef.current) {
         endTimeRef.current.value = timeToInput(preset.defaultEndTime)
       }
+      if (lunchBreakStartRef.current) {
+        lunchBreakStartRef.current.value = timeToInput(preset.defaultLunchBreakStart)
+      }
+      if (lunchBreakEndRef.current) {
+        lunchBreakEndRef.current.value = timeToInput(preset.defaultLunchBreakEnd)
+      }
       setIsHoliday(preset.defaultIsHoliday)
     }
   }
@@ -132,6 +144,8 @@ function AttendanceEditFormInner({
       endTime: (form.get("endTime") as string) || null,
       isHoliday,
       isRemote,
+      lunchBreakStart: (form.get("lunchBreakStart") as string) || null,
+      lunchBreakEnd: (form.get("lunchBreakEnd") as string) || null,
     })
     setLoading(false)
     if (result.error) {
@@ -212,6 +226,28 @@ function AttendanceEditFormInner({
               name="endTime"
               type="time"
               defaultValue={timeToInput(shift.endTime)}
+            />
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="lunchBreakStart">昼休憩開始</Label>
+            <Input
+              ref={lunchBreakStartRef}
+              id="lunchBreakStart"
+              name="lunchBreakStart"
+              type="time"
+              defaultValue={timeToInput(shift.lunchBreakStart)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="lunchBreakEnd">昼休憩終了</Label>
+            <Input
+              ref={lunchBreakEndRef}
+              id="lunchBreakEnd"
+              name="lunchBreakEnd"
+              type="time"
+              defaultValue={timeToInput(shift.lunchBreakEnd)}
             />
           </div>
         </div>

@@ -51,6 +51,8 @@ type ShiftCodeOption = {
   defaultIsHoliday: boolean
   isActive: boolean | null
   sortOrder: number
+  defaultLunchBreakStart: Date | null
+  defaultLunchBreakEnd: Date | null
 }
 
 type ShiftDailyViewProps = {
@@ -663,6 +665,8 @@ export function ShiftDailyView({
         endTime: editRow.endTime,
         isHoliday: editRow.isHoliday,
         isRemote: editRow.isRemote,
+        lunchBreakStart: editRow.lunchBreakStart,
+        lunchBreakEnd: editRow.lunchBreakEnd,
       }
     : undefined
 

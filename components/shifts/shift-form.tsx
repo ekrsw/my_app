@@ -50,6 +50,8 @@ type ActiveShiftCode = {
   defaultIsHoliday: boolean
   isActive: boolean | null
   sortOrder: number
+  defaultLunchBreakStart: Date | null
+  defaultLunchBreakEnd: Date | null
 }
 
 type ShiftFormProps = {
@@ -64,6 +66,8 @@ type ShiftFormProps = {
     endTime: Date | null
     isHoliday: boolean | null
     isRemote: boolean
+    lunchBreakStart: Date | null
+    lunchBreakEnd: Date | null
   }
   employeeId?: string
   date?: string
@@ -106,6 +110,8 @@ function ShiftFormInner({ onClose, shift, employeeId, date, shiftCodes = [], emp
   const [skipHistory, setSkipHistory] = useState(false)
   const startTimeRef = useRef<HTMLInputElement>(null)
   const endTimeRef = useRef<HTMLInputElement>(null)
+  const lunchBreakStartRef = useRef<HTMLInputElement>(null)
+  const lunchBreakEndRef = useRef<HTMLInputElement>(null)
 
   // 従業員セレクター用ステート
   const [employeeSearch, setEmployeeSearch] = useState("")
@@ -146,6 +152,12 @@ function ShiftFormInner({ onClose, shift, employeeId, date, shiftCodes = [], emp
       }
       if (endTimeRef.current) {
         endTimeRef.current.value = timeToInput(existingShift?.endTime ?? null)
+      }
+      if (lunchBreakStartRef.current) {
+        lunchBreakStartRef.current.value = timeToInput(existingShift?.lunchBreakStart ?? null)
+      }
+      if (lunchBreakEndRef.current) {
+        lunchBreakEndRef.current.value = timeToInput(existingShift?.lunchBreakEnd ?? null)
       }
 
       if (existingShift?.id) {
@@ -202,6 +214,12 @@ function ShiftFormInner({ onClose, shift, employeeId, date, shiftCodes = [], emp
       if (endTimeRef.current) {
         endTimeRef.current.value = timeToInput(preset.defaultEndTime)
       }
+      if (lunchBreakStartRef.current) {
+        lunchBreakStartRef.current.value = timeToInput(preset.defaultLunchBreakStart)
+      }
+      if (lunchBreakEndRef.current) {
+        lunchBreakEndRef.current.value = timeToInput(preset.defaultLunchBreakEnd)
+      }
       setIsHoliday(preset.defaultIsHoliday)
       // isRemote は変更しない
     }
@@ -234,6 +252,8 @@ function ShiftFormInner({ onClose, shift, employeeId, date, shiftCodes = [], emp
         isRemote,
         note: skipHistory ? null : (note || null),
         skipHistory,
+        lunchBreakStart: (form.get("lunchBreakStart") as string) || null,
+        lunchBreakEnd: (form.get("lunchBreakEnd") as string) || null,
       })
       setLoading(false)
       if (result.error) {
@@ -251,6 +271,8 @@ function ShiftFormInner({ onClose, shift, employeeId, date, shiftCodes = [], emp
         endTime: (form.get("endTime") as string) || null,
         isHoliday,
         isRemote,
+        lunchBreakStart: (form.get("lunchBreakStart") as string) || null,
+        lunchBreakEnd: (form.get("lunchBreakEnd") as string) || null,
       })
       setLoading(false)
       if (result.error) {
@@ -387,6 +409,28 @@ function ShiftFormInner({ onClose, shift, employeeId, date, shiftCodes = [], emp
               name="endTime"
               type="time"
               defaultValue={timeToInput(resolvedShift?.endTime ?? null)}
+            />
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="lunchBreakStart">昼休憩開始</Label>
+            <Input
+              ref={lunchBreakStartRef}
+              id="lunchBreakStart"
+              name="lunchBreakStart"
+              type="time"
+              defaultValue={timeToInput(resolvedShift?.lunchBreakStart ?? null)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="lunchBreakEnd">昼休憩終了</Label>
+            <Input
+              ref={lunchBreakEndRef}
+              id="lunchBreakEnd"
+              name="lunchBreakEnd"
+              type="time"
+              defaultValue={timeToInput(resolvedShift?.lunchBreakEnd ?? null)}
             />
           </div>
         </div>

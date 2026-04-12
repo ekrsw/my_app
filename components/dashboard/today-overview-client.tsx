@@ -62,6 +62,8 @@ type ActiveShiftCode = {
   defaultIsHoliday: boolean
   isActive: boolean | null
   sortOrder: number
+  defaultLunchBreakStart: Date | null
+  defaultLunchBreakEnd: Date | null
 }
 
 type Props = {
@@ -735,6 +737,8 @@ export function TodayOverviewClient({ shifts, overnightShifts, filterOptions, di
             endTime: editRow.endTime,
             isHoliday: editRow.isHoliday,
             isRemote: editRow.isRemote,
+            lunchBreakStart: editRow.lunchBreakStart,
+            lunchBreakEnd: editRow.lunchBreakEnd,
           }}
           employeeId={editRow.employeeId ?? undefined}
           date={todayDateString}

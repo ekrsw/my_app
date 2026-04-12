@@ -2,7 +2,7 @@
 
 import { ReactNode, useMemo, useState, useEffect, useRef } from "react"
 import Link from "next/link"
-import { getTimeHHMM, getCurrentJSTTimeHHMM } from "@/lib/capacity-utils"
+import { getTimeHHMM, getCurrentJSTTimeHHMM, isLunchBreak } from "@/lib/capacity-utils"
 import { cn } from "@/lib/utils"
 import { ColumnFilterPopover } from "@/components/common/filters/column-filter-popover"
 import { CheckboxListFilter } from "@/components/common/filters/checkbox-list-filter"
@@ -36,10 +36,13 @@ const TIME_SLOTS_FULL = generateTimeSlots(0, 24)
 export function isPresent(
   startTime: Date | string | null,
   endTime: Date | string | null,
-  slot: string
+  slot: string,
+  lunchBreakStart?: Date | string | null,
+  lunchBreakEnd?: Date | string | null
 ): boolean {
   if (!startTime) return false
   const start = getTimeHHMM(startTime)
+  if (isLunchBreak(lunchBreakStart, lunchBreakEnd, slot)) return false
   if (!endTime) return start <= slot
   const end = getTimeHHMM(endTime)
   if (start <= end) {
@@ -76,6 +79,7 @@ type MergedRow = {
   employeeName: string
   employee: TodayShift["employee"]
   presence: boolean[]
+  lunchBreak: boolean[]
 }
 
 type Props = {
@@ -199,6 +203,7 @@ export function TimelineHeatmap({
       employee: TodayShift["employee"]
       todayPresence: boolean[]
       overnightPresence: boolean[]
+      lunchBreak: boolean[]
     }>()
 
     // 今日のシフト
@@ -206,12 +211,16 @@ export function TimelineHeatmap({
       const empId = shift.employee?.id
       if (!empId) continue
       const presence = timeSlots.map((slot) =>
-        isPresent(shift.startTime, shift.endTime, slot)
+        isPresent(shift.startTime, shift.endTime, slot, shift.lunchBreakStart, shift.lunchBreakEnd)
+      )
+      const lunchBreak = timeSlots.map((slot) =>
+        isLunchBreak(shift.lunchBreakStart, shift.lunchBreakEnd, slot)
       )
       employeeMap.set(empId, {
         employee: shift.employee,
         todayPresence: presence,
         overnightPresence: timeSlots.map(() => false),
+        lunchBreak,
       })
     }
 
@@ -231,6 +240,7 @@ export function TimelineHeatmap({
             employee: shift.employee,
             todayPresence: timeSlots.map(() => false),
             overnightPresence,
+            lunchBreak: timeSlots.map(() => false),
           })
         }
       }
@@ -244,6 +254,7 @@ export function TimelineHeatmap({
         employeeName: data.employee?.name ?? "",
         employee: data.employee,
         presence: data.todayPresence.map((today, i) => today || data.overnightPresence[i]),
+        lunchBreak: data.lunchBreak,
       })
     }
 
@@ -456,10 +467,11 @@ export function TimelineHeatmap({
                           className={cn(
                             "w-9 min-w-9 shrink-0 h-full",
                             i % 2 === 0 && "border-l border-border",
-                            present &&
-                              (i === currentSlotIndex
-                                ? "bg-primary/40 dark:bg-primary/50"
-                                : "bg-primary/20 dark:bg-primary/30")
+                            present
+                              ? (i === currentSlotIndex
+                                  ? "bg-primary/40 dark:bg-primary/50"
+                                  : "bg-primary/20 dark:bg-primary/30")
+                              : row.lunchBreak[i] && "bg-yellow-100 dark:bg-yellow-900/30"
                           )}
                         />
                       ))}

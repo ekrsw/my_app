@@ -26,6 +26,8 @@ type ActiveShiftCode = {
   defaultIsHoliday: boolean
   isActive: boolean | null
   sortOrder: number
+  defaultLunchBreakStart: Date | null
+  defaultLunchBreakEnd: Date | null
 }
 
 type Props = {
@@ -66,6 +68,8 @@ export function TodayAttendance({ changes, employees, shiftCodes, isAuthenticate
       endTime: Date | null
       isHoliday: boolean | null
       isRemote: boolean
+      lunchBreakStart: Date | null
+      lunchBreakEnd: Date | null
     }
     employeeName: string
   } | null>(null)
@@ -88,6 +92,8 @@ export function TodayAttendance({ changes, employees, shiftCodes, isAuthenticate
         endTime: shift.endTime,
         isHoliday: shift.isHoliday,
         isRemote: shift.isRemote,
+        lunchBreakStart: shift.lunchBreakStart,
+        lunchBreakEnd: shift.lunchBreakEnd,
       },
       employeeName: change.employee?.name ?? "不明",
     })
