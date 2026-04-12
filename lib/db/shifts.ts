@@ -623,6 +623,8 @@ export async function getShiftsForDaily(
       endTime: shift?.endTime ?? null,
       isHoliday: shift?.isHoliday ?? null,
       isRemote: shift?.isRemote ?? false,
+      lunchBreakStart: shift?.lunchBreakStart ?? null,
+      lunchBreakEnd: shift?.lunchBreakEnd ?? null,
     }
   })
 

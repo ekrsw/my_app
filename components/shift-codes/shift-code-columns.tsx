@@ -15,6 +15,8 @@ type ShiftCodeRow = {
   defaultIsHoliday: boolean
   isActive: boolean | null
   sortOrder: number
+  defaultLunchBreakStart: Date | null
+  defaultLunchBreakEnd: Date | null
 }
 
 function formatTime(d: Date | string | null): string {

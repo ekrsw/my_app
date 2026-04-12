@@ -87,7 +87,7 @@ type DutyAssignmentPageClientProps = {
   shiftCodeMap: ShiftCodeMap
   shiftCodeInfoMap: Record<string, ShiftCodeInfo>
   shiftDataMap: Record<string, Record<string, Shift>>
-  shiftCodes: { id: number; code: string; color: string | null; defaultStartTime: Date | null; defaultEndTime: Date | null; defaultIsHoliday: boolean; isActive: boolean | null; sortOrder: number }[]
+  shiftCodes: { id: number; code: string; color: string | null; defaultStartTime: Date | null; defaultEndTime: Date | null; defaultIsHoliday: boolean; isActive: boolean | null; sortOrder: number; defaultLunchBreakStart: Date | null; defaultLunchBreakEnd: Date | null }[]
   shiftIdsWithHistory: number[]
   shiftLatestHistory: Record<number, LatestShiftHistory>
   groups: { id: number; name: string }[]

@@ -15,6 +15,11 @@ export const employeeSchema = z.object({
   terminationDate: z.string().nullable().optional(),
 })
 
+const timeHHmmField = z.union([z.string(), z.null()])
+  .transform((v) => (!v || v === "" ? null : v))
+  .pipe(z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "HH:mm形式で入力してください").nullable())
+  .optional()
+
 export const shiftSchema = z.object({
   employeeId: z.string().uuid("従業員を選択してください"),
   shiftDate: z.string().min(1, "日付は必須です"),
@@ -23,6 +28,8 @@ export const shiftSchema = z.object({
   endTime: z.string().nullable().optional(),
   isHoliday: z.boolean().default(false),
   isRemote: z.boolean().default(false),
+  lunchBreakStart: timeHHmmField,
+  lunchBreakEnd: timeHHmmField,
 })
 
 export const shiftBulkSchema = z.object({
@@ -103,6 +110,8 @@ export const shiftCodeSchema = z.object({
   defaultIsHoliday: z.boolean().default(false),
   isActive: z.boolean().default(true),
   sortOrder: z.coerce.number().int().min(0, "0以上の数値を入力してください").default(0),
+  defaultLunchBreakStart: timeHHmmField,
+  defaultLunchBreakEnd: timeHHmmField,
 })
 export type ShiftCodeFormData = z.infer<typeof shiftCodeSchema>
 

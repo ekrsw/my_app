@@ -42,6 +42,8 @@ export type ShiftDailyRow = {
   endTime: Date | null
   isHoliday: boolean | null
   isRemote: boolean
+  lunchBreakStart: Date | null
+  lunchBreakEnd: Date | null
 }
 
 export type ShiftDailyPaginatedResult = {
