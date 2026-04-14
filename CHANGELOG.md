@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.13.2] - 2026-04-15
+
+### Fixed
+- 「本日の勤怠」エリアの表示条件を修正。変更操作日（changedAt）ではなく変更対象日（shiftDate）でフィルタするよう変更し、本日のシフトに関する変更のみ表示されるようになった
+
 ## [0.2.13.1] - 2026-04-15
 
 ### Changed
