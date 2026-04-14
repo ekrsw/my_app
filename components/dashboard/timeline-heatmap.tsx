@@ -2,7 +2,7 @@
 
 import { ReactNode, useMemo, useState, useEffect, useRef } from "react"
 import Link from "next/link"
-import { getTimeHHMM, getCurrentJSTTimeHHMM, isLunchBreak } from "@/lib/capacity-utils"
+import { getTimeHHMM, getCurrentJSTTimeHHMM, isLunchBreak, getCapacityColor, getTodayJSTDateStr, isRoleActiveToday } from "@/lib/capacity-utils"
 import { cn } from "@/lib/utils"
 import { ColumnFilterPopover } from "@/components/common/filters/column-filter-popover"
 import { CheckboxListFilter } from "@/components/common/filters/checkbox-list-filter"
@@ -67,6 +67,75 @@ export function isPresentOvernight(
   return slot < end
 }
 
+/** フッター統計行の型 */
+export type SlotStat = {
+  present: number
+  sv: number
+  lunch: number
+  onDuty: number
+  available: number
+}
+
+/** フッター統計を計算する純粋関数 */
+export function computeSlotStats(
+  filteredGrid: MergedRow[],
+  timeSlots: string[],
+  duties: DutyAssignmentWithDetails[] | undefined,
+  distinctRoleTypes: readonly [string, string],
+): SlotStat[] {
+  // 業務割当のスロット判定（reducesCapacity=true のみ、日跨ぎ対応）
+  const dutyPresence = new Map<string, boolean[]>()
+  if (duties) {
+    for (const duty of duties) {
+      if (!duty.startTime || !duty.endTime || !duty.reducesCapacity) continue
+      const start = getTimeHHMM(duty.startTime)
+      const end = getTimeHHMM(duty.endTime)
+      const isOvernight = end < start
+      const slots = timeSlots.map(slot =>
+        isOvernight
+          ? (slot >= start || slot < end)
+          : (start <= slot && slot < end)
+      )
+      const existing = dutyPresence.get(duty.employeeId)
+      if (existing) {
+        dutyPresence.set(duty.employeeId, existing.map((v, i) => v || slots[i]))
+      } else {
+        dutyPresence.set(duty.employeeId, slots)
+      }
+    }
+  }
+
+  // SV判定（roleType=distinctRoleTypes[0]、有効期間内）
+  const todayStr = getTodayJSTDateStr()
+  const isSV = (emp: MergedRow["employee"]) =>
+    emp?.functionRoles?.some(r =>
+      r.functionRole?.roleType === distinctRoleTypes[0] &&
+      isRoleActiveToday(r.startDate, r.endDate, todayStr)
+    ) ?? false
+
+  return timeSlots.map((_, i) => {
+    let present = 0, sv = 0, lunch = 0, onDuty = 0, unavailable = 0
+    for (const row of filteredGrid) {
+      const isAtWork = row.presence[i] || row.lunchBreak[i]
+      if (!isAtWork) continue
+      present++
+      if (isSV(row.employee)) sv++
+      const isOnLunch = row.lunchBreak[i]
+      const isOnDuty = dutyPresence.get(row.employeeId)?.[i] ?? false
+      if (isOnLunch || isOnDuty) unavailable++
+      if (isOnLunch) lunch++
+      if (isOnDuty) onDuty++
+    }
+    return {
+      present,
+      sv,
+      lunch,
+      onDuty,
+      available: Math.max(0, present - unavailable),
+    }
+  })
+}
+
 /** 時間ラベル（08, 09, ... 21）*/
 const HOUR_LABELS_DAY = Array.from({ length: 14 }, (_, i) => i + 8)
 /** 時間ラベル（00, 01, ... 23）*/
@@ -74,7 +143,7 @@ const HOUR_LABELS_FULL = Array.from({ length: 24 }, (_, i) => i)
 
 type FilterOption = { value: string; label: ReactNode; searchText?: string }
 
-type MergedRow = {
+export type MergedRow = {
   employeeId: string
   employeeName: string
   employee: TodayShift["employee"]
@@ -319,12 +388,9 @@ export function TimelineHeatmap({
     onRowCountChange?.(filteredGrid.length)
   }, [filteredGrid.length, onRowCountChange])
 
-  const slotCounts = useMemo(
-    () =>
-      timeSlots.map((_, i) =>
-        filteredGrid.reduce((count, row) => count + (row.presence[i] ? 1 : 0), 0)
-      ),
-    [filteredGrid, timeSlots]
+  const slotStats = useMemo(
+    () => computeSlotStats(filteredGrid, timeSlots, duties, distinctRoleTypes),
+    [filteredGrid, timeSlots, duties, distinctRoleTypes]
   )
 
   const currentSlotIndex = useMemo(() => {
@@ -521,28 +587,107 @@ export function TimelineHeatmap({
           })}
         </tbody>
 
-        {/* フッター: 合計行 */}
+        {/* フッター: 統計行 */}
         <tfoot className="sticky bottom-0 z-20">
+          {/* 出勤行 */}
           <tr className="border-t-2 border-border">
-            <td className="sticky left-0 z-30 bg-muted px-3 py-1.5 font-semibold shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)]">
-              合計
+            <td className="sticky left-0 z-30 bg-muted px-3 py-1 font-semibold text-xs shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)]">
+              出勤
             </td>
-            {slotCounts.map((count, i) => (
+            {slotStats.map((stat, i) => (
               <td
                 key={i}
                 className={cn(
-                  "bg-muted w-9 min-w-9 px-0 py-1.5 text-center font-semibold",
+                  "bg-muted w-9 min-w-9 px-0 py-1 text-center text-xs font-semibold",
                   i % 2 === 0 && "border-l border-border",
-                  count === 0
+                  stat.present === 0
                     ? "text-muted-foreground"
                     : i === currentSlotIndex
                       ? "bg-primary/20 dark:bg-primary/30"
                       : ""
                 )}
               >
-                {count}
+                {stat.present}
               </td>
             ))}
+          </tr>
+          {/* SV行 */}
+          <tr>
+            <td className="sticky left-0 z-30 bg-muted px-3 py-0.5 text-xs text-muted-foreground shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)]">
+              SV
+            </td>
+            {slotStats.map((stat, i) => (
+              <td
+                key={i}
+                className={cn(
+                  "bg-muted w-9 min-w-9 px-0 py-0.5 text-center text-xs text-muted-foreground",
+                  i % 2 === 0 && "border-l border-border",
+                  i === currentSlotIndex && stat.sv > 0 && "bg-primary/20 dark:bg-primary/30"
+                )}
+              >
+                {stat.sv}
+              </td>
+            ))}
+          </tr>
+          {/* 昼休憩行 */}
+          <tr>
+            <td className="sticky left-0 z-30 bg-muted px-3 py-0.5 text-xs text-muted-foreground shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)]">
+              昼休憩
+            </td>
+            {slotStats.map((stat, i) => (
+              <td
+                key={i}
+                className={cn(
+                  "bg-muted w-9 min-w-9 px-0 py-0.5 text-center text-xs text-muted-foreground",
+                  i % 2 === 0 && "border-l border-border",
+                  i === currentSlotIndex && stat.lunch > 0 && "bg-primary/20 dark:bg-primary/30"
+                )}
+              >
+                {stat.lunch}
+              </td>
+            ))}
+          </tr>
+          {/* 他業務行 */}
+          <tr>
+            <td className="sticky left-0 z-30 bg-muted px-3 py-0.5 text-xs text-muted-foreground shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)]">
+              他業務
+            </td>
+            {slotStats.map((stat, i) => (
+              <td
+                key={i}
+                className={cn(
+                  "bg-muted w-9 min-w-9 px-0 py-0.5 text-center text-xs text-muted-foreground",
+                  i % 2 === 0 && "border-l border-border",
+                  i === currentSlotIndex && stat.onDuty > 0 && "bg-primary/20 dark:bg-primary/30"
+                )}
+              >
+                {stat.onDuty}
+              </td>
+            ))}
+          </tr>
+          {/* 対応可能行 */}
+          <tr>
+            <td className="sticky left-0 z-30 bg-muted px-3 py-1 font-semibold text-xs shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)]">
+              対応可能
+            </td>
+            {slotStats.map((stat, i) => {
+              const color = getCapacityColor(stat.available)
+              return (
+                <td
+                  key={i}
+                  className={cn(
+                    "w-9 min-w-9 px-0 py-1 text-center text-xs font-semibold",
+                    i % 2 === 0 && "border-l border-border",
+                    color === "green" && "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
+                    color === "yellow" && "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300",
+                    color === "red" && "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300",
+                    i === currentSlotIndex && "ring-1 ring-inset ring-primary/40"
+                  )}
+                >
+                  {stat.available}
+                </td>
+              )
+            })}
           </tr>
         </tfoot>
       </table>

@@ -10,7 +10,7 @@ export function getTimeHHMM(d: Date | string): string {
 }
 
 /** 現在のJST日付を "YYYY-MM-DD" で返す */
-function getTodayJSTDateStr(): string {
+export function getTodayJSTDateStr(): string {
   const now = new Date()
   const jstMs = now.getTime() + 9 * 60 * 60 * 1000
   const jst = new Date(jstMs)
@@ -24,7 +24,7 @@ function toDateStr(d: Date | string): string {
 }
 
 /** ロール割り当ての startDate/endDate が今日を含む有効期間内かを判定 */
-function isRoleActiveToday(
+export function isRoleActiveToday(
   startDate: Date | string | null | undefined,
   endDate: Date | string | null | undefined,
   todayStr: string
