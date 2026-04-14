@@ -281,7 +281,7 @@ export async function getTodayShiftChangeHistory() {
 
   return prisma.shiftChangeHistory.findMany({
     where: {
-      changedAt: {
+      shiftDate: {
         gte: todayStart,
         lt: tomorrowStart,
       },
