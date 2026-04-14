@@ -62,7 +62,11 @@ export function CapacitySummary({ shifts, duties, roleTypes }: Props) {
   }, [selectedGroupIds, selectedRoleNames])
 
   const isFiltered = !!filter
-  const { total, onDuty, available, svTotal, svAvailable } = calculateFilteredCapacity(shifts, duties, currentTime, filter, "SV")
+  const capacity = useMemo(
+    () => calculateFilteredCapacity(shifts, duties, currentTime, filter, "SV"),
+    [shifts, duties, currentTime, filter]
+  )
+  const { total, onDuty, onLunch, available, svTotal, svAvailable } = capacity
   const color = getCapacityColor(available)
 
   return (
@@ -145,8 +149,12 @@ export function CapacitySummary({ shifts, duties, roleTypes }: Props) {
             </div>
           </div>
           <div className="text-center">
+            <div className="text-2xl font-bold">{onLunch}</div>
+            <div className="text-xs text-muted-foreground">昼休憩</div>
+          </div>
+          <div className="text-center">
             <div className="text-2xl font-bold">{onDuty}</div>
-            <div className="text-xs text-muted-foreground">他業務中</div>
+            <div className="text-xs text-muted-foreground">他業務</div>
           </div>
           <div className={cn("rounded-lg px-4 py-2 text-center", COLOR_STYLES[color])}>
             <div className="text-2xl font-bold">{available}</div>
