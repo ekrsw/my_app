@@ -171,18 +171,20 @@ export function calculateFilteredCapacity(
   currentTime: string,
   filter?: CapacityFilter,
   svRoleName?: string
-): { total: number; onDuty: number; available: number; svTotal: number; svAvailable: number } {
-  // 出勤中の従業員を特定
-  const presentEmployees: Array<{ id: string; groups: Array<{ id: number }>; roles: ShiftWithDetails["roles"] }> = []
+): { total: number; onDuty: number; onLunch: number; available: number; svTotal: number; svAvailable: number } {
+  // 出勤中の従業員を特定（昼休憩中も「出勤」に含める）
+  const presentEmployees: Array<{ id: string; groups: Array<{ id: number }>; roles: ShiftWithDetails["roles"]; isOnLunch: boolean }> = []
   const seen = new Set<string>()
   for (const shift of shifts) {
     const isPresent = shift.isYesterdayOvernight
       ? (!!shift.endTime && currentTime <= getTimeHHMM(shift.endTime))
-      : isWorkerPresent(shift.startTime, shift.endTime, currentTime, true, shift.lunchBreakStart, shift.lunchBreakEnd)
+      : isWorkerPresent(shift.startTime, shift.endTime, currentTime, true)
 
     if (shift.employeeId && !seen.has(shift.employeeId) && isPresent) {
       seen.add(shift.employeeId)
-      presentEmployees.push({ id: shift.employeeId, groups: shift.groups, roles: shift.roles })
+      const onLunch = !shift.isYesterdayOvernight
+        && isLunchBreak(shift.lunchBreakStart, shift.lunchBreakEnd, currentTime)
+      presentEmployees.push({ id: shift.employeeId, groups: shift.groups, roles: shift.roles, isOnLunch: onLunch })
     }
   }
 
@@ -206,6 +208,10 @@ export function calculateFilteredCapacity(
   const filteredIds = new Set(filtered.map((e) => e.id))
   const total = filteredIds.size
 
+  // 昼休憩中
+  const lunchIds = new Set(filtered.filter((e) => e.isOnLunch).map((e) => e.id))
+  const onLunch = lunchIds.size
+
   // 当番中（reducesCapacity=true のもののみ控除）
   const onDutyIds = new Set<string>()
   for (const duty of duties) {
@@ -214,6 +220,10 @@ export function calculateFilteredCapacity(
     }
   }
   const onDuty = onDutyIds.size
+
+  // 対応不可 = 昼休憩 ∪ 当番（重複は1回のみカウント）
+  const unavailableIds = new Set([...lunchIds, ...onDutyIds])
+  const unavailable = unavailableIds.size
 
   // SV人数カウント（filteredIds の中でSVロールを持ち、かつ今日が有効期間内の従業員）
   let svTotal = 0
@@ -226,12 +236,12 @@ export function calculateFilteredCapacity(
       )
       if (isSV) {
         svTotal++
-        if (!onDutyIds.has(e.id)) svAvailable++
+        if (!onDutyIds.has(e.id) && !lunchIds.has(e.id)) svAvailable++
       }
     }
   }
 
-  return { total, onDuty, available: Math.max(0, total - onDuty), svTotal, svAvailable }
+  return { total, onDuty, onLunch, available: Math.max(0, total - unavailable), svTotal, svAvailable }
 }
 
 /** 出勤中の従業員から、フィルター選択肢（グループ・ロール）を抽出 */
@@ -246,7 +256,7 @@ export function extractFilterOptions(
   for (const shift of shifts) {
     const isPresent = shift.isYesterdayOvernight
       ? (!!shift.endTime && currentTime <= getTimeHHMM(shift.endTime))
-      : isWorkerPresent(shift.startTime, shift.endTime, currentTime, true, shift.lunchBreakStart, shift.lunchBreakEnd)
+      : isWorkerPresent(shift.startTime, shift.endTime, currentTime, true)
     if (shift.employeeId && !seen.has(shift.employeeId) && isPresent) {
       seen.add(shift.employeeId)
       for (const g of shift.groups) {

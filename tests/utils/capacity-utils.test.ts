@@ -383,7 +383,7 @@ describe("calculateFilteredCapacity", () => {
       makeShift("emp-2", "09:00", "17:00", [groupB]),
     ]
     const result = calculateFilteredCapacity(shifts, [], "10:00")
-    expect(result).toMatchObject({ total: 2, onDuty: 0, available: 2 })
+    expect(result).toMatchObject({ total: 2, onDuty: 0, onLunch: 0, available: 2 })
   })
 
   it("グループフィルター: 該当グループの人だけ集計", () => {
@@ -393,7 +393,7 @@ describe("calculateFilteredCapacity", () => {
       makeShift("emp-3", "09:00", "17:00", [groupB]),
     ]
     const result = calculateFilteredCapacity(shifts, [], "10:00", { groupIds: [1] })
-    expect(result).toMatchObject({ total: 2, onDuty: 0, available: 2 })
+    expect(result).toMatchObject({ total: 2, onDuty: 0, onLunch: 0, available: 2 })
   })
 
   it("ロールフィルター: 該当ロールの人だけ集計", () => {
@@ -405,7 +405,7 @@ describe("calculateFilteredCapacity", () => {
     const result = calculateFilteredCapacity(shifts, [], "10:00", {
       roleNames: { "業務": ["電話対応"] },
     })
-    expect(result).toMatchObject({ total: 1, onDuty: 0, available: 1 })
+    expect(result).toMatchObject({ total: 1, onDuty: 0, onLunch: 0, available: 1 })
   })
 
   it("グループ + ロールの複合フィルター: AND条件", () => {
@@ -418,7 +418,7 @@ describe("calculateFilteredCapacity", () => {
       groupIds: [1],
       roleNames: { "業務": ["電話対応"] },
     })
-    expect(result).toMatchObject({ total: 1, onDuty: 0, available: 1 })
+    expect(result).toMatchObject({ total: 1, onDuty: 0, onLunch: 0, available: 1 })
   })
 
   it("フィルター + 当番: 当番中の人が正しくカウントされる", () => {
@@ -428,7 +428,7 @@ describe("calculateFilteredCapacity", () => {
     ]
     const duties = [makeDuty("emp-1", "09:00", "12:00")]
     const result = calculateFilteredCapacity(shifts, duties, "10:00", { groupIds: [1] })
-    expect(result).toMatchObject({ total: 2, onDuty: 1, available: 1 })
+    expect(result).toMatchObject({ total: 2, onDuty: 1, onLunch: 0, available: 1 })
   })
 
   it("該当者なしのフィルター: 全て 0", () => {
@@ -436,7 +436,7 @@ describe("calculateFilteredCapacity", () => {
       makeShift("emp-1", "09:00", "17:00", [groupA]),
     ]
     const result = calculateFilteredCapacity(shifts, [], "10:00", { groupIds: [999] })
-    expect(result).toMatchObject({ total: 0, onDuty: 0, available: 0 })
+    expect(result).toMatchObject({ total: 0, onDuty: 0, onLunch: 0, available: 0 })
   })
 
   it("出勤時間外の人はフィルター結果に含まれない", () => {
@@ -457,7 +457,7 @@ describe("calculateFilteredCapacity", () => {
       makeDuty("emp-1", "09:00", "12:00", false),
     ]
     const result = calculateFilteredCapacity(shifts, duties, "10:00", { groupIds: [1] })
-    expect(result).toMatchObject({ total: 2, onDuty: 0, available: 2 })
+    expect(result).toMatchObject({ total: 2, onDuty: 0, onLunch: 0, available: 2 })
   })
 })
 
@@ -797,6 +797,89 @@ describe("extractFilterOptions", () => {
     const result = extractFilterOptions(shifts, "10:00")
     expect(result.groups).toHaveLength(1)
     expect(result.roles["業務"]).toHaveLength(1)
+  })
+})
+
+describe("calculateFilteredCapacity - 昼休憩の整合性", () => {
+  const groupA = { id: 1, name: "グループA" }
+
+  const makeShiftWithLunch = (
+    employeeId: string, start: string, end: string,
+    lunchStart: string | null, lunchEnd: string | null,
+    groups: Array<{ id: number; name: string }> = [],
+    roles: Array<{ roleType: string; roleName: string; startDate?: string | null; endDate?: string | null }> = []
+  ) => ({
+    employeeId,
+    startTime: `1970-01-01T${start}:00Z`,
+    endTime: `1970-01-01T${end}:00Z`,
+    lunchBreakStart: lunchStart ? `1970-01-01T${lunchStart}:00Z` : null,
+    lunchBreakEnd: lunchEnd ? `1970-01-01T${lunchEnd}:00Z` : null,
+    groups,
+    roles,
+  })
+
+  const makeDuty = (employeeId: string, start: string, end: string, reducesCapacity = true) => ({
+    employeeId,
+    startTime: `1970-01-01T${start}:00Z`,
+    endTime: `1970-01-01T${end}:00Z`,
+    reducesCapacity,
+  })
+
+  it("昼休憩中の従業員は total に含まれ、onLunch にカウントされる", () => {
+    const shifts = [
+      makeShiftWithLunch("emp-1", "09:00", "17:00", "12:00", "13:00"),
+      makeShiftWithLunch("emp-2", "09:00", "17:00", "12:00", "13:00"),
+    ]
+    const result = calculateFilteredCapacity(shifts, [], "12:30")
+    expect(result).toMatchObject({ total: 2, onLunch: 2, onDuty: 0, available: 0 })
+  })
+
+  it("昼休憩時間外の従業員は onLunch に含まれない", () => {
+    const shifts = [
+      makeShiftWithLunch("emp-1", "09:00", "17:00", "12:00", "13:00"),
+      makeShiftWithLunch("emp-2", "09:00", "17:00", "12:00", "13:00"),
+    ]
+    const result = calculateFilteredCapacity(shifts, [], "10:00")
+    expect(result).toMatchObject({ total: 2, onLunch: 0, onDuty: 0, available: 2 })
+  })
+
+  it("一部が昼休憩中: 混在ケース", () => {
+    const shifts = [
+      makeShiftWithLunch("emp-1", "09:00", "17:00", "12:00", "13:00"),
+      makeShiftWithLunch("emp-2", "09:00", "17:00", "13:00", "14:00"), // まだ昼休憩前
+    ]
+    const result = calculateFilteredCapacity(shifts, [], "12:30")
+    expect(result).toMatchObject({ total: 2, onLunch: 1, onDuty: 0, available: 1 })
+  })
+
+  it("昼休憩中かつ他業務中: 二重控除しない（和集合）", () => {
+    const shifts = [
+      makeShiftWithLunch("emp-1", "09:00", "17:00", "12:00", "13:00"),
+      makeShiftWithLunch("emp-2", "09:00", "17:00", null, null),
+    ]
+    const duties = [makeDuty("emp-1", "11:00", "14:00")]
+    const result = calculateFilteredCapacity(shifts, duties, "12:30")
+    // emp-1: 昼休憩中 AND 当番中 → 1人分のみ控除
+    // emp-2: 通常勤務
+    expect(result).toMatchObject({ total: 2, onLunch: 1, onDuty: 1, available: 1 })
+  })
+
+  it("昼休憩中のSVは svTotal に含まれ svAvailable に含まれない", () => {
+    const svRole = [{ roleType: "監督", roleName: "SV", startDate: null, endDate: null }]
+    const shifts = [
+      makeShiftWithLunch("emp-1", "09:00", "17:00", "12:00", "13:00", [], svRole),
+      makeShiftWithLunch("emp-2", "09:00", "17:00", null, null, [], svRole),
+    ]
+    const result = calculateFilteredCapacity(shifts, [], "12:30", undefined, "SV")
+    expect(result).toMatchObject({ svTotal: 2, svAvailable: 1 })
+  })
+
+  it("昼休憩データがない従業員は onLunch=0", () => {
+    const shifts = [
+      makeShiftWithLunch("emp-1", "09:00", "17:00", null, null),
+    ]
+    const result = calculateFilteredCapacity(shifts, [], "12:30")
+    expect(result).toMatchObject({ total: 1, onLunch: 0, available: 1 })
   })
 })
 
