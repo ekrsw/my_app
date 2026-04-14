@@ -227,6 +227,7 @@ export function TimelineHeatmap({
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const [maxHeight, setMaxHeight] = useState<number>(600)
   const [selectedDutyId, setSelectedDutyId] = useState<number | null>(null)
+  const [footerExpanded, setFooterExpanded] = useState(false)
 
   const selectedDuty = useMemo(
     () => (selectedDutyId !== null ? (duties?.find((d) => d.id === selectedDutyId) ?? null) : null),
@@ -589,9 +590,13 @@ export function TimelineHeatmap({
 
         {/* フッター: 統計行 */}
         <tfoot className="sticky bottom-0 z-20">
-          {/* 出勤行 */}
+          {/* 出勤行（トグル付き） */}
           <tr className="border-t-2 border-border">
-            <td className="sticky left-0 z-30 bg-muted px-3 py-1 font-semibold text-xs shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)]">
+            <td
+              className="sticky left-0 z-30 bg-muted px-3 py-1 font-semibold text-xs shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)] cursor-pointer select-none"
+              onClick={() => setFooterExpanded((v) => !v)}
+            >
+              <span className={cn("inline-block transition-transform text-muted-foreground mr-0.5", footerExpanded && "rotate-90")}>▶</span>
               出勤
             </td>
             {slotStats.map((stat, i) => (
@@ -611,60 +616,46 @@ export function TimelineHeatmap({
               </td>
             ))}
           </tr>
-          {/* SV行 */}
-          <tr>
-            <td className="sticky left-0 z-30 bg-muted px-3 py-0.5 text-xs text-muted-foreground shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)]">
-              SV
-            </td>
-            {slotStats.map((stat, i) => (
-              <td
-                key={i}
-                className={cn(
-                  "bg-muted w-9 min-w-9 px-0 py-0.5 text-center text-xs text-muted-foreground",
-                  i % 2 === 0 && "border-l border-border",
-                  i === currentSlotIndex && stat.sv > 0 && "bg-primary/20 dark:bg-primary/30"
-                )}
-              >
-                {stat.sv}
+          {/* 昼休憩行（展開時のみ表示） */}
+          {footerExpanded && (
+            <tr>
+              <td className="sticky left-0 z-30 bg-muted px-3 py-0.5 pl-6 text-xs text-muted-foreground shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)]">
+                昼休憩
               </td>
-            ))}
-          </tr>
-          {/* 昼休憩行 */}
-          <tr>
-            <td className="sticky left-0 z-30 bg-muted px-3 py-0.5 text-xs text-muted-foreground shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)]">
-              昼休憩
-            </td>
-            {slotStats.map((stat, i) => (
-              <td
-                key={i}
-                className={cn(
-                  "bg-muted w-9 min-w-9 px-0 py-0.5 text-center text-xs text-muted-foreground",
-                  i % 2 === 0 && "border-l border-border",
-                  i === currentSlotIndex && stat.lunch > 0 && "bg-primary/20 dark:bg-primary/30"
-                )}
-              >
-                {stat.lunch}
+              {slotStats.map((stat, i) => (
+                <td
+                  key={i}
+                  className={cn(
+                    "bg-muted w-9 min-w-9 px-0 py-0.5 text-center text-xs text-muted-foreground",
+                    i % 2 === 0 && "border-l border-border",
+                    i === currentSlotIndex && stat.lunch > 0 && "bg-primary/20 dark:bg-primary/30"
+                  )}
+                >
+                  {stat.lunch}
+                </td>
+              ))}
+            </tr>
+          )}
+          {/* 他業務行（展開時のみ表示） */}
+          {footerExpanded && (
+            <tr>
+              <td className="sticky left-0 z-30 bg-muted px-3 py-0.5 pl-6 text-xs text-muted-foreground shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)]">
+                他業務
               </td>
-            ))}
-          </tr>
-          {/* 他業務行 */}
-          <tr>
-            <td className="sticky left-0 z-30 bg-muted px-3 py-0.5 text-xs text-muted-foreground shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)]">
-              他業務
-            </td>
-            {slotStats.map((stat, i) => (
-              <td
-                key={i}
-                className={cn(
-                  "bg-muted w-9 min-w-9 px-0 py-0.5 text-center text-xs text-muted-foreground",
-                  i % 2 === 0 && "border-l border-border",
-                  i === currentSlotIndex && stat.onDuty > 0 && "bg-primary/20 dark:bg-primary/30"
-                )}
-              >
-                {stat.onDuty}
-              </td>
-            ))}
-          </tr>
+              {slotStats.map((stat, i) => (
+                <td
+                  key={i}
+                  className={cn(
+                    "bg-muted w-9 min-w-9 px-0 py-0.5 text-center text-xs text-muted-foreground",
+                    i % 2 === 0 && "border-l border-border",
+                    i === currentSlotIndex && stat.onDuty > 0 && "bg-primary/20 dark:bg-primary/30"
+                  )}
+                >
+                  {stat.onDuty}
+                </td>
+              ))}
+            </tr>
+          )}
           {/* 対応可能行 */}
           <tr>
             <td className="sticky left-0 z-30 bg-muted px-3 py-1 font-semibold text-xs shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)]">
@@ -688,6 +679,24 @@ export function TimelineHeatmap({
                 </td>
               )
             })}
+          </tr>
+          {/* (内SV)行 */}
+          <tr>
+            <td className="sticky left-0 z-30 bg-muted px-3 py-0.5 text-xs text-muted-foreground shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)]">
+              (内SV)
+            </td>
+            {slotStats.map((stat, i) => (
+              <td
+                key={i}
+                className={cn(
+                  "bg-muted w-9 min-w-9 px-0 py-0.5 text-center text-xs text-muted-foreground",
+                  i % 2 === 0 && "border-l border-border",
+                  i === currentSlotIndex && stat.sv > 0 && "bg-primary/20 dark:bg-primary/30"
+                )}
+              >
+                ({stat.sv})
+              </td>
+            ))}
           </tr>
         </tfoot>
       </table>
