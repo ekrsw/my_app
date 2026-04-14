@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.13.1] - 2026-04-15
+
+### Changed
+- ログインフォームの表記を「管理者ログイン」から「ログイン」に変更
+
 ## [0.2.13.0] - 2026-04-14
 
 ### Fixed
