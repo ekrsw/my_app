@@ -284,10 +284,10 @@ export function ShiftDailyView({
   }, [setParams])
 
   // --- Distinct role types for dynamic column headers ---
-  // getShiftsForDaily と同じ desc 順でカラムマッピングを一致させる
+  // ASC ソートで roleTypes[0]=監督系(権限), roleTypes[1]=業務系(職務)
   const distinctRoleTypes = useMemo(() => {
-    const types = [...new Set(roles.map((r) => r.roleType))].sort().reverse()
-    return [types[0] ?? "監督", types[1] ?? "業務"] as const
+    const types = [...new Set(roles.map((r) => r.roleType))].sort()
+    return [types[0] ?? "権限", types[1] ?? "職務"] as const
   }, [roles])
 
   // --- Filter tags ---

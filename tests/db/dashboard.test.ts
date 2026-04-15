@@ -333,7 +333,7 @@ describe("Dashboard DB Queries - 日付範囲フィルタリング", () => {
 
   describe("getDashboardFilterOptions - 日付フィルタ", () => {
     it("現在有効なロールのみがフィルタオプションに含まれる", async () => {
-      // getRoleTypes は desc ソート: "監督" > "業務" → roleTypes[0]="監督", roleTypes[1]="業務"
+      // getRoleTypes は asc ソート: "業務"(U+696D) < "監督"(U+76E3) → roleTypes[0]="業務", roleTypes[1]="監督"
       const svRole = await prisma.functionRole.create({
         data: { roleCode: "SV", roleName: "SV", roleType: "監督" },
       })
