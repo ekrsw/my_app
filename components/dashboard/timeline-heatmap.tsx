@@ -119,12 +119,13 @@ export function computeSlotStats(
       const isAtWork = row.presence[i] || row.lunchBreak[i]
       if (!isAtWork) continue
       present++
-      if (isSV(row.employee)) sv++
       const isOnLunch = row.lunchBreak[i]
       const isOnDuty = dutyPresence.get(row.employeeId)?.[i] ?? false
       if (isOnLunch || isOnDuty) unavailable++
       if (isOnLunch) lunch++
       if (isOnDuty) onDuty++
+      // 対応可能なSVのみカウント（昼休憩中・他業務中を除外）
+      if (isSV(row.employee) && !isOnLunch && !isOnDuty) sv++
     }
     return {
       present,

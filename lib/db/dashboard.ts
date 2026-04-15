@@ -25,17 +25,18 @@ function currentRoleDateWhere(today: Date) {
 
 /**
  * DB から distinct role_type を取得して動的にカラムマッピング（getShiftsForDaily と同じロジック）
- * roleTypes[0] = 監督系, roleTypes[1] = 業務系
+ * roleTypes[0] = 監督系 (権限), roleTypes[1] = 業務系 (職務)
+ * ASC ソートにより roleType の昇順で取得（権限 < 職務）
  */
 async function getRoleTypes(): Promise<[string, string]> {
   const distinctTypes = await prisma.functionRole.findMany({
     select: { roleType: true },
     distinct: ["roleType"],
-    orderBy: { roleType: "desc" },
+    orderBy: { roleType: "asc" },
   })
   return [
-    distinctTypes[0]?.roleType ?? "監督",
-    distinctTypes[1]?.roleType ?? "業務",
+    distinctTypes[0]?.roleType ?? "権限",
+    distinctTypes[1]?.roleType ?? "職務",
   ]
 }
 
@@ -281,7 +282,7 @@ export async function getTodayShiftChangeHistory() {
 
   return prisma.shiftChangeHistory.findMany({
     where: {
-      changedAt: {
+      shiftDate: {
         gte: todayStart,
         lt: tomorrowStart,
       },

@@ -510,14 +510,15 @@ export async function getShiftsForDaily(
   const pageSize = options.pageSize ?? DEFAULT_DAILY_PAGE_SIZE
 
   // DB から distinct role_type を取得して動的にカラムマッピング
+  // ASC ソートにより roleTypes[0]=監督系(権限), roleTypes[1]=業務系(職務)
   const distinctTypes = await prisma.functionRole.findMany({
     select: { roleType: true },
     distinct: ["roleType"],
-    orderBy: { roleType: "desc" },
+    orderBy: { roleType: "asc" },
   })
   const roleTypes: [string, string] = [
-    distinctTypes[0]?.roleType ?? "監督",
-    distinctTypes[1]?.roleType ?? "業務",
+    distinctTypes[0]?.roleType ?? "権限",
+    distinctTypes[1]?.roleType ?? "職務",
   ]
 
   // Raw SQL では文字列 + ::date キャストで日付比較（Date オブジェクトは型不一致になるため）
@@ -703,15 +704,15 @@ export async function getDailyFilterOptions(
 ): Promise<DailyFilterOptions> {
   const dateStr = filter.date
 
-  // roleTypes を取得
+  // roleTypes を取得（ASC: roleTypes[0]=監督系(権限), roleTypes[1]=業務系(職務)）
   const distinctTypes = await prisma.functionRole.findMany({
     select: { roleType: true },
     distinct: ["roleType"],
-    orderBy: { roleType: "desc" },
+    orderBy: { roleType: "asc" },
   })
   const roleTypes: [string, string] = [
-    distinctTypes[0]?.roleType ?? "監督",
-    distinctTypes[1]?.roleType ?? "業務",
+    distinctTypes[0]?.roleType ?? "権限",
+    distinctTypes[1]?.roleType ?? "職務",
   ]
 
   // クエリを並列実行
