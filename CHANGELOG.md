@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.13.3] - 2026-04-15
+
+### Fixed
+- ダッシュボード「本日の出勤者」およびシフト日次ビューの「(内SV)」集計が正しく表示されない不具合を修正。roleTypeのソート順をDESCからASCに変更し、サーバー側・クライアント側の全5箇所で統一した
+
 ## [0.2.13.2] - 2026-04-15
 
 ### Fixed
