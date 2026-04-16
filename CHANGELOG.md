@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.15.0] - 2026-04-16
+
+### Fixed
+- ダッシュボードの「本日の出勤者」タイムラインでSVフィルター選択時、過去SVだったが現在はSVではない夜勤（日跨ぎ）従業員が表示される不具合を修正。前日夜勤シフトにもダッシュボードフィルター（SV・グループ・シフトコード等）が正しく適用されるようになった
+
+### Changed
+- `getTodayOverview()` と `getYesterdayOvernightShifts()` のフィルター構築ロジックを `buildEmployeeFilterWhere()` / `applyShiftFilterWhere()` ヘルパー関数に共通化
+
 ## [0.2.14.0] - 2026-04-16
 
 ### Changed
