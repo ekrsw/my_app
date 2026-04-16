@@ -170,3 +170,15 @@
 **Depends on:** なし（独立した修正）
 
 **Context:** `lib/db/duty-assignments.ts` で `employeeSearch` を `{ contains: employeeSearch, mode: "insensitive" }` に使用している箇所を確認する。Prisma の場合は `%` や `_` を `\%`、`\_` にエスケープしてから渡す（または raw SQL に切り替えてプレースホルダーを使う）。
+
+## テスト: importShifts のupsert更新パステスト
+
+**What:** `importShifts` Server Action の upsert 更新パス（既存シフトの上書き更新）のテストが欠落している。新規作成パスはテスト済みだが、同一従業員・同一日付のシフトが既に存在する場合の更新動作がテストされていない。
+
+**Why:** CSVインポートの主要ユースケースの一つが既存データの上書き更新。更新時にフィールドが正しく反映されるか（シフトコード変更、時間変更、休日フラグ変更など）のテストがないと、回帰バグを見逃すリスクがある。
+
+**Effort:** S (human) → XS (CC+gstack) | **Priority:** P2 | **Risk:** Low
+
+**Depends on:** なし（独立したテスト追加）
+
+**Context:** `tests/actions/import-shifts.test.ts` に追加する。テストシナリオ: 1) シフトを作成 → 同じ従業員・日付で異なるシフトコードをインポート → updated=1を確認 → DBの値が更新されていることを確認。Eng Review (v0.2.15.0) で発見。

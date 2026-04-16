@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.16.0] - 2026-04-16
+
+### Added
+- サイドバーの「設定」メニュー配下に「データ」ページを新設。CSVインポートとエクスポートを1画面に統合し、ラジオボタンで切替え可能に
+- シフトCSVエクスポート機能: 年月・グループ・ロールでフィルタリングしてCSVを出力
+- シフトCSVインポート機能: ファイル選択→プレビュー→チャンク分割インポートの3ステップUI（未ログイン時はログイン要求メッセージを表示）
+
+### Changed
+- `ShiftImportDialog`からインポートロジックを`useShiftImport`カスタムフックに抽出し、ダイアログ版とインライン版で共有
+- `ShiftImportDialog`を軽量化（約100行削減）
+
 ## [0.2.15.0] - 2026-04-16
 
 ### Fixed
