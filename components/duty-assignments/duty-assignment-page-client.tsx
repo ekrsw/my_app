@@ -19,9 +19,8 @@ import { RoleMultiSelect } from "@/components/shifts/role-multi-select"
 import { DutyTypeMultiSelect } from "@/components/duty-assignments/duty-type-multi-select"
 import { ShiftDetailDialog } from "@/components/shifts/shift-detail-dialog"
 import { ShiftForm } from "@/components/shifts/shift-form"
-import { loadMoreDutyCalendarData, getDutyAssignmentById, deleteDutyAssignment } from "@/lib/actions/duty-assignment-actions"
+import { loadMoreDutyCalendarData } from "@/lib/actions/duty-assignment-actions"
 import { useRouter } from "next/navigation"
-import { toast } from "sonner"
 import { toDateString, formatMonth } from "@/lib/date-utils"
 import { SHIFT_CODE_MAP, getColorClasses, type ShiftCodeInfo } from "@/lib/constants"
 import type { Shift } from "@/app/generated/prisma/client"
@@ -155,8 +154,6 @@ export function DutyAssignmentPageClient({
   const [editingAssignment, setEditingAssignment] = useState<DutyAssignmentWithDetails | undefined>()
   const [monthlySelectedDate, setMonthlySelectedDate] = useState<string | undefined>()
   const [monthlySelectedEmployeeId, setMonthlySelectedEmployeeId] = useState<string | undefined>()
-  const [editLoadingId, setEditLoadingId] = useState<number | null>(null)
-  const [deleteLoadingId, setDeleteLoadingId] = useState<number | null>(null)
   const router = useRouter()
 
   // --- シフトダイアログ状態 ---
@@ -362,44 +359,6 @@ export function DutyAssignmentPageClient({
     return p
   }, [viewMode, employeeIds, groupIds, dutyTypeIds, reducesCapacity, sortBy, sortOrder, monthlyEmployeeIds])
 
-  // --- 月次: 編集（割当データ取得→フォーム表示） ---
-  const handleEdit = useCallback(async (assignmentId: number) => {
-    setEditLoadingId(assignmentId)
-    try {
-      const assignment = await getDutyAssignmentById(assignmentId)
-      if (assignment) {
-        setEditingAssignment(assignment)
-        setMonthlySelectedDate(undefined)
-        setMonthlySelectedEmployeeId(undefined)
-        setFormOpen(true)
-      } else {
-        toast.error("業務割当が見つかりませんでした")
-      }
-    } catch {
-      toast.error("業務割当の取得に失敗しました")
-    } finally {
-      setEditLoadingId(null)
-    }
-  }, [])
-
-  // --- 月次: 削除 ---
-  const handleDelete = useCallback(async (assignmentId: number) => {
-    setDeleteLoadingId(assignmentId)
-    try {
-      const result = await deleteDutyAssignment(assignmentId)
-      if (result.error) {
-        toast.error(result.error)
-      } else {
-        toast.success("業務割当を削除しました")
-        router.refresh()
-      }
-    } catch {
-      toast.error("業務割当の削除に失敗しました")
-    } finally {
-      setDeleteLoadingId(null)
-    }
-  }, [router])
-
   // --- 月次: 新規追加（日付・従業員プリセット） ---
   const handleAddNew = useCallback((dateStr: string, employeeId: string) => {
     setEditingAssignment(undefined)
@@ -592,13 +551,9 @@ export function DutyAssignmentPageClient({
         year={year}
         month={month}
         selectedEmployeeIds={monthlyEmployeeIds}
-        onEdit={handleEdit}
-        onDelete={handleDelete}
         onAddNew={handleAddNew}
         onShiftCellClick={handleShiftCellClick}
         isAuthenticated={isAuthenticated}
-        editLoadingId={editLoadingId}
-        deleteLoadingId={deleteLoadingId}
         employeeSearchText={employeeSearchText}
         shiftCodeMap={shiftCodeMap}
         shiftCodeInfoMap={shiftCodeInfoMap}
@@ -606,6 +561,8 @@ export function DutyAssignmentPageClient({
         hasMore={calendarHasMoreState}
         isLoadingMore={calendarIsLoadingMore}
         onLoadMore={handleCalendarLoadMore}
+        employees={employeeOptions}
+        dutyTypes={dutyTypeOptions}
       />
 
       {editShift && shiftDate && (
