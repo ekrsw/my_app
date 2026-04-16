@@ -11,6 +11,7 @@ import { getShiftById } from "@/lib/actions/shift-actions"
 import { ArrowRight, Plus } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
+import { SHIFT_CODE_MAP, getColorClasses, type ShiftCodeInfo } from "@/lib/constants"
 import type { ShiftChangeHistory, Employee, EmployeeGroup, Group } from "@/app/generated/prisma/client"
 
 type TodayChange = ShiftChangeHistory & {
@@ -40,6 +41,21 @@ type Props = {
 
 export function TodayAttendance({ changes, employees, shiftCodes, isAuthenticated, todayDateString }: Props) {
   const [shiftFormOpen, setShiftFormOpen] = useState(false)
+
+  // DB のシフトコードから shiftCodeMap を構築（バッジカラー表示用）
+  const shiftCodeMap = useMemo(() => {
+    const map: Record<string, ShiftCodeInfo> = {}
+    for (const sc of shiftCodes) {
+      const dbColor = getColorClasses(sc.color)
+      const hardcoded = SHIFT_CODE_MAP[sc.code]
+      map[sc.code] = {
+        label: hardcoded?.label ?? sc.code,
+        color: dbColor?.text ?? hardcoded?.color ?? "text-gray-800",
+        bgColor: dbColor?.bg ?? hardcoded?.bgColor ?? "bg-gray-100",
+      }
+    }
+    return map
+  }, [shiftCodes])
 
   // 同一シフトの最新変更のみ編集可能にする（changedAtが最新のもの）
   const latestChangeIdPerShift = useMemo(() => {
@@ -134,12 +150,12 @@ export function TodayAttendance({ changes, employees, shiftCodes, isAuthenticate
                     </div>
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <span>{formatDate(change.shiftDate)}</span>
-                      <ShiftBadge code={change.shiftCode} />
+                      <ShiftBadge code={change.shiftCode} shiftCodeMap={shiftCodeMap} />
                       {change.isRemote && <span className="text-xs text-sky-600 font-medium">TW</span>}
                       {change.newShiftCode !== null && (change.shiftCode !== change.newShiftCode || change.isRemote !== change.newIsRemote) && (
                         <>
                           <ArrowRight className="h-3 w-3" />
-                          <ShiftBadge code={change.newShiftCode} />
+                          <ShiftBadge code={change.newShiftCode} shiftCodeMap={shiftCodeMap} />
                           {change.newIsRemote && <span className="text-xs text-sky-600 font-medium">TW</span>}
                         </>
                       )}
