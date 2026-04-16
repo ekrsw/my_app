@@ -1,7 +1,7 @@
 "use client"
 
 import { useMemo, useState, useCallback, useRef, useEffect, useId } from "react"
-import type { DutyCalendarData, DutyCalendarCell, ShiftCodeMap } from "@/types/duties"
+import type { DutyCalendarData, DutyCalendarCell, DutyAssignmentWithDetails, ShiftCodeMap } from "@/types/duties"
 import { COLOR_PALETTE, getShiftCodeInfo, type ShiftCodeInfo } from "@/lib/constants"
 import {
   getDaysInMonth,
@@ -16,20 +16,30 @@ import { EmployeeCheckboxFilter } from "@/components/common/filters/employee-che
 import { useQueryParams } from "@/hooks/use-query-params"
 import { StickyHorizontalScrollbar } from "@/components/ui/sticky-horizontal-scrollbar"
 import { DutyCellDialog } from "@/components/duty-assignments/duty-cell-dialog"
+import { DutyAssignmentDetailDialog } from "@/components/duty-assignments/duty-assignment-detail-dialog"
+import { getDutyAssignmentById, deleteDutyAssignment } from "@/lib/actions/duty-assignment-actions"
+import { useRouter } from "next/navigation"
+import { toast } from "sonner"
 import { Loader2 } from "lucide-react"
+
+type DutyTypeOption = {
+  id: number
+  name: string
+  defaultReducesCapacity: boolean
+  defaultStartTime: string | null
+  defaultEndTime: string | null
+  defaultNote: string | null
+  defaultTitle: string | null
+}
 
 type DutyMonthlyCalendarProps = {
   data: DutyCalendarData[]
   year: number
   month: number
   selectedEmployeeIds: string[]
-  onEdit: (assignmentId: number) => void
-  onDelete: (assignmentId: number) => void
   onAddNew: (dateStr: string, employeeId: string) => void
   onShiftCellClick: (employeeId: string, date: string, employeeName: string) => void
   isAuthenticated: boolean
-  editLoadingId: number | null
-  deleteLoadingId: number | null
   employeeSearchText: string
   shiftCodeMap: ShiftCodeMap
   shiftCodeInfoMap: Record<string, ShiftCodeInfo>
@@ -37,6 +47,8 @@ type DutyMonthlyCalendarProps = {
   hasMore: boolean
   isLoadingMore: boolean
   onLoadMore: () => void
+  employees: { id: string; name: string }[]
+  dutyTypes: DutyTypeOption[]
 }
 
 const MAX_VISIBLE_TITLES = 2
@@ -142,13 +154,9 @@ export function DutyMonthlyCalendar({
   year,
   month,
   selectedEmployeeIds,
-  onEdit,
-  onDelete,
   onAddNew,
   onShiftCellClick,
   isAuthenticated,
-  editLoadingId,
-  deleteLoadingId,
   employeeSearchText,
   shiftCodeMap,
   shiftCodeInfoMap,
@@ -156,6 +164,8 @@ export function DutyMonthlyCalendar({
   hasMore,
   isLoadingMore,
   onLoadMore,
+  employees,
+  dutyTypes,
 }: DutyMonthlyCalendarProps) {
   const days = useMemo(() => getDaysInMonth(year, month), [year, month])
   const { setParams } = useQueryParams()
@@ -166,6 +176,64 @@ export function DutyMonthlyCalendar({
     employeeId: string
     employeeName: string
   } | null>(null)
+
+  const router = useRouter()
+
+  // --- 詳細ダイアログの状態（CellDialog から独立） ---
+  const [detailDuty, setDetailDuty] = useState<DutyAssignmentWithDetails | null>(null)
+  const [detailOpen, setDetailOpen] = useState(false)
+  const [detailLoadingId, setDetailLoadingId] = useState<number | null>(null)
+  const [isDeleteLoading, setIsDeleteLoading] = useState(false)
+  const detailRequestRef = useRef(0)
+
+  const handleViewDetail = useCallback(async (dutyId: number) => {
+    const requestId = ++detailRequestRef.current
+    setDetailLoadingId(dutyId)
+    try {
+      const duty = await getDutyAssignmentById(dutyId)
+      if (requestId !== detailRequestRef.current) return
+      if (duty) {
+        setDetailDuty(duty)
+        setDialogOpen(false)
+        setDetailOpen(true)
+      } else {
+        toast.error("業務割当が見つかりませんでした")
+      }
+    } catch (e) {
+      if (requestId !== detailRequestRef.current) return
+      console.error("Failed to fetch duty assignment:", e)
+      toast.error("業務割当の取得に失敗しました")
+    } finally {
+      if (requestId === detailRequestRef.current) {
+        setDetailLoadingId(null)
+      }
+    }
+  }, [])
+
+  const handleDeleteFromDetail = useCallback(async (dutyId: number) => {
+    setIsDeleteLoading(true)
+    try {
+      const result = await deleteDutyAssignment(dutyId)
+      if (result.error) {
+        toast.error(result.error)
+      } else {
+        toast.success("業務割当を削除しました")
+        setDetailOpen(false)
+        setDetailDuty(null)
+        router.refresh()
+      }
+    } catch (e) {
+      console.error("Failed to delete duty assignment:", e)
+      toast.error("業務割当の削除に失敗しました")
+    } finally {
+      setIsDeleteLoading(false)
+    }
+  }, [router])
+
+  const handleDetailOpenChange = useCallback((v: boolean) => {
+    setDetailOpen(v)
+    if (!v) setDetailDuty(null)
+  }, [])
 
   const scrollContainerId = useId()
   const scrollContainerRef = useRef<HTMLDivElement>(null)
@@ -215,7 +283,7 @@ export function DutyMonthlyCalendar({
     return () => observer.disconnect()
   }, [hasMore])
 
-  const employees = useMemo(
+  const filterEmployees = useMemo(
     () => data.map((emp) => ({ id: emp.employeeId, name: emp.employeeName })),
     [data]
   )
@@ -286,7 +354,7 @@ export function DutyMonthlyCalendar({
               onOpenChange={setEmployeePopoverOpen}
             >
               <EmployeeCheckboxFilter
-                employees={employees}
+                employees={filterEmployees}
                 selectedIds={selectedEmployeeIds}
                 onConfirm={handleEmployeeConfirm}
                 onClear={handleEmployeeClear}
@@ -398,13 +466,22 @@ export function DutyMonthlyCalendar({
           employeeId={selectedCell.employeeId}
           employeeName={selectedCell.employeeName}
           isAuthenticated={isAuthenticated}
-          onEdit={onEdit}
-          onDelete={onDelete}
           onAddNew={onAddNew}
-          editLoadingId={editLoadingId}
-          deleteLoadingId={deleteLoadingId}
+          onViewDetail={handleViewDetail}
+          detailLoadingId={detailLoadingId}
         />
       )}
+
+      <DutyAssignmentDetailDialog
+        open={detailOpen}
+        onOpenChange={handleDetailOpenChange}
+        duty={detailDuty}
+        isAuthenticated={isAuthenticated}
+        employees={employees}
+        dutyTypes={dutyTypes}
+        onDelete={handleDeleteFromDetail}
+        isDeleteLoading={isDeleteLoading}
+      />
     </div>
   )
 }

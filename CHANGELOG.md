@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.15.0] - 2026-04-16
+
+### Fixed
+- ダッシュボードの「本日の出勤者」タイムラインでSVフィルター選択時、過去SVだったが現在はSVではない夜勤（日跨ぎ）従業員が表示される不具合を修正。前日夜勤シフトにもダッシュボードフィルター（SV・グループ・シフトコード等）が正しく適用されるようになった
+
+### Changed
+- `getTodayOverview()` と `getYesterdayOvernightShifts()` のフィルター構築ロジックを `buildEmployeeFilterWhere()` / `applyShiftFilterWhere()` ヘルパー関数に共通化
+
+## [0.2.14.0] - 2026-04-16
+
+### Changed
+- 業務管理（月次）カレンダーのセルクリック時に表示されるダイアログを改良。Accordion/Collapsible方式を廃止し、業務タイトルのクリックでダッシュボードと同様の「業務割当の詳細」ダイアログを表示する方式に統一
+- 詳細ダイアログに削除ボタンを追加（確認ダイアログ付き）
+- 詳細ダイアログの取得処理にレースコンディション防止機構を追加
+
 ## [0.2.13.4] - 2026-04-15
 
 ### Fixed
