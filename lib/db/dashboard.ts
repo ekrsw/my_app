@@ -40,9 +40,15 @@ async function getRoleTypes(): Promise<[string, string]> {
   ]
 }
 
-export async function getTodayOverview(filter: DashboardOverviewFilter = {}) {
-  const today = getTodayJST()
+/**
+ * フィルター条件から従業員の Prisma where 句を構築する共通ヘルパー。
+ * getTodayOverview / getYesterdayOvernightShifts で共有。
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function buildEmployeeFilterWhere(filter: DashboardOverviewFilter, today: Date): Promise<any> {
   const roleTypes = await getRoleTypes()
+  const groupDateFilter = currentGroupDateWhere(today)
+  const roleDateFilter = currentRoleDateWhere(today)
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const employeeWhere: any = {
@@ -55,9 +61,6 @@ export async function getTodayOverview(filter: DashboardOverviewFilter = {}) {
       },
     ],
   }
-
-  const groupDateFilter = currentGroupDateWhere(today)
-  const roleDateFilter = currentRoleDateWhere(today)
 
   // グループフィルター
   const groupConditions = []
@@ -112,6 +115,26 @@ export async function getTodayOverview(filter: DashboardOverviewFilter = {}) {
     ]
   }
 
+  return employeeWhere
+}
+
+/**
+ * フィルター条件からシフトの Prisma where 句にシフト固有条件を追加する共通ヘルパー。
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function applyShiftFilterWhere(shiftWhere: any, filter: DashboardOverviewFilter) {
+  if (filter.shiftCodes && filter.shiftCodes.length > 0) {
+    shiftWhere.shiftCode = { in: filter.shiftCodes }
+  }
+  if (filter.isRemote) {
+    shiftWhere.isRemote = true
+  }
+}
+
+export async function getTodayOverview(filter: DashboardOverviewFilter = {}) {
+  const today = getTodayJST()
+  const employeeWhere = await buildEmployeeFilterWhere(filter, today)
+
   // シフトwhere句
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const shiftWhere: any = {
@@ -120,13 +143,7 @@ export async function getTodayOverview(filter: DashboardOverviewFilter = {}) {
     isHoliday: { not: true },
   }
 
-  if (filter.shiftCodes && filter.shiftCodes.length > 0) {
-    shiftWhere.shiftCode = { in: filter.shiftCodes }
-  }
-
-  if (filter.isRemote) {
-    shiftWhere.isRemote = true
-  }
+  applyShiftFilterWhere(shiftWhere, filter)
 
   if (Object.keys(employeeWhere).length > 0) {
     shiftWhere.employee = employeeWhere
@@ -307,24 +324,29 @@ export async function getTodayShiftChangeHistory() {
 /**
  * 前日の夜勤シフト（日跨ぎで現在も勤務中のもの）を取得する。
  * endTime の HH:mm が startTime の HH:mm より小さいシフトを夜勤とみなす。
+ * ダッシュボードフィルター（SV・グループ・シフトコード等）にも対応。
  */
-export async function getYesterdayOvernightShifts() {
+export async function getYesterdayOvernightShifts(filter: DashboardOverviewFilter = {}) {
   const today = getTodayJST()
   const yesterday = new Date(today.getTime() - 24 * 60 * 60 * 1000)
+  const employeeWhere = await buildEmployeeFilterWhere(filter, today)
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const shiftWhere: any = {
+    shiftDate: yesterday,
+    startTime: { not: null },
+    endTime: { not: null },
+    isHoliday: { not: true },
+  }
+
+  applyShiftFilterWhere(shiftWhere, filter)
+
+  if (Object.keys(employeeWhere).length > 0) {
+    shiftWhere.employee = employeeWhere
+  }
 
   const yesterdayShifts = await prisma.shift.findMany({
-    where: {
-      shiftDate: yesterday,
-      startTime: { not: null },
-      endTime: { not: null },
-      isHoliday: { not: true },
-      employee: {
-        OR: [
-          { terminationDate: null },
-          { terminationDate: { gte: today } },
-        ],
-      },
-    },
+    where: shiftWhere,
     include: {
       employee: {
         include: {

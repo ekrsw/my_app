@@ -75,7 +75,7 @@ export default async function DashboardPage({ searchParams }: Props) {
       getLatestShiftHistoryEntries(todayYear, todayMonth),
       getActiveDutyTypes(),
       getAllEmployees(),
-      getYesterdayOvernightShifts(),
+      getYesterdayOvernightShifts(filter),
       getYesterdayOvernightDutyAssignments(),
     ])
 
