@@ -18,6 +18,7 @@ import {
   LogOut,
   ClipboardList,
   ListChecks,
+  Database,
 } from "lucide-react"
 import {
   Sidebar,
@@ -54,6 +55,7 @@ const settingsSubItems = [
   { label: "役職", href: "/positions", icon: Award },
   { label: "シフトコード", href: "/shift-codes", icon: Tag },
   { label: "業務種別", href: "/duty-types", icon: ListChecks },
+  { label: "データ", href: "/data", icon: Database },
 ]
 
 export function AppSidebar() {
