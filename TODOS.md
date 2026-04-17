@@ -182,3 +182,15 @@
 **Depends on:** なし（独立したテスト追加）
 
 **Context:** `tests/actions/import-shifts.test.ts` に追加する。テストシナリオ: 1) シフトを作成 → 同じ従業員・日付で異なるシフトコードをインポート → updated=1を確認 → DBの値が更新されていることを確認。Eng Review (v0.2.15.0) で発見。
+
+## バグ: CSVエクスポートファイル名のJST対応
+
+**What:** 全CSVエクスポートAPI（`/api/employees/export`, `/api/shifts/export`, `/api/role-assignments/export`）のファイル名生成で `new Date()` を使用しており、サーバーのタイムゾーンが UTC の場合、JST 深夜0時〜9時にファイル名の日付が前日になる。
+
+**Why:** `getTodayJST()` で日付計算は JST 対応済みだが、ファイル名の日付だけがサーバー依存のまま。ユーザーが「今日エクスポートしたファイル」の日付が前日になると混乱する。
+
+**Effort:** XS (human) → XS (CC+gstack) | **Priority:** P3 | **Risk:** Low
+
+**Depends on:** なし（独立した修正）
+
+**Context:** 3つのエクスポートAPIルートで `const now = new Date()` → `getTodayJST()` に置き換えるだけ。Eng Review (Phase 3ロール割当て, 2026-04-17) の Outside Voice で発見。

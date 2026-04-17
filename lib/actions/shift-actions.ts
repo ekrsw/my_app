@@ -385,6 +385,8 @@ export type ShiftImportRow = {
   shiftCode: string | null
   startTime: string | null
   endTime: string | null
+  lunchBreakStart?: string | null
+  lunchBreakEnd?: string | null
   isHoliday: boolean
   isRemote: boolean
 }
@@ -523,6 +525,12 @@ export async function importShifts(
                   : null,
                 endTime: row.endTime
                   ? new Date(`1970-01-01T${row.endTime}Z`)
+                  : null,
+                lunchBreakStart: row.lunchBreakStart
+                  ? new Date(`1970-01-01T${row.lunchBreakStart}Z`)
+                  : null,
+                lunchBreakEnd: row.lunchBreakEnd
+                  ? new Date(`1970-01-01T${row.lunchBreakEnd}Z`)
                   : null,
                 isHoliday: row.isHoliday,
                 isRemote: row.isRemote,

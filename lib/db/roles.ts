@@ -46,3 +46,26 @@ export async function getEmployeeFunctionRoles(employeeId: string) {
     orderBy: [{ endDate: "asc" }, { startDate: "desc" }],
   })
 }
+
+export async function getRoleAssignmentsForExport({
+  activeOnly,
+}: {
+  activeOnly: boolean
+}) {
+  return prisma.employeeFunctionRole.findMany({
+    where: {
+      employeeId: { not: null },
+      functionRoleId: { not: null },
+      employee: { terminationDate: null },
+      ...(activeOnly ? { endDate: null } : {}),
+    },
+    include: {
+      employee: true,
+      functionRole: true,
+    },
+    orderBy: [
+      { employee: { name: "asc" } },
+      { functionRole: { roleCode: "asc" } },
+    ],
+  })
+}

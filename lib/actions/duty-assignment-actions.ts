@@ -172,6 +172,105 @@ class ShiftValidationError extends Error {
   }
 }
 
+type DutyAssignmentImportRow = {
+  rowIndex: number
+  dutyDate: string
+  employeeName: string
+  dutyTypeName: string
+  startTime: string
+  endTime: string
+  title: string | null
+  note: string | null
+  reducesCapacity: boolean
+}
+
+type DutyAssignmentImportResult = {
+  created: number
+  updated: number
+  errors: Array<{ rowIndex: number; error: string }>
+}
+
+export async function importDutyAssignments(
+  rows: DutyAssignmentImportRow[]
+): Promise<DutyAssignmentImportResult> {
+  await requireAuth()
+
+  let created = 0
+  let updated = 0
+  const errors: Array<{ rowIndex: number; error: string }> = []
+
+  for (const row of rows) {
+    try {
+      // 従業員名で検索
+      const employees = await prisma.employee.findMany({
+        where: { name: row.employeeName },
+      })
+      if (employees.length === 0) {
+        errors.push({ rowIndex: row.rowIndex, error: `従業員「${row.employeeName}」が見つかりません` })
+        continue
+      }
+      if (employees.length > 1) {
+        errors.push({ rowIndex: row.rowIndex, error: `従業員「${row.employeeName}」が複数存在します` })
+        continue
+      }
+      const employee = employees[0]
+
+      // 業務種別名で検索
+      const dutyType = await prisma.dutyType.findFirst({
+        where: { name: row.dutyTypeName },
+      })
+      if (!dutyType) {
+        errors.push({ rowIndex: row.rowIndex, error: `業務種別「${row.dutyTypeName}」が見つかりません` })
+        continue
+      }
+
+      const dutyDate = new Date(row.dutyDate)
+      const startTime = new Date(`1970-01-01T${row.startTime}Z`)
+      const endTime = new Date(`1970-01-01T${row.endTime}Z`)
+
+      // 既存の割当を検索（ユニーク制約: employeeId + dutyTypeId + dutyDate + startTime）
+      const existing = await prisma.dutyAssignment.findUnique({
+        where: {
+          employeeId_dutyTypeId_dutyDate_startTime: {
+            employeeId: employee.id,
+            dutyTypeId: dutyType.id,
+            dutyDate,
+            startTime,
+          },
+        },
+      })
+
+      const data = {
+        employeeId: employee.id,
+        dutyTypeId: dutyType.id,
+        dutyDate,
+        startTime,
+        endTime,
+        title: row.title,
+        note: row.note,
+        reducesCapacity: row.reducesCapacity,
+      }
+
+      if (existing) {
+        await prisma.dutyAssignment.update({
+          where: { id: existing.id },
+          data,
+        })
+        updated++
+      } else {
+        await prisma.dutyAssignment.create({ data })
+        created++
+      }
+    } catch {
+      errors.push({ rowIndex: row.rowIndex, error: "業務割当の保存に失敗しました" })
+    }
+  }
+
+  revalidatePath("/duty-assignments")
+  revalidatePath("/")
+  return { created, updated, errors }
+}
+
 import { getDutyAssignmentsForDaily, getDutyAssignmentsForCalendar } from "@/lib/db/duty-assignments"
 import type { DutyAssignmentWithDetails, DutyDailyFilterParams, DutyDailyPaginatedResult, DutyCalendarFilterParams, DutyCalendarPaginatedResult } from "@/types/duties"
 

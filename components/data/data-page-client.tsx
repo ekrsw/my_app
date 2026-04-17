@@ -14,6 +14,12 @@ import { ShiftImportSection } from "@/components/data/shift-import-section"
 import { ShiftExportSection } from "@/components/data/shift-export-section"
 import { EmployeeImportSection } from "@/components/data/employee-import-section"
 import { EmployeeExportSection } from "@/components/data/employee-export-section"
+import { RoleImportSection } from "@/components/data/role-import-section"
+import { RoleExportSection } from "@/components/data/role-export-section"
+import { DutyTypeImportSection } from "@/components/data/duty-type-import-section"
+import { DutyTypeExportSection } from "@/components/data/duty-type-export-section"
+import { DutyAssignmentImportSection } from "@/components/data/duty-assignment-import-section"
+import { DutyAssignmentExportSection } from "@/components/data/duty-assignment-export-section"
 
 type Group = {
   id: number
@@ -28,15 +34,21 @@ type Role = {
   _count: { employeeRoles: number }
 }
 
+type DutyType = {
+  id: number
+  name: string
+}
+
 type Props = {
   groups: Group[]
   roles: Role[]
+  dutyTypes: DutyType[]
 }
 
 type Mode = "import" | "export"
-type DataType = "shifts" | "employees"
+type DataType = "shifts" | "employees" | "roles" | "dutyTypes" | "dutyAssignments"
 
-export function DataPageClient({ groups, roles }: Props) {
+export function DataPageClient({ groups, roles, dutyTypes }: Props) {
   const [mode, setMode] = useState<Mode>("export")
   const [dataType, setDataType] = useState<DataType>("shifts")
 
@@ -65,6 +77,9 @@ export function DataPageClient({ groups, roles }: Props) {
           <SelectContent>
             <SelectItem value="shifts">シフト管理</SelectItem>
             <SelectItem value="employees">従業員</SelectItem>
+            <SelectItem value="roles">ロール割当て</SelectItem>
+            <SelectItem value="dutyTypes">業務種別マスタ</SelectItem>
+            <SelectItem value="dutyAssignments">業務割当</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -81,6 +96,24 @@ export function DataPageClient({ groups, roles }: Props) {
         )}
         {mode === "export" && dataType === "employees" && (
           <EmployeeExportSection groups={groups} />
+        )}
+        {mode === "import" && dataType === "roles" && (
+          <RoleImportSection />
+        )}
+        {mode === "export" && dataType === "roles" && (
+          <RoleExportSection />
+        )}
+        {mode === "import" && dataType === "dutyTypes" && (
+          <DutyTypeImportSection />
+        )}
+        {mode === "export" && dataType === "dutyTypes" && (
+          <DutyTypeExportSection />
+        )}
+        {mode === "import" && dataType === "dutyAssignments" && (
+          <DutyAssignmentImportSection />
+        )}
+        {mode === "export" && dataType === "dutyAssignments" && (
+          <DutyAssignmentExportSection dutyTypes={dutyTypes} />
         )}
       </div>
     </div>

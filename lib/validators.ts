@@ -179,6 +179,8 @@ export const shiftCsvRowSchema = z.object({
   shiftCode: z.string().max(20).nullable(),
   startTime: z.string().nullable(),
   endTime: z.string().nullable(),
+  lunchBreakStart: z.string().nullable().optional(),
+  lunchBreakEnd: z.string().nullable().optional(),
   isHoliday: z.boolean(),
   isRemote: z.boolean(),
 })
@@ -201,10 +203,35 @@ export const roleCsvRowSchema = z.object({
   endDate: z.string().nullable(),
 })
 
+export const dutyTypeCsvRowSchema = z.object({
+  name: z.string().min(1, "業務名は必須です").max(50, "50文字以内で入力してください"),
+  color: z.string().max(20).nullable(),
+  isActive: z.boolean(),
+  sortOrder: z.coerce.number().int().min(0, "0以上の数値を入力してください"),
+  defaultReducesCapacity: z.boolean(),
+  defaultStartTime: z.string().nullable(),
+  defaultEndTime: z.string().nullable(),
+  defaultTitle: z.string().max(100).nullable(),
+  defaultNote: z.string().nullable(),
+})
+
+export const dutyAssignmentCsvRowSchema = z.object({
+  dutyDate: z.string().min(1, "日付は必須です"),
+  employeeName: z.string().min(1, "従業員名は必須です"),
+  dutyTypeName: z.string().min(1, "業務種別名は必須です"),
+  startTime: z.string().min(1, "開始時刻は必須です"),
+  endTime: z.string().min(1, "終了時刻は必須です"),
+  title: z.string().max(100).nullable(),
+  note: z.string().nullable(),
+  reducesCapacity: z.boolean(),
+})
+
 export type EmployeeCsvRow = z.infer<typeof employeeCsvRowSchema>
 export type ShiftCsvRow = z.infer<typeof shiftCsvRowSchema>
 export type ShiftCodeCsvRow = z.infer<typeof shiftCodeCsvRowSchema>
 export type RoleCsvRow = z.infer<typeof roleCsvRowSchema>
+export type DutyTypeCsvRow = z.infer<typeof dutyTypeCsvRowSchema>
+export type DutyAssignmentCsvRow = z.infer<typeof dutyAssignmentCsvRowSchema>
 
 // 履歴編集スキーマ
 export const groupHistoryEditSchema = z.object({
