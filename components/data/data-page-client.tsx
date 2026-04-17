@@ -12,6 +12,8 @@ import {
 } from "@/components/ui/select"
 import { ShiftImportSection } from "@/components/data/shift-import-section"
 import { ShiftExportSection } from "@/components/data/shift-export-section"
+import { EmployeeImportSection } from "@/components/data/employee-import-section"
+import { EmployeeExportSection } from "@/components/data/employee-export-section"
 
 type Group = {
   id: number
@@ -32,7 +34,7 @@ type Props = {
 }
 
 type Mode = "import" | "export"
-type DataType = "shifts"
+type DataType = "shifts" | "employees"
 
 export function DataPageClient({ groups, roles }: Props) {
   const [mode, setMode] = useState<Mode>("export")
@@ -62,6 +64,7 @@ export function DataPageClient({ groups, roles }: Props) {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="shifts">シフト管理</SelectItem>
+            <SelectItem value="employees">従業員</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -72,6 +75,12 @@ export function DataPageClient({ groups, roles }: Props) {
         )}
         {mode === "export" && dataType === "shifts" && (
           <ShiftExportSection groups={groups} roles={roles} />
+        )}
+        {mode === "import" && dataType === "employees" && (
+          <EmployeeImportSection />
+        )}
+        {mode === "export" && dataType === "employees" && (
+          <EmployeeExportSection groups={groups} />
         )}
       </div>
     </div>
