@@ -94,3 +94,68 @@ export async function deleteDutyType(id: number) {
     return { error: "業務種別の削除に失敗しました。割当で使用中の可能性があります" }
   }
 }
+
+type DutyTypeImportRow = {
+  rowIndex: number
+  name: string
+  color: string | null
+  isActive: boolean
+  sortOrder: number
+  defaultReducesCapacity: boolean
+  defaultStartTime: string | null
+  defaultEndTime: string | null
+  defaultTitle: string | null
+  defaultNote: string | null
+}
+
+type DutyTypeImportResult = {
+  created: number
+  updated: number
+  errors: Array<{ rowIndex: number; error: string }>
+}
+
+export async function importDutyTypes(
+  rows: DutyTypeImportRow[]
+): Promise<DutyTypeImportResult> {
+  await requireAuth()
+
+  let created = 0
+  let updated = 0
+  const errors: Array<{ rowIndex: number; error: string }> = []
+
+  for (const row of rows) {
+    try {
+      const existing = await prisma.dutyType.findFirst({
+        where: { name: row.name },
+      })
+
+      const data = {
+        name: row.name,
+        color: row.color,
+        isActive: row.isActive,
+        sortOrder: row.sortOrder,
+        defaultReducesCapacity: row.defaultReducesCapacity,
+        defaultStartTime: row.defaultStartTime,
+        defaultEndTime: row.defaultEndTime,
+        defaultTitle: row.defaultTitle,
+        defaultNote: row.defaultNote,
+      }
+
+      if (existing) {
+        await prisma.dutyType.update({
+          where: { id: existing.id },
+          data,
+        })
+        updated++
+      } else {
+        await prisma.dutyType.create({ data })
+        created++
+      }
+    } catch {
+      errors.push({ rowIndex: row.rowIndex, error: "業務種別の保存に失敗しました" })
+    }
+  }
+
+  revalidatePath("/duty-types")
+  return { created, updated, errors }
+}

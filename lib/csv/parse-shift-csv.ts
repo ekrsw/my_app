@@ -9,6 +9,8 @@ const HEADER_MAP: Record<string, string> = {
   "シフトコード": "shiftCode",
   "開始時刻": "startTime",
   "終了時刻": "endTime",
+  "昼休み開始": "lunchBreakStart",
+  "昼休み終了": "lunchBreakEnd",
   "休日": "isHoliday",
   "テレワーク": "isRemote",
 }
@@ -102,6 +104,8 @@ export function parseShiftCsv(csvText: string): ShiftCsvParseResult {
     const rawShiftCode = row[headerIndexMap.shiftCode]?.trim() || ""
     const rawStartTime = row[headerIndexMap.startTime]?.trim() || ""
     const rawEndTime = row[headerIndexMap.endTime]?.trim() || ""
+    const rawLunchBreakStart = headerIndexMap.lunchBreakStart !== undefined ? row[headerIndexMap.lunchBreakStart]?.trim() || "" : ""
+    const rawLunchBreakEnd = headerIndexMap.lunchBreakEnd !== undefined ? row[headerIndexMap.lunchBreakEnd]?.trim() || "" : ""
     const rawIsHoliday = row[headerIndexMap.isHoliday]?.trim() || ""
     const rawIsRemote = row[headerIndexMap.isRemote]?.trim() || ""
 
@@ -115,6 +119,8 @@ export function parseShiftCsv(csvText: string): ShiftCsvParseResult {
       shiftCode: rawShiftCode === "" ? null : rawShiftCode,
       startTime: convertTime(rawStartTime),
       endTime: convertTime(rawEndTime),
+      lunchBreakStart: convertTime(rawLunchBreakStart),
+      lunchBreakEnd: convertTime(rawLunchBreakEnd),
       isHoliday: convertBoolean(rawIsHoliday),
       isRemote: convertBoolean(rawIsRemote),
     }
@@ -161,6 +167,18 @@ export function parseShiftCsv(csvText: string): ShiftCsvParseResult {
       const existing = rows[rows.length - 1]
       existing.valid = false
       existing.error = (existing.error ? existing.error + ", " : "") + "終了時刻の形式が不正です（HH:mm）"
+    }
+
+    if (rawLunchBreakStart && rawLunchBreakStart !== "-" && !convertTime(rawLunchBreakStart)) {
+      const existing = rows[rows.length - 1]
+      existing.valid = false
+      existing.error = (existing.error ? existing.error + ", " : "") + "昼休み開始の形式が不正です（HH:mm）"
+    }
+
+    if (rawLunchBreakEnd && rawLunchBreakEnd !== "-" && !convertTime(rawLunchBreakEnd)) {
+      const existing = rows[rows.length - 1]
+      existing.valid = false
+      existing.error = (existing.error ? existing.error + ", " : "") + "昼休み終了の形式が不正です（HH:mm）"
     }
   }
 

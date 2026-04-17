@@ -3,11 +3,13 @@ import { PageContainer } from "@/components/layout/page-container"
 import { DataPageClient } from "@/components/data/data-page-client"
 import { getGroups } from "@/lib/db/groups"
 import { getFunctionRoles } from "@/lib/db/roles"
+import { getActiveDutyTypes } from "@/lib/db/duty-types"
 
 export default async function DataPage() {
-  const [groups, roles] = await Promise.all([
+  const [groups, roles, dutyTypes] = await Promise.all([
     getGroups(),
     getFunctionRoles(),
+    getActiveDutyTypes(),
   ])
 
   return (
@@ -22,7 +24,7 @@ export default async function DataPage() {
       />
       <PageContainer>
         <h1 className="text-2xl font-bold mb-4">データ</h1>
-        <DataPageClient groups={groups} roles={roles} />
+        <DataPageClient groups={groups} roles={roles} dutyTypes={dutyTypes.map((dt) => ({ id: dt.id, name: dt.name }))} />
       </PageContainer>
     </>
   )

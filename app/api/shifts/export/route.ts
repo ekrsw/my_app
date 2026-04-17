@@ -77,6 +77,8 @@ export async function GET(request: NextRequest) {
     "シフトコード",
     "開始時刻",
     "終了時刻",
+    "昼休み開始",
+    "昼休み終了",
     "休日",
     "テレワーク",
   ]
@@ -89,6 +91,8 @@ export async function GET(request: NextRequest) {
     s.shiftCode ?? "",
     formatTime(s.startTime),
     formatTime(s.endTime),
+    formatTime(s.lunchBreakStart),
+    formatTime(s.lunchBreakEnd),
     s.isHoliday ? "t" : "f",
     s.isRemote ? "t" : "f",
   ])

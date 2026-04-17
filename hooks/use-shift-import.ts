@@ -59,6 +59,8 @@ export function useShiftImport() {
       shiftCode: r.data.shiftCode,
       startTime: r.data.startTime,
       endTime: r.data.endTime,
+      lunchBreakStart: r.data.lunchBreakStart ?? null,
+      lunchBreakEnd: r.data.lunchBreakEnd ?? null,
       isHoliday: r.data.isHoliday,
       isRemote: r.data.isRemote,
     }))
@@ -102,7 +104,7 @@ export function useShiftImport() {
   const validCount = parsedRows.filter((r) => r.valid).length
   const errorCount = parsedRows.filter((r) => !r.valid).length
 
-  const previewHeaders = ["日付", "従業員ID", "従業員名", "シフトコード", "開始", "終了", "休日", "テレワーク"]
+  const previewHeaders = ["日付", "従業員ID", "従業員名", "シフトコード", "開始", "終了", "昼休開始", "昼休終了", "休日", "テレワーク"]
   const previewRows = parsedRows.map((r) => ({
     rowIndex: r.rowIndex,
     cells: [
@@ -112,6 +114,8 @@ export function useShiftImport() {
       r.data.shiftCode || "",
       r.data.startTime || "-",
       r.data.endTime || "-",
+      r.data.lunchBreakStart || "-",
+      r.data.lunchBreakEnd || "-",
       r.data.isHoliday ? "t" : "f",
       r.data.isRemote ? "t" : "f",
     ],
