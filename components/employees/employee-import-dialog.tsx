@@ -68,13 +68,23 @@ export function EmployeeImportDialog() {
       groupNames: r.data.groupNames,
     }))
 
-    const res = await importEmployees(rows)
-    setResult(res)
-    setStep("result")
+    try {
+      const res = await importEmployees(rows)
+      setResult(res)
+      setStep("result")
 
-    if (res.success) {
-      toast.success(`インポート完了: 新規${res.created}件、更新${res.updated}件`)
-    } else {
+      if (res.success) {
+        toast.success(`インポート完了: 新規${res.created}件、更新${res.updated}件`)
+      } else {
+        toast.error("インポートに失敗しました")
+      }
+    } catch {
+      setResult({
+        created: 0,
+        updated: 0,
+        errors: [{ rowIndex: 0, error: "サーバーとの通信に失敗しました" }],
+      })
+      setStep("result")
       toast.error("インポートに失敗しました")
     }
   }
