@@ -9,7 +9,8 @@
 - [Prisma](https://www.prisma.io) 6 (PostgreSQL)
 - [Auth.js](https://authjs.dev) v5 (next-auth@beta) + bcrypt
 - [Zod](https://zod.dev) (バリデーション)
-- [Vitest](https://vitest.dev) (テスト)
+- [Vitest](https://vitest.dev) (ユニット/統合テスト)
+- [Playwright](https://playwright.dev) (E2E テスト)
 - [Tailwind CSS](https://tailwindcss.com) 4
 - [shadcn/ui](https://ui.shadcn.com) (UI コンポーネント)
 
@@ -151,12 +152,15 @@ npm run test:setup-db
 ### テスト実行
 
 ```bash
-npm test               # 全テスト実行
-npm run test:watch     # ウォッチモード
-npm run test:coverage  # カバレッジ付き
+npm test               # vitest (ユニット/統合) のみ
+npm run test:watch     # vitest ウォッチモード
+npm run test:coverage  # vitest カバレッジ付き
+npm run test:e2e       # Playwright E2E のみ
+npm run test:e2e:ui    # Playwright を UI モードで実行 (デバッグ向け)
+npm run test:all       # vitest → Playwright を直列実行
 ```
 
-### カテゴリ別実行
+### カテゴリ別実行 (vitest)
 
 ```bash
 npx vitest run tests/validators/    # Zod スキーマテスト（DB不要）
@@ -164,6 +168,42 @@ npx vitest run tests/db/            # DB クエリ層テスト
 npx vitest run tests/actions/       # Server Action テスト
 npx vitest run tests/triggers/      # DB トリガーテスト
 ```
+
+### E2E テスト (Playwright)
+
+ブラウザでの UI 挙動を検証するテストは `tests/e2e/` 配下。対象はサイドバー開閉、設定メニューの Collapsible↔DropdownMenu 切替、cookie 永続化、モバイル sheet 表示など。
+
+#### 初回セットアップ
+
+```bash
+npm install                      # @playwright/test を含む devDependencies を取得
+npx playwright install chromium  # Chromium バイナリをダウンロード (約 110MB)
+```
+
+#### 実行
+
+```bash
+npm run test:e2e              # 全 E2E テスト (chromium desktop + chromium mobile)
+npm run test:e2e:ui           # UI モードで対話的にデバッグ
+npx playwright test -g "smoke"  # grep でテスト絞り込み
+```
+
+Playwright は `webServer` 設定で自動的に `npm run start` を起動するため、事前に `npm run build` を済ませておくこと。
+
+#### 社内プロキシ環境の自動対応
+
+`HTTP_PROXY` が localhost までトンネルする環境(社内プロキシ等)では webServer への接続が失敗するため、`playwright.config.ts` 側で `NO_PROXY=localhost,127.0.0.1,::1` を自動的に付与している。ユーザーが既に `NO_PROXY` を設定している場合は尊重して merge する。通常は追加の環境変数設定は不要。
+
+#### テストプロジェクト
+
+`playwright.config.ts` で 2 つに分離:
+
+| Project | Device | 対象 |
+|---|---|---|
+| `chromium-desktop` | Desktop Chrome (1280x800) | `describe("Sidebar — desktop")` のみ |
+| `chromium-mobile` | Pixel 5 エミュレート | `describe("Sidebar — mobile")` のみ |
+
+タッチデバイスでホバーが効かない等、プロジェクトごとに挙動が違うテストが混線しないよう `grep` でルーティングしている。
 
 ### Server Action テストの必須モック
 
@@ -188,9 +228,12 @@ vi.mock("@/auth", () => ({
 | `npm run lint` | ESLint 実行 |
 | `npm run db:seed` | 管理者ユーザー作成 |
 | `npm run test:setup-db` | テストDB初期化 |
-| `npm test` | 全テスト実行 |
-| `npm run test:watch` | テストウォッチモード |
-| `npm run test:coverage` | カバレッジ付きテスト |
+| `npm test` | vitest (ユニット/統合) のみ |
+| `npm run test:watch` | vitest ウォッチモード |
+| `npm run test:coverage` | vitest カバレッジ付き |
+| `npm run test:e2e` | Playwright E2E のみ |
+| `npm run test:e2e:ui` | Playwright UI モード (デバッグ) |
+| `npm run test:all` | vitest → Playwright 直列実行 |
 | `npx prisma generate` | Prisma Client 再生成 |
 | `npx prisma migrate dev` | マイグレーション作成・適用 |
 | `npx prisma migrate deploy` | マイグレーション適用（本番用） |
@@ -252,4 +295,20 @@ npx prisma migrate reset
 ```bash
 psql -U postgres -c "DROP DATABASE IF EXISTS shift_database_test;"
 npm run test:setup-db
+```
+
+#### Playwright E2E が `Timed out waiting from config.webServer`
+
+通常は `playwright.config.ts` が `NO_PROXY` を自動設定するので発生しないはず。もし発生した場合:
+
+1. `playwright.config.ts` の先頭に NO_PROXY マージ処理があるか確認
+2. 古い Next.js プロセスが port 3000 を占有していないか: `taskkill //F //IM node.exe` で掃除してから再試行
+3. `.env` / `.env.test` で `HTTP_PROXY` が別の値で上書きされていないか確認
+
+#### Playwright が `Executable doesn't exist` を表示
+
+Chromium バイナリが未インストール。以下を実行:
+
+```bash
+npx playwright install chromium
 ```

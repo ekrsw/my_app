@@ -48,5 +48,9 @@ next-env.d.ts
 
 # playwright
 .playwright-mcp/
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
 .gstack/
 .claude/skills/gstack/
