@@ -64,6 +64,16 @@ export const shiftCodeColumns: ColumnDef<ShiftCodeRow>[] = [
     },
   },
   {
+    id: "defaultLunchBreak",
+    header: "デフォルト昼休憩",
+    cell: ({ row }) => {
+      const start = formatTime(row.original.defaultLunchBreakStart)
+      const end = formatTime(row.original.defaultLunchBreakEnd)
+      if (start === "-" && end === "-") return "-"
+      return `${start} - ${end}`
+    },
+  },
+  {
     id: "flags",
     header: "フラグ",
     cell: ({ row }) => (

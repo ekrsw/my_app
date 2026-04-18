@@ -140,7 +140,14 @@
       "Bash($B goto:*)",
       "Bash(ls /Users/ekoresawa/project/my_app/app/\\\\\\(main\\\\\\)/page.tsx)",
       "Skill(ship)",
-      "Bash(npx vitest:*)"
+      "Bash(npx vitest:*)",
+      "Bash(~/.claude/skills/gstack/bin/gstack-update-check --force)",
+      "Bash(.claude/skills/gstack/bin/gstack-update-check --force)",
+      "Bash(mkdir -p ~/.gstack)",
+      "Bash(echo \"0.14.5.0\")",
+      "Bash(rm -f ~/.gstack/last-update-check)",
+      "Bash(rm -f ~/.gstack/update-snoozed)",
+      "Read(//c/Users/eisuke_koresawa/.claude/skills/gstack/**)"
     ]
   }
 }

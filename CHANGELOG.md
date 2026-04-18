@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.17.1] - 2026-04-18
+
+### Added
+- シフトコード管理画面に「デフォルト昼休憩」列を追加。デフォルト時刻列と同じHH:MM - HH:MM形式で表示
+
 ## [0.2.17.0] - 2026-04-17
 
 ### Added
