@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.19.0] - 2026-04-18
+
+### Added
+- ダッシュボード「本日の出勤者」タイムラインビューで、時間ヘッダー下の「対応可能」セル（数値）をクリックすると、その時間帯に対応可能な従業員名をポップアップで一覧表示する機能を追加。昼休憩中・reducesCapacity 業務中の従業員は除外し、50音順で表示
+- `computeSlotStats` の返却値に `availableEmployees: { id, name }[]` を追加し、バリデータテストを 7 件追加（空配列/昼休憩除外/業務中除外/並び順/フィルタ後の反映）
+
+### Changed
+- 対応可能セルを button + Popover でラップ。キーボード操作・aria-label・focus-visible に対応し、対応可能 0 名のセルは従来通りクリック不可
+
 ## [0.2.18.1] - 2026-04-18
 
 ### Changed

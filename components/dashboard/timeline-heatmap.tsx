@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils"
 import { ColumnFilterPopover } from "@/components/common/filters/column-filter-popover"
 import { CheckboxListFilter } from "@/components/common/filters/checkbox-list-filter"
 import { ToggleFilter } from "@/components/common/filters/toggle-filter"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { DutyBarsOverlay, computeLaneCount, computeRowHeight, type DutyBarInput } from "@/components/common/duty-bars-overlay"
 import { DutyAssignmentDetailDialog } from "@/components/duty-assignments/duty-assignment-detail-dialog"
 import { ShiftBadge } from "@/components/shifts/shift-badge"
@@ -99,6 +100,8 @@ export type SlotStat = {
   lunch: number
   onDuty: number
   available: number
+  /** 対応可能な従業員（昼休憩中・reducesCapacity業務中を除外、50音順） */
+  availableEmployees: { id: string; name: string }[]
 }
 
 /** フッター統計を計算する純粋関数 */
@@ -140,6 +143,7 @@ export function computeSlotStats(
 
   return timeSlots.map((_, i) => {
     let present = 0, sv = 0, lunch = 0, onDuty = 0, unavailable = 0
+    const availableEmployees: { id: string; name: string }[] = []
     for (const row of filteredGrid) {
       const isAtWork = row.presence[i] || row.lunchBreak[i]
       if (!isAtWork) continue
@@ -151,6 +155,10 @@ export function computeSlotStats(
       if (isOnDuty) onDuty++
       // 対応可能なSVのみカウント（昼休憩中・他業務中を除外）
       if (isSV(row.employee) && !isOnLunch && !isOnDuty) sv++
+      // 対応可能な従業員名を収集（filteredGrid が既に 50音順のため並び順を維持）
+      if (!isOnLunch && !isOnDuty) {
+        availableEmployees.push({ id: row.employeeId, name: row.employeeName })
+      }
     }
     return {
       present,
@@ -158,6 +166,7 @@ export function computeSlotStats(
       lunch,
       onDuty,
       available: Math.max(0, present - unavailable),
+      availableEmployees,
     }
   })
 }
@@ -771,19 +780,44 @@ export function TimelineHeatmap({
             </td>
             {slotStats.map((stat, i) => {
               const color = getCapacityColor(stat.available)
+              const cellClass = cn(
+                "w-9 min-w-9 px-0 py-1 text-center text-xs font-semibold",
+                i % 2 === 0 && "border-l border-border",
+                color === "green" && "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
+                color === "yellow" && "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300",
+                color === "red" && "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300",
+                i === currentSlotIndex && "ring-1 ring-inset ring-primary/40"
+              )
+              if (stat.available === 0) {
+                return (
+                  <td key={i} className={cellClass}>
+                    {stat.available}
+                  </td>
+                )
+              }
               return (
-                <td
-                  key={i}
-                  className={cn(
-                    "w-9 min-w-9 px-0 py-1 text-center text-xs font-semibold",
-                    i % 2 === 0 && "border-l border-border",
-                    color === "green" && "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
-                    color === "yellow" && "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300",
-                    color === "red" && "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300",
-                    i === currentSlotIndex && "ring-1 ring-inset ring-primary/40"
-                  )}
-                >
-                  {stat.available}
+                <td key={i} className={cn(cellClass, "p-0")}>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <button
+                        type="button"
+                        aria-label={`${timeSlots[i]} 対応可能 ${stat.available}名`}
+                        className="w-full h-full px-0 py-1 cursor-pointer hover:ring-1 hover:ring-inset hover:ring-primary focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-primary focus-visible:outline-none"
+                      >
+                        {stat.available}
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent align="center" className="w-56 p-3">
+                      <div className="text-xs font-semibold mb-2">
+                        {timeSlots[i]} 対応可能 ({stat.available}名)
+                      </div>
+                      <ul className="text-sm space-y-0.5 max-h-64 overflow-auto">
+                        {stat.availableEmployees.map((emp) => (
+                          <li key={emp.id}>{emp.name}</li>
+                        ))}
+                      </ul>
+                    </PopoverContent>
+                  </Popover>
                 </td>
               )
             })}
