@@ -194,3 +194,39 @@
 **Depends on:** なし（独立した修正）
 
 **Context:** 3つのエクスポートAPIルートで `const now = new Date()` → `getTodayJST()` に置き換えるだけ。Eng Review (Phase 3ロール割当て, 2026-04-17) の Outside Voice で発見。
+
+## リファクタ: TimelineHeatmap の props 共通化
+
+**What:** `components/dashboard/timeline-heatmap.tsx` の props 数が、シフト/TW フィルタ追加で 26 個近くになる。グループ/職務/権限/シフト/TW の5種類のフィルタ props が同じパターンの4点セット (options, selectedValues, popoverOpen, onConfirm, onClear) を繰り返している。
+
+**Why:** 今後さらにフィルタが増えた際、props のバケツリレーが爆発する。呼び出し側 (today-overview-client.tsx) も同じパターンを5回書くことになり、DRY違反が拡大する。
+
+**Pros:** 1) フィルタ追加の摩擦低減、2) コード可読性向上、3) 他画面でも再利用可能
+
+**Cons:** Context APIを導入するか、filter config オブジェクトにまとめるかで設計判断が必要。既存の他画面 (shifts, duty-assignments) で同じフィルタパターンを使っているかを横断調査する必要あり
+
+**Effort:** M (human) → S (CC+gstack) | **Priority:** P3 | **Risk:** Low
+
+**Depends on:** なし (独立リファクタ)
+
+**Context:** 今回の CEO Review (2026-04-18, ダッシュボードタイムラインのシフト/TWフィルタ追加) で発見。Approach B (共通コンポーネント化) として提示されたが、HOLD SCOPE で今回は見送った経緯あり。
+
+## リファクタ: TWマーカー形状の統一
+
+**What:** テレワークの視覚表現が3種類混在している。
+- 本日の勤怠 (`today-attendance.tsx:154,159`): テキスト `TW` (sky-600)
+- 本日の出勤者 リストビュー (`today-overview-client.tsx:697`): `●` ドット (sky-600)
+- 業務管理カレンダー (`duty-monthly-calendar.tsx`): `Home` アイコン (sky-600, h-2.5 w-2.5, absolute top-0 right-0)
+- 本日の出勤者 タイムラインビュー (今回追加): `Home` アイコン (上と揃える)
+
+**Why:** UI の一貫性を損なう。ユーザーが同じ意味 (テレワーク) の異なる表現を見分ける認知コストがかかる。
+
+**Pros:** 視覚的統一、デザインシステム化の第一歩
+
+**Cons:** 置換先の形状を決める必要がある。現状業務管理カレンダーおよび本プランのタイムラインが `Home` アイコンを採用済みなので、残る2箇所 (本日の勤怠テキスト、リストビューのドット) を Home アイコンに統一するのが妥当と思われる
+
+**Effort:** S (human) → XS (CC+gstack) | **Priority:** P3 | **Risk:** Low
+
+**Depends on:** なし (独立リファクタ)
+
+**Context:** 今回の CEO Review (2026-04-18) で発見。HOLD SCOPE下で今回のタイムラインはHomeアイコンのみ追加し、既存の不整合は据え置いた。

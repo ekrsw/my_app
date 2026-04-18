@@ -1,6 +1,7 @@
 "use client"
 
 import { useMemo, useState, useCallback, useRef, useEffect, useId } from "react"
+import type { Shift } from "@/app/generated/prisma/client"
 import type { DutyCalendarData, DutyCalendarCell, DutyAssignmentWithDetails, ShiftCodeMap } from "@/types/duties"
 import { COLOR_PALETTE, getShiftCodeInfo, type ShiftCodeInfo } from "@/lib/constants"
 import {
@@ -20,7 +21,7 @@ import { DutyAssignmentDetailDialog } from "@/components/duty-assignments/duty-a
 import { getDutyAssignmentById, deleteDutyAssignment } from "@/lib/actions/duty-assignment-actions"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
-import { Loader2 } from "lucide-react"
+import { Home, Loader2 } from "lucide-react"
 
 type DutyTypeOption = {
   id: number
@@ -43,6 +44,7 @@ type DutyMonthlyCalendarProps = {
   employeeSearchText: string
   shiftCodeMap: ShiftCodeMap
   shiftCodeInfoMap: Record<string, ShiftCodeInfo>
+  shiftDataMap: Record<string, Record<string, Shift>>
   total: number
   hasMore: boolean
   isLoadingMore: boolean
@@ -77,17 +79,19 @@ function DutyTitleRow({ cell }: { cell: DutyCalendarCell }) {
 function ShiftArea({
   shiftCode,
   shiftCodeInfoMap,
+  isRemote,
   onClick,
 }: {
   shiftCode: string | undefined
   shiftCodeInfoMap: Record<string, ShiftCodeInfo>
+  isRemote: boolean
   onClick: (e: React.MouseEvent) => void
 }) {
   const shiftInfo = shiftCode ? getShiftCodeInfo(shiftCode, shiftCodeInfoMap) : null
 
   return (
     <div
-      className="flex items-center justify-center shrink-0 cursor-pointer hover:bg-accent/20 transition-colors px-1 py-0.5"
+      className="relative flex items-center justify-center shrink-0 cursor-pointer hover:bg-accent/20 transition-colors px-1 py-0.5"
       onClick={onClick}
     >
       {shiftInfo ? (
@@ -102,6 +106,12 @@ function ShiftArea({
         </span>
       ) : (
         <span className="text-[10px] text-muted-foreground/40">-</span>
+      )}
+      {isRemote && (
+        <Home
+          aria-label="テレワーク"
+          className="absolute top-0 right-0 h-2.5 w-2.5 text-sky-600"
+        />
       )}
     </div>
   )
@@ -160,6 +170,7 @@ export function DutyMonthlyCalendar({
   employeeSearchText,
   shiftCodeMap,
   shiftCodeInfoMap,
+  shiftDataMap,
   total,
   hasMore,
   isLoadingMore,
@@ -391,6 +402,7 @@ export function DutyMonthlyCalendar({
               const dateStr = toDateString(day)
               const duties = emp.duties[dateStr]
               const shiftCode = shiftCodeMap[emp.employeeId]?.[dateStr]
+              const isRemote = shiftDataMap[emp.employeeId]?.[dateStr]?.isRemote ?? false
               const weekend = checkWeekend(day)
               return (
                 <div
@@ -403,6 +415,7 @@ export function DutyMonthlyCalendar({
                   <ShiftArea
                     shiftCode={shiftCode}
                     shiftCodeInfoMap={shiftCodeInfoMap}
+                    isRemote={isRemote}
                     onClick={(e) => {
                       e.stopPropagation()
                       onShiftCellClick(emp.employeeId, dateStr, emp.employeeName)

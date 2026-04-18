@@ -518,6 +518,17 @@ export function TodayOverviewClient({ shifts, overnightShifts, filterOptions, di
                 onSupervisorPopoverOpenChange={setTlSupervisorPopoverOpen}
                 onSupervisorRoleConfirm={handleSupervisorRoleConfirm}
                 onSupervisorRoleClear={handleSupervisorRoleClear}
+                shiftCodeMap={shiftCodeMap}
+                shiftCodeOptions={shiftCodeOptions}
+                selectedShiftCodes={selectedShiftCodes}
+                shiftCodePopoverOpen={shiftCodePopoverOpen}
+                onShiftCodePopoverOpenChange={setShiftCodePopoverOpen}
+                onShiftCodesConfirm={handleShiftCodesConfirm}
+                onShiftCodesClear={handleShiftCodesClear}
+                isRemoteFilter={isRemoteFilter}
+                twPopoverOpen={twPopoverOpen}
+                onTwPopoverOpenChange={setTwPopoverOpen}
+                onTwFilterChange={handleTwFilterChange}
                 isAuthenticated={isAuthenticated}
                 employees={employees}
                 dutyTypes={dutyTypes}
