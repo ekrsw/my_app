@@ -147,7 +147,19 @@
       "Bash(echo \"0.14.5.0\")",
       "Bash(rm -f ~/.gstack/last-update-check)",
       "Bash(rm -f ~/.gstack/update-snoozed)",
-      "Read(//c/Users/eisuke_koresawa/.claude/skills/gstack/**)"
+      "Read(//c/Users/eisuke_koresawa/.claude/skills/gstack/**)",
+      "Bash(git fetch *)",
+      "Bash(git checkout *)",
+      "Bash(git pull *)",
+      "Bash(git ls-tree *)",
+      "Skill(plan-eng-review)",
+      "Bash(~/.claude/skills/gstack/bin/gstack-review-read)",
+      "Bash(~/.claude/skills/gstack/bin/gstack-learnings-log '{\"skill\":\"plan-eng-review\",\"type\":\"pitfall\",\"key\":\"shadcn-sidebar-cookie-default-parse\",\"insight\":\"shadcn の SidebarProvider defaultOpen は true。cookie 読み取りを cookie?.value === \\\\\"true\\\\\" と書くと初回訪問\\(cookie 不在\\)が false になり挙動が反転する。正解は !== \\\\\"false\\\\\"。\",\"confidence\":10,\"source\":\"cross-model\",\"files\":[\"app/\\(main\\)/layout.tsx\",\"components/ui/sidebar.tsx\"]}')",
+      "Bash(~/.claude/skills/gstack/bin/gstack-learnings-log '{\"skill\":\"plan-eng-review\",\"type\":\"architecture\",\"key\":\"shadcn-sidebar-close-button-hybrid\",\"insight\":\"shadcn sidebar の collapsible=icon モードで UX 規約に沿った閉じ手段を提供するには、SidebarHeader 右端に <SidebarTrigger /> を常設する Approach B ハイブリッドが現実解。SidebarRail 単独は tabIndex=-1 + 薄い帯で発見性が低い。\",\"confidence\":9,\"source\":\"cross-model\",\"files\":[\"components/layout/app-sidebar.tsx\",\"components/ui/sidebar.tsx\"]}')",
+      "Bash(findstr :3000)",
+      "Bash(NO_PROXY=localhost,127.0.0.1 no_proxy=localhost,127.0.0.1 npx playwright test --project=chromium-desktop -g \"smoke\" --reporter=list)",
+      "Bash(NO_PROXY=localhost,127.0.0.1 no_proxy=localhost,127.0.0.1 npx playwright test --reporter=list)",
+      "Bash(gh pr *)"
     ]
   }
 }
