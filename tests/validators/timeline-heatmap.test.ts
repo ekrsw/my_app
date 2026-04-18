@@ -291,6 +291,74 @@ describe("computeSlotStats", () => {
       expect(stat.onDuty).toBe(0)
     }
   })
+
+  describe("availableEmployees", () => {
+    it("presence=true, 昼休憩なし, 業務割当なし → availableEmployees に含まれる", () => {
+      const grid = [makeRow({ employeeId: "a", presence: [true, true, false], lunchBreak: [false, false, false] })]
+      const stats = computeSlotStats(grid, SLOTS_3, undefined, ROLE_TYPES)
+      expect(stats[0].availableEmployees).toEqual([{ id: "a", name: "Employee a" }])
+      expect(stats[1].availableEmployees).toEqual([{ id: "a", name: "Employee a" }])
+      expect(stats[2].availableEmployees).toEqual([])
+    })
+
+    it("昼休憩中 → availableEmployees から除外される", () => {
+      const grid = [makeRow({ employeeId: "a", presence: [false, false, false], lunchBreak: [true, false, false] })]
+      const stats = computeSlotStats(grid, SLOTS_3, undefined, ROLE_TYPES)
+      expect(stats[0].availableEmployees).toEqual([])
+      expect(stats[0].present).toBe(1)
+      expect(stats[0].lunch).toBe(1)
+    })
+
+    it("reducesCapacity=true の業務中 → availableEmployees から除外される", () => {
+      const grid = [makeRow({ employeeId: "a", presence: [true, true, true], lunchBreak: [false, false, false] })]
+      const duties = [makeDuty({ employeeId: "a", startTime: "09:00", endTime: "10:00", reducesCapacity: true })]
+      const stats = computeSlotStats(grid, SLOTS_3, duties, ROLE_TYPES)
+      expect(stats[0].availableEmployees).toEqual([]) // 09:00 業務中
+      expect(stats[1].availableEmployees).toEqual([]) // 09:30 業務中
+      expect(stats[2].availableEmployees).toEqual([{ id: "a", name: "Employee a" }]) // 10:00 業務外（半開区間）
+    })
+
+    it("reducesCapacity=false の業務中 → availableEmployees に含まれる", () => {
+      const grid = [makeRow({ employeeId: "a", presence: [true, true, true], lunchBreak: [false, false, false] })]
+      const duties = [makeDuty({ employeeId: "a", startTime: "09:00", endTime: "10:00", reducesCapacity: false })]
+      const stats = computeSlotStats(grid, SLOTS_3, duties, ROLE_TYPES)
+      expect(stats[0].availableEmployees).toEqual([{ id: "a", name: "Employee a" }])
+    })
+
+    it("available の人数と availableEmployees.length が一致する", () => {
+      const grid = [
+        makeRow({ employeeId: "a", presence: [true, true, true], lunchBreak: [false, false, false] }),
+        makeRow({ employeeId: "b", presence: [false, false, false], lunchBreak: [true, true, true] }),
+        makeRow({ employeeId: "c", presence: [true, true, true], lunchBreak: [false, false, false] }),
+      ]
+      const duties = [makeDuty({ employeeId: "c", startTime: "09:00", endTime: "09:30", reducesCapacity: true })]
+      const stats = computeSlotStats(grid, SLOTS_3, duties, ROLE_TYPES)
+      for (const stat of stats) {
+        expect(stat.availableEmployees).toHaveLength(stat.available)
+      }
+    })
+
+    it("複数従業員が同スロットで対応可能 → 全員収集される", () => {
+      const grid = [
+        makeRow({ employeeId: "a", presence: [true], lunchBreak: [false] }),
+        makeRow({ employeeId: "b", presence: [true], lunchBreak: [false] }),
+        makeRow({ employeeId: "c", presence: [true], lunchBreak: [false] }),
+      ]
+      const stats = computeSlotStats(grid, ["09:00"], undefined, ROLE_TYPES)
+      expect(stats[0].availableEmployees).toEqual([
+        { id: "a", name: "Employee a" },
+        { id: "b", name: "Employee b" },
+        { id: "c", name: "Employee c" },
+      ])
+    })
+
+    it("空のグリッド → availableEmployees 全て空配列", () => {
+      const stats = computeSlotStats([], SLOTS_3, undefined, ROLE_TYPES)
+      for (const stat of stats) {
+        expect(stat.availableEmployees).toEqual([])
+      }
+    })
+  })
 })
 
 describe("buildShiftDisplayMap (タイムラインシフト列表示用マップ)", () => {
