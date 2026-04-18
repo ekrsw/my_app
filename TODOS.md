@@ -1,5 +1,21 @@
 # TODOS
 
+## Playwright E2E を CI パイプラインに統合
+
+**What:** サイドバー E2E PR でローカル導入した Playwright を GitHub Actions などの CI に組み込む
+
+**Why:** 今回の PR で導入した Playwright は `npm run test:e2e` でローカル実行するのみ。CI に乗せないと、将来の変更が E2E を壊した時に検知できない(設定メニューの 6 項目regression など)
+
+**Pros:** リグレッションが PR マージ前に catch される / 設定メニューの silent failure を永続的に防ぐ
+
+**Cons:** CI 設定(chromium インストール、認証用 fixture セットアップ、テスト失敗時のアーティファクト保存先、実行時間の増加)
+
+**Context:** `tests/e2e/sidebar.spec.ts` が最初の E2E。認証が必要な画面は `storageState` で事前ログインするパターンが標準。dev server で回すと flaky なため、`npm run build && npm start` against production build が望ましい。playwright.config.ts の `webServer` 設定を見直すこと
+
+**Effort:** M (human) → S (CC+gstack: ~45min) | **Priority:** P3 | **Risk:** Low
+
+**Depends on:** 今回のサイドバー icon 化 PR がマージされ Playwright セットアップが main に載ること
+
 ## フェーズ2: インシデントログ機能
 
 **What:** 「対応できなかった」をワンクリックで記録できるインシデントログ機能を追加する
