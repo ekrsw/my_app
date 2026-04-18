@@ -2,12 +2,16 @@
 
 import { ReactNode, useMemo, useState, useEffect, useRef } from "react"
 import Link from "next/link"
+import { Home } from "lucide-react"
 import { getTimeHHMM, getCurrentJSTTimeHHMM, isLunchBreak, getCapacityColor, getTodayJSTDateStr, isRoleActiveToday } from "@/lib/capacity-utils"
 import { cn } from "@/lib/utils"
 import { ColumnFilterPopover } from "@/components/common/filters/column-filter-popover"
 import { CheckboxListFilter } from "@/components/common/filters/checkbox-list-filter"
+import { ToggleFilter } from "@/components/common/filters/toggle-filter"
 import { DutyBarsOverlay, computeLaneCount, computeRowHeight, type DutyBarInput } from "@/components/common/duty-bars-overlay"
 import { DutyAssignmentDetailDialog } from "@/components/duty-assignments/duty-assignment-detail-dialog"
+import { ShiftBadge } from "@/components/shifts/shift-badge"
+import type { ShiftCodeInfo } from "@/lib/constants"
 import type { TodayShift } from "@/components/dashboard/today-overview-client"
 import type { DutyAssignmentWithDetails } from "@/types/duties"
 
@@ -65,6 +69,27 @@ export function isPresentOvernight(
   if (!endTime) return false
   const end = getTimeHHMM(endTime)
   return slot < end
+}
+
+/**
+ * employeeId → TodayShift のマップを構築する。
+ * 今日のシフトと前日夜勤シフトの両方を考慮し、今日のシフトを優先する。
+ * (前日夜勤のみ出勤の従業員もMapに登場するが、今日のシフトがあればそれで上書きされる)
+ */
+export function buildShiftDisplayMap(
+  shifts: TodayShift[],
+  overnightShifts: TodayShift[]
+): Map<string, TodayShift> {
+  const map = new Map<string, TodayShift>()
+  for (const shift of overnightShifts) {
+    const empId = shift.employee?.id
+    if (empId) map.set(empId, shift)
+  }
+  for (const shift of shifts) {
+    const empId = shift.employee?.id
+    if (empId) map.set(empId, shift)
+  }
+  return map
 }
 
 /** フッター統計行の型 */
@@ -185,6 +210,19 @@ type Props = {
   onSupervisorPopoverOpenChange: (open: boolean) => void
   onSupervisorRoleConfirm: (names: string[]) => void
   onSupervisorRoleClear: () => void
+  // シフトコードフィルター + バッジ表示
+  shiftCodeMap: Record<string, ShiftCodeInfo>
+  shiftCodeOptions: FilterOption[]
+  selectedShiftCodes: string[]
+  shiftCodePopoverOpen: boolean
+  onShiftCodePopoverOpenChange: (open: boolean) => void
+  onShiftCodesConfirm: (codes: string[]) => void
+  onShiftCodesClear: () => void
+  // テレワークフィルター
+  isRemoteFilter: boolean
+  twPopoverOpen: boolean
+  onTwPopoverOpenChange: (open: boolean) => void
+  onTwFilterChange: (checked: boolean) => void
   // 業務割当詳細ダイアログ用
   isAuthenticated?: boolean
   employees?: { id: string; name: string }[]
@@ -220,6 +258,17 @@ export function TimelineHeatmap({
   onSupervisorPopoverOpenChange,
   onSupervisorRoleConfirm,
   onSupervisorRoleClear,
+  shiftCodeMap,
+  shiftCodeOptions,
+  selectedShiftCodes,
+  shiftCodePopoverOpen,
+  onShiftCodePopoverOpenChange,
+  onShiftCodesConfirm,
+  onShiftCodesClear,
+  isRemoteFilter,
+  twPopoverOpen,
+  onTwPopoverOpenChange,
+  onTwFilterChange,
   isAuthenticated = false,
   employees = [],
   dutyTypes = [],
@@ -366,8 +415,14 @@ export function TimelineHeatmap({
     return map
   }, [duties])
 
-  // 今日のシフトをemployeeIdで逆引き（セルクリック時に使用）
-  const shiftByEmployeeId = useMemo(() => {
+  // シフト列表示用: 今日 + 前日夜勤をマージ (今日優先)
+  const shiftByEmployeeIdForDisplay = useMemo(
+    () => buildShiftDisplayMap(shifts, overnightShifts),
+    [shifts, overnightShifts]
+  )
+
+  // セルクリック用: 今日のシフトのみ (前日夜勤のみの行はクリック不可のまま)
+  const shiftByEmployeeIdForClick = useMemo(() => {
     const map = new Map<string, TodayShift>()
     for (const shift of shifts) {
       const empId = shift.employee?.id
@@ -459,6 +514,34 @@ export function TimelineHeatmap({
             searchPlaceholder={`${distinctRoleTypes[0]}で検索...`}
           />
         </ColumnFilterPopover>
+        <ColumnFilterPopover
+          label="シフト"
+          isActive={selectedShiftCodes.length > 0}
+          activeCount={selectedShiftCodes.length}
+          open={shiftCodePopoverOpen}
+          onOpenChange={onShiftCodePopoverOpenChange}
+        >
+          <CheckboxListFilter
+            options={shiftCodeOptions}
+            selectedValues={selectedShiftCodes}
+            onConfirm={onShiftCodesConfirm}
+            onClear={onShiftCodesClear}
+            popoverOpen={shiftCodePopoverOpen}
+            searchPlaceholder="シフトコードで検索..."
+          />
+        </ColumnFilterPopover>
+        <ColumnFilterPopover
+          label="TW"
+          isActive={isRemoteFilter}
+          open={twPopoverOpen}
+          onOpenChange={onTwPopoverOpenChange}
+        >
+          <ToggleFilter
+            checked={isRemoteFilter}
+            onChange={onTwFilterChange}
+            label="TWのみ表示"
+          />
+        </ColumnFilterPopover>
       </div>
 
       {/* ヒートマップテーブル */}
@@ -474,9 +557,15 @@ export function TimelineHeatmap({
           <tr>
             <th
               rowSpan={2}
-              className="sticky left-0 z-30 min-w-[120px] bg-background px-3 py-1.5 text-left font-medium shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)]"
+              className="sticky left-0 z-30 w-[120px] min-w-[120px] max-w-[120px] bg-background px-3 py-1.5 text-left font-medium"
             >
               従業員名
+            </th>
+            <th
+              rowSpan={2}
+              className="sticky left-[120px] z-30 w-[72px] min-w-[72px] bg-background px-2 py-1.5 text-left font-medium shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)]"
+            >
+              シフト
             </th>
             {hourLabels.map((hour) => {
               const slotIdx = (hour - hourLabels[0]) * 2
@@ -523,7 +612,8 @@ export function TimelineHeatmap({
             const hasDuties = empBars.length > 0
             const laneCount = hasDuties ? computeLaneCount(empBars) : 0
             const rowHeight = hasDuties ? computeRowHeight(laneCount, 20, 2) : 28
-            const todayShift = shiftByEmployeeId.get(row.employeeId)
+            const todayShift = shiftByEmployeeIdForClick.get(row.employeeId)
+            const displayShift = shiftByEmployeeIdForDisplay.get(row.employeeId)
             const isClickable = !!todayShift && !!onShiftCellClick
             return (
               <tr
@@ -534,17 +624,33 @@ export function TimelineHeatmap({
                 )}
                 onClick={isClickable ? () => onShiftCellClick!(todayShift!) : undefined}
               >
-                <td className="sticky left-0 z-10 bg-background px-3 py-1 font-medium whitespace-nowrap shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)]">
+                <td className="sticky left-0 z-10 w-[120px] min-w-[120px] max-w-[120px] bg-background px-3 py-1 font-medium overflow-hidden text-ellipsis whitespace-nowrap">
                   {emp ? (
                     <Link
                       href={`/employees/${emp.id}`}
                       className="hover:underline hover:text-primary"
                       onClick={(e) => e.stopPropagation()}
+                      title={emp.name}
                     >
                       {emp.name}
                     </Link>
                   ) : (
                     "-"
+                  )}
+                </td>
+                <td className="sticky left-[120px] z-10 w-[72px] min-w-[72px] bg-background px-2 py-1 overflow-hidden shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)]">
+                  {displayShift ? (
+                    <div className="relative inline-flex items-center">
+                      <ShiftBadge code={displayShift.shiftCode} shiftCodeMap={shiftCodeMap} />
+                      {displayShift.isRemote && (
+                        <Home
+                          aria-label="テレワーク"
+                          className="absolute top-0 right-0 h-2.5 w-2.5 text-sky-600"
+                        />
+                      )}
+                    </div>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">-</span>
                   )}
                 </td>
                 <td colSpan={timeSlots.length} className="p-0" style={{ height: rowHeight }}>
@@ -594,6 +700,7 @@ export function TimelineHeatmap({
           {/* 出勤行（トグル付き） */}
           <tr className="border-t-2 border-border">
             <td
+              colSpan={2}
               className="sticky left-0 z-30 bg-muted px-3 py-1 font-semibold text-xs shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)] cursor-pointer select-none"
               onClick={() => setFooterExpanded((v) => !v)}
             >
@@ -620,7 +727,7 @@ export function TimelineHeatmap({
           {/* 昼休憩行（展開時のみ表示） */}
           {footerExpanded && (
             <tr>
-              <td className="sticky left-0 z-30 bg-muted px-3 py-0.5 pl-6 text-xs text-muted-foreground shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)]">
+              <td colSpan={2} className="sticky left-0 z-30 bg-muted px-3 py-0.5 pl-6 text-xs text-muted-foreground shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)]">
                 昼休憩
               </td>
               {slotStats.map((stat, i) => (
@@ -640,7 +747,7 @@ export function TimelineHeatmap({
           {/* 他業務行（展開時のみ表示） */}
           {footerExpanded && (
             <tr>
-              <td className="sticky left-0 z-30 bg-muted px-3 py-0.5 pl-6 text-xs text-muted-foreground shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)]">
+              <td colSpan={2} className="sticky left-0 z-30 bg-muted px-3 py-0.5 pl-6 text-xs text-muted-foreground shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)]">
                 他業務
               </td>
               {slotStats.map((stat, i) => (
@@ -659,7 +766,7 @@ export function TimelineHeatmap({
           )}
           {/* 対応可能行 */}
           <tr>
-            <td className="sticky left-0 z-30 bg-muted px-3 py-1 font-semibold text-xs shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)]">
+            <td colSpan={2} className="sticky left-0 z-30 bg-muted px-3 py-1 font-semibold text-xs shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)]">
               対応可能
             </td>
             {slotStats.map((stat, i) => {
@@ -683,7 +790,7 @@ export function TimelineHeatmap({
           </tr>
           {/* (内SV)行 */}
           <tr>
-            <td className="sticky left-0 z-30 bg-muted px-3 py-0.5 text-xs text-muted-foreground shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)]">
+            <td colSpan={2} className="sticky left-0 z-30 bg-muted px-3 py-0.5 text-xs text-muted-foreground shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)]">
               (内SV)
             </td>
             {slotStats.map((stat, i) => (

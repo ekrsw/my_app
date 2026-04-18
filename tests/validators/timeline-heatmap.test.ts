@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest"
-import { isPresent, isPresentOvernight, generateTimeSlots, computeSlotStats, type MergedRow } from "@/components/dashboard/timeline-heatmap"
+import { isPresent, isPresentOvernight, generateTimeSlots, computeSlotStats, buildShiftDisplayMap, type MergedRow } from "@/components/dashboard/timeline-heatmap"
+import type { TodayShift } from "@/components/dashboard/today-overview-client"
 import type { DutyAssignmentWithDetails } from "@/types/duties"
 
 // Prisma @db.Time(6) は 1970-01-01T{HH:mm:ss}Z 形式のDateオブジェクト
@@ -289,5 +290,74 @@ describe("computeSlotStats", () => {
     for (const stat of stats) {
       expect(stat.onDuty).toBe(0)
     }
+  })
+})
+
+describe("buildShiftDisplayMap (タイムラインシフト列表示用マップ)", () => {
+  function makeShift(empId: string, shiftCode: string, isRemote = false): TodayShift {
+    return {
+      id: Math.floor(Math.random() * 10000),
+      employeeId: empId,
+      shiftDate: new Date("2026-04-18"),
+      shiftCode,
+      startTime: null,
+      endTime: null,
+      isHoliday: null,
+      isRemote,
+      lunchBreakStart: null,
+      lunchBreakEnd: null,
+      employee: {
+        id: empId,
+        name: `emp-${empId}`,
+        employeeNumber: empId,
+        kanaName: null,
+        positionId: null,
+        hireDate: null,
+        retireDate: null,
+        color: null,
+        sortOrder: 0,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        groups: [],
+        functionRoles: [],
+      },
+    } as unknown as TodayShift
+  }
+
+  it("今日のシフトと前日夜勤シフトの両方がある → 今日のシフトを返す", () => {
+    const todayShift = makeShift("emp1", "10_17", false)
+    const overnightShift = makeShift("emp1", "22_8", true)
+    const map = buildShiftDisplayMap([todayShift], [overnightShift])
+    expect(map.size).toBe(1)
+    expect(map.get("emp1")?.shiftCode).toBe("10_17")
+    expect(map.get("emp1")?.isRemote).toBe(false)
+  })
+
+  it("今日のシフトのみ → 今日のシフトを返す", () => {
+    const todayShift = makeShift("emp1", "09_18", false)
+    const map = buildShiftDisplayMap([todayShift], [])
+    expect(map.size).toBe(1)
+    expect(map.get("emp1")?.shiftCode).toBe("09_18")
+  })
+
+  it("前日夜勤のみ → 前日夜勤のシフトを返す", () => {
+    const overnightShift = makeShift("emp2", "22_8", false)
+    const map = buildShiftDisplayMap([], [overnightShift])
+    expect(map.size).toBe(1)
+    expect(map.get("emp2")?.shiftCode).toBe("22_8")
+  })
+
+  it("複数従業員混在: 今日と前日のそれぞれが正しくマージされる", () => {
+    const todayOnly = makeShift("empA", "10_17", true)
+    const overnightOnly = makeShift("empB", "22_8", false)
+    const both_today = makeShift("empC", "09_18", false)
+    const both_overnight = makeShift("empC", "22_8", true)
+    const map = buildShiftDisplayMap([todayOnly, both_today], [overnightOnly, both_overnight])
+    expect(map.size).toBe(3)
+    expect(map.get("empA")?.shiftCode).toBe("10_17")
+    expect(map.get("empA")?.isRemote).toBe(true)
+    expect(map.get("empB")?.shiftCode).toBe("22_8")
+    expect(map.get("empC")?.shiftCode).toBe("09_18") // today優先
+    expect(map.get("empC")?.isRemote).toBe(false)
   })
 })
