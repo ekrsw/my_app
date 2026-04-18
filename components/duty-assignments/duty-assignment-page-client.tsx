@@ -557,6 +557,7 @@ export function DutyAssignmentPageClient({
         employeeSearchText={employeeSearchText}
         shiftCodeMap={shiftCodeMap}
         shiftCodeInfoMap={shiftCodeInfoMap}
+        shiftDataMap={shiftDataMap}
         total={calendarTotal}
         hasMore={calendarHasMoreState}
         isLoadingMore={calendarIsLoadingMore}
