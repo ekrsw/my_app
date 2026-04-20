@@ -128,11 +128,15 @@ export async function updateShiftFromAttendance(
     endTime?: string | null
     isHoliday?: boolean
     isRemote?: boolean
+    note?: string | null
     lunchBreakStart?: string | null
     lunchBreakEnd?: string | null
   }
 ) {
   await requireAuth()
+  if (data.note != null && data.note.length > 255) {
+    return { error: "255文字以内で入力してください" }
+  }
   try {
     await prisma.$transaction(async (tx) => {
       await tx.$executeRaw`SELECT set_config('app.skip_shift_history', 'true', true)`
@@ -176,6 +180,7 @@ export async function updateShiftFromAttendance(
           newLunchBreakEnd: data.lunchBreakEnd !== undefined
             ? (data.lunchBreakEnd ? new Date(`1970-01-01T${data.lunchBreakEnd}Z`) : null)
             : undefined,
+          note: data.note,
         },
       })
     })

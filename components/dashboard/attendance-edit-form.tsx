@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
   Select,
@@ -62,6 +63,7 @@ type AttendanceEditFormProps = {
   }
   employeeName: string
   shiftCodes: ActiveShiftCode[]
+  initialNote: string | null
 }
 
 function timeToInput(d: Date | string | null): string {
@@ -80,6 +82,7 @@ function AttendanceEditFormInner({
   shift,
   employeeName,
   shiftCodes,
+  initialNote,
 }: Omit<AttendanceEditFormProps, "open" | "onOpenChange"> & { onClose: () => void }) {
   const initialCode = shift.shiftCode ?? ""
   const initialIsCustom = initialCode !== "" && !shiftCodes.some((sc) => sc.code === initialCode)
@@ -91,6 +94,7 @@ function AttendanceEditFormInner({
   const [isCustom, setIsCustom] = useState(initialIsCustom)
   const [isHoliday, setIsHoliday] = useState(shift.isHoliday ?? false)
   const [isRemote, setIsRemote] = useState(shift.isRemote ?? false)
+  const [note, setNote] = useState(initialNote ?? "")
   const startTimeRef = useRef<HTMLInputElement>(null)
   const endTimeRef = useRef<HTMLInputElement>(null)
   const lunchBreakStartRef = useRef<HTMLInputElement>(null)
@@ -144,6 +148,7 @@ function AttendanceEditFormInner({
       endTime: (form.get("endTime") as string) || null,
       isHoliday,
       isRemote,
+      note: note.trim() || null,
       lunchBreakStart: (form.get("lunchBreakStart") as string) || null,
       lunchBreakEnd: (form.get("lunchBreakEnd") as string) || null,
     })
@@ -250,6 +255,18 @@ function AttendanceEditFormInner({
               defaultValue={timeToInput(shift.lunchBreakEnd)}
             />
           </div>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="note">備考</Label>
+          <Textarea
+            id="note"
+            name="note"
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            placeholder="修正理由など（任意・255文字以内）"
+            maxLength={255}
+            rows={2}
+          />
         </div>
         <div className="space-y-2">
           <div className="flex items-center gap-2">
