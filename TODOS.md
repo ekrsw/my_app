@@ -141,21 +141,21 @@
 
 **Context:** `/plan-eng-review` (2026-04-10) の Step 0 で発見。duty-assignment-page-client.tsx の Props 型定義も dutyTypeOptions のインライン型を DutyTypeOption[] に置き換えられる。
 
-## UX改善: 編集時のDutyType変更でdefault値が上書きされる問題
+## UX改善: シフトフォームのシフトコード変更でdefault値が上書きされる問題
 
-**What:** DutyAssignmentForm の編集モードで業務種別を変更すると、手入力済みの startTime/endTime/note が defaultXxx 値で無言で上書きされる。title のみ「新規作成時のみ自動補完」に修正済みだが、他のdefault値も同様の対応が必要。
+**What:** `components/shifts/shift-form.tsx` の `handleSelectChange` (line 195-226) が、シフトコード（プリセット）選択時に `startTime` / `endTime` / `lunchBreakStart` / `lunchBreakEnd` / `isHoliday` を無条件で上書きする。ユーザーが手入力した時刻や休日フラグがプリセット選択で失われる可能性がある。
 
-**Why:** ユーザーが手で修正した時間や備考が、業務種別を変更しただけで消える。特に時間帯の修正は頻繁に行われるため、影響が大きい。Codex adversarial review (2026-04-11) で発見。
+**Why:** DutyAssignmentForm で同種のバグを修正済み (2026-04-20)。shift-form も同じパターンで同じ問題を抱えている。ユーザーが明示的に入力した値を業務種別/プリセットのデフォルトで上書きすべきではない。
 
-**Pros:** 編集時のデータ消失リスクがなくなる。ユーザーの入力が尊重される。
+**Pros:** UX の一貫性（業務割当とシフトで同じ挙動）。入力データの消失リスクを削減。
 
-**Cons:** handleDutyTypeChange の条件分岐が増える（新規/編集で動作が異なる）。
+**Cons:** shift-form は ref ベースで time inputs を管理しており、duty-assignment-form (state ベース) とは実装パターンが異なる。ref.current.value で空判定するため条件分岐のスタイルが少し異なる。
 
 **Effort:** S (human) → XS (CC+gstack) | **Priority:** P2 | **Risk:** Low
 
-**Depends on:** タイトルカラム追加の実装完了
+**Depends on:** なし（独立修正）
 
-**Context:** duty-assignment-form.tsx:115-124 の handleDutyTypeChange が対象。現在は新規・編集問わず全 default 値を上書きする。title は今回のPRで「新規のみ」に修正されるが、startTime/endTime/note/reducesCapacity も同じパターンにすべき。
+**Context:** DutyAssignmentForm 側は `handleDutyTypeChange` を「空フィールドのみデフォルト適用」方式に変更済み。`reducesCapacity` (boolean) 相当として `isHoliday` も「初回選択時のみデフォルト適用」にするか、boolean フィールドは常に追従するかの設計判断が必要。
 
 ## バグ: フィルタープリセットに monthlyEmployeeSearch が含まれない
 
