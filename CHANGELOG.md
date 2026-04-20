@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.20.0] - 2026-04-20
+
+### Added
+- ダッシュボード「本日の出勤者」タイムラインビューで、表示の時間刻み（粒度）を 15分 / 30分 / 1時間 から選択できるラジオボタンを追加。繁忙時間帯を細かく確認したい場合は 15分、全体を俯瞰したい場合は 1時間に切り替えられる
+- 選択した粒度は URL パラメータ (`?interval=15|30|60`) に載るため、共有リンクで同じビューを開ける。他のダッシュボードフィルターと同様に localStorage にも保存され、再訪問時に復元される
+- `generateTimeSlots` のシグネチャ拡張（第3引数 `intervalMin`）、`parseInterval` バリデータ、`IntervalMin` 型の公開。timeline-heatmap テストを 24 件追加（粒度別スロット生成、不正値フォールバック、15分境界判定、`computeSlotStats` の配列長検証）
+
+### Changed
+- 粒度連動でセル幅を切替（15分=w-7 / 30分=w-9 / 60分=w-14）。60分表示時はサブラベル行を非表示にしてヘッダーを1行化
+- 不正な `?interval=` 値（例: `?interval=abc`）はサイレントに 30分へフォールバック
+
 ## [0.2.19.1] - 2026-04-20
 
 ### Added
