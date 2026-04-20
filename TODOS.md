@@ -246,3 +246,15 @@
 **Depends on:** なし (独立リファクタ)
 
 **Context:** 今回の CEO Review (2026-04-18) で発見。HOLD SCOPE下で今回のタイムラインはHomeアイコンのみ追加し、既存の不整合は据え置いた。
+
+## 機能: 勤怠修正ダイアログに「変更履歴を残さない」チェックボックス
+
+**What:** 本日の勤怠 > 勤怠修正ダイアログに「変更履歴を残さない」チェックボックスを追加し、チェック時のみ `app.skip_shift_history = 'true'` を適用する（現状は常時スキップ）
+
+**Why:** 元々の要件では備考欄と同時に実装する予定だったが、v0.2.19.1 では備考欄のみ先行リリースした。現状 `updateShiftFromAttendance` は無条件で trigger をスキップし既存履歴を直接更新しているため、「履歴を残したい修正」と「残したくない軽微な修正」の区別ができない。チェックボックスで切り替え可能にすることで、用途を使い分けられる
+
+**Effort:** S (human) → XS (CC+gstack) | **Priority:** P2 | **Risk:** Low
+
+**Depends on:** v0.2.19.1（備考欄リリース）のマージ
+
+**Context:** v0.2.19.1 PR で scope を備考欄のみに絞って先行リリースした際の deferred item。UI は `components/dashboard/attendance-edit-form.tsx`、サーバ側は `lib/actions/shift-actions.ts` の `updateShiftFromAttendance` を修正。チェックボックスが ON のときは既存挙動（既存履歴レコードを直接更新）、OFF のときは通常の update（trigger で新しい history レコード生成）にする。

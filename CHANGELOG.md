@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.19.1] - 2026-04-20
+
+### Added
+- ダッシュボード「本日の勤怠」画面の勤怠修正ダイアログに「備考」欄を追加。修正理由などを任意で入力でき（255文字以内）、変更履歴（`shift_change_history.note`）に保存される
+- `updateShiftFromAttendance` の備考永続化・255文字上限バリデーション・null許容を検証するテストを 4 件追加
+
 ## [0.2.19.0] - 2026-04-18
 
 ### Added
