@@ -90,10 +90,10 @@ function SidebarBrandToggle() {
   }
 
   return (
-    <div className="flex items-center justify-between gap-2">
-      <Link href="/" className="flex items-center gap-2">
-        <Headset className="h-6 w-6" />
-        <span className="text-lg font-bold">CSC管理ツール</span>
+    <div className="flex min-w-0 items-center justify-between gap-2">
+      <Link href="/" className="flex min-w-0 items-center gap-2">
+        <Headset className="h-6 w-6 shrink-0" />
+        <span className="truncate text-lg font-bold">CSC管理ツール</span>
       </Link>
       {!isMobile && <SidebarTrigger aria-label="サイドバーを閉じる" />}
     </div>
