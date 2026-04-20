@@ -88,6 +88,7 @@ export function TodayAttendance({ changes, employees, shiftCodes, isAuthenticate
       lunchBreakEnd: Date | null
     }
     employeeName: string
+    note: string | null
   } | null>(null)
 
   async function handleChangeClick(change: TodayChange) {
@@ -112,6 +113,7 @@ export function TodayAttendance({ changes, employees, shiftCodes, isAuthenticate
         lunchBreakEnd: shift.lunchBreakEnd,
       },
       employeeName: change.employee?.name ?? "不明",
+      note: change.note,
     })
   }
 
@@ -198,6 +200,7 @@ export function TodayAttendance({ changes, employees, shiftCodes, isAuthenticate
           shift={editTarget.shift}
           employeeName={editTarget.employeeName}
           shiftCodes={shiftCodes}
+          initialNote={editTarget.note}
         />
       )}
     </>

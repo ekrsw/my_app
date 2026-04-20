@@ -54,3 +54,4 @@ next-env.d.ts
 /playwright/.cache/
 .gstack/
 .claude/skills/gstack/
+.claude/scheduled_tasks.lock

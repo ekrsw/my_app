@@ -13,6 +13,7 @@ vi.mock("@/auth", () => ({
 const {
   createShift,
   updateShift,
+  updateShiftFromAttendance,
   deleteShift,
   bulkUpdateShifts,
   restoreShiftVersion,
@@ -280,6 +281,93 @@ describe("Shift Actions", () => {
       const result = await restoreShiftVersion(shift!.id, 999)
 
       expect(result.error).toBeDefined()
+    })
+  })
+
+  describe("updateShiftFromAttendance", () => {
+    async function setupShiftWithHistory() {
+      await createShift({
+        employeeId,
+        shiftDate: "2026-01-15",
+        shiftCode: "A",
+        startTime: "09:00",
+        endTime: "18:00",
+      })
+      const shift = await prisma.shift.findFirst()
+      await updateShift(shift!.id, { shiftCode: "B" })
+      const history = await prisma.shiftChangeHistory.findFirst({
+        where: { shiftId: shift!.id },
+        orderBy: { version: "desc" },
+      })
+      return { shift: shift!, history: history! }
+    }
+
+    it("should persist note to the history record", async () => {
+      const { shift, history } = await setupShiftWithHistory()
+
+      const result = await updateShiftFromAttendance(shift.id, history.id, {
+        shiftCode: "C",
+        startTime: "10:00",
+        endTime: "19:00",
+        note: "打刻忘れのため修正",
+      })
+
+      expect(result).toEqual({ success: true })
+
+      const updatedHistory = await prisma.shiftChangeHistory.findUnique({
+        where: { id: history.id },
+      })
+      expect(updatedHistory!.note).toBe("打刻忘れのため修正")
+      expect(updatedHistory!.newShiftCode).toBe("C")
+    })
+
+    it("should accept note at exactly 255 characters", async () => {
+      const { shift, history } = await setupShiftWithHistory()
+      const note = "あ".repeat(255)
+
+      const result = await updateShiftFromAttendance(shift.id, history.id, {
+        shiftCode: "C",
+        note,
+      })
+
+      expect(result).toEqual({ success: true })
+      const updatedHistory = await prisma.shiftChangeHistory.findUnique({
+        where: { id: history.id },
+      })
+      expect(updatedHistory!.note).toBe(note)
+    })
+
+    it("should return error when note exceeds 255 characters", async () => {
+      const { shift, history } = await setupShiftWithHistory()
+      const note = "あ".repeat(256)
+
+      const result = await updateShiftFromAttendance(shift.id, history.id, {
+        shiftCode: "C",
+        note,
+      })
+
+      expect(result.error).toBe("255文字以内で入力してください")
+
+      const updatedHistory = await prisma.shiftChangeHistory.findUnique({
+        where: { id: history.id },
+      })
+      expect(updatedHistory!.note).toBeNull()
+      expect(updatedHistory!.newShiftCode).not.toBe("C")
+    })
+
+    it("should accept null note without error", async () => {
+      const { shift, history } = await setupShiftWithHistory()
+
+      const result = await updateShiftFromAttendance(shift.id, history.id, {
+        shiftCode: "C",
+        note: null,
+      })
+
+      expect(result).toEqual({ success: true })
+      const updatedHistory = await prisma.shiftChangeHistory.findUnique({
+        where: { id: history.id },
+      })
+      expect(updatedHistory!.note).toBeNull()
     })
   })
 })
