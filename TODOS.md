@@ -1,5 +1,21 @@
 # TODOS
 
+## タイムライン粒度切替の E2E テスト追加
+
+**What:** ダッシュボード『本日の出勤者』タイムラインの粒度切替ラジオ (15/30/60分) に対する Playwright E2E テストを追加する。4 ケースを想定: (1) ラジオクリックで URL 更新と再描画、(2) `?interval=15` 直接アクセス、(3) `?interval=abc` などの不正値フォールバック、(4) 夜勤含む × 15 分で 96 列レンダリング崩れなし
+
+**Why:** 本 PR で追加した粒度切替は単体テスト (`generateTimeSlots`, `parseInterval`, `isPresent`, `computeSlotStats`) で純関数のロジックはカバーしたが、「ユーザーがラジオクリック → URL 更新 → 再描画 → フィルター状態保持」という end-to-end の経路は自動検証されていない。将来 useDashboardFilters や TimelineHeatmap が変更された時、このフローのリグレッションを検知する仕組みがない
+
+**Pros:** URL 共有シナリオの連続的検証 / フィルター関連のリグレッションを PR マージ前に自動ブロック / localStorage 永続化の確認
+
+**Cons:** Playwright が CI 未統合のため、当面はローカル実行のみ。CI 統合 TODO が完了してから取りかかるのが自然
+
+**Depends on:** 「Playwright E2E を CI パイプラインに統合」TODO の完了
+
+**Context:** 対象画面は `/dashboard`、タイムラインビュー (リストビューではない)。関連ファイル: `components/dashboard/timeline-heatmap.tsx`, `components/dashboard/today-overview-client.tsx`, `hooks/use-dashboard-filters.ts`。設計ドキュメント: `~/.gstack/projects/ekrsw-my_app/eisuke_koresawa-develop-design-20260420-161941.md`
+
+**Effort:** S (CC+gstack: ~30min) | **Priority:** P3 | **Risk:** Low
+
 ## Playwright E2E を CI パイプラインに統合
 
 **What:** サイドバー E2E PR でローカル導入した Playwright を GitHub Actions などの CI に組み込む

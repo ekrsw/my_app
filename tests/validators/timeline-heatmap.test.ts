@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest"
-import { isPresent, isPresentOvernight, generateTimeSlots, computeSlotStats, buildShiftDisplayMap, type MergedRow } from "@/components/dashboard/timeline-heatmap"
+import { isPresent, isPresentOvernight, generateTimeSlots, computeSlotStats, buildShiftDisplayMap, parseInterval, type MergedRow } from "@/components/dashboard/timeline-heatmap"
 import type { TodayShift } from "@/components/dashboard/today-overview-client"
 import type { DutyAssignmentWithDetails } from "@/types/duties"
 
@@ -103,18 +103,94 @@ describe("isPresentOvernight (前日夜勤の在席判定)", () => {
 })
 
 describe("generateTimeSlots", () => {
-  it("8:00-22:00で28スロット生成", () => {
+  it("8:00-22:00で28スロット生成 (intervalMin デフォルト=30)", () => {
     const slots = generateTimeSlots(8, 22)
     expect(slots).toHaveLength(28)
     expect(slots[0]).toBe("08:00")
     expect(slots[slots.length - 1]).toBe("21:30")
   })
 
-  it("0:00-24:00で48スロット生成", () => {
+  it("0:00-24:00で48スロット生成 (intervalMin デフォルト=30)", () => {
     const slots = generateTimeSlots(0, 24)
     expect(slots).toHaveLength(48)
     expect(slots[0]).toBe("00:00")
     expect(slots[slots.length - 1]).toBe("23:30")
+  })
+
+  it("intervalMin=15: 8:00-10:00 で 8スロット", () => {
+    expect(generateTimeSlots(8, 10, 15)).toEqual([
+      "08:00", "08:15", "08:30", "08:45",
+      "09:00", "09:15", "09:30", "09:45",
+    ])
+  })
+
+  it("intervalMin=15: 8:00-22:00 で 56スロット", () => {
+    const slots = generateTimeSlots(8, 22, 15)
+    expect(slots).toHaveLength(56)
+    expect(slots[0]).toBe("08:00")
+    expect(slots[slots.length - 1]).toBe("21:45")
+  })
+
+  it("intervalMin=15: 0:00-24:00 で 96スロット", () => {
+    const slots = generateTimeSlots(0, 24, 15)
+    expect(slots).toHaveLength(96)
+    expect(slots[0]).toBe("00:00")
+    expect(slots[slots.length - 1]).toBe("23:45")
+  })
+
+  it("intervalMin=60: 8:00-10:00 で 2スロット", () => {
+    expect(generateTimeSlots(8, 10, 60)).toEqual(["08:00", "09:00"])
+  })
+
+  it("intervalMin=60: 8:00-22:00 で 14スロット", () => {
+    const slots = generateTimeSlots(8, 22, 60)
+    expect(slots).toHaveLength(14)
+    expect(slots[0]).toBe("08:00")
+    expect(slots[slots.length - 1]).toBe("21:00")
+  })
+
+  it("intervalMin=60: 0:00-24:00 で 24スロット", () => {
+    const slots = generateTimeSlots(0, 24, 60)
+    expect(slots).toHaveLength(24)
+    expect(slots[0]).toBe("00:00")
+    expect(slots[slots.length - 1]).toBe("23:00")
+  })
+})
+
+describe("parseInterval", () => {
+  it('"15" / "30" / "60" を正しくパース', () => {
+    expect(parseInterval("15")).toBe(15)
+    expect(parseInterval("30")).toBe(30)
+    expect(parseInterval("60")).toBe(60)
+  })
+
+  it("null / undefined → 30", () => {
+    expect(parseInterval(null)).toBe(30)
+    expect(parseInterval(undefined)).toBe(30)
+  })
+
+  it("空文字 / 不正値 → 30", () => {
+    expect(parseInterval("")).toBe(30)
+    expect(parseInterval("abc")).toBe(30)
+    expect(parseInterval("20")).toBe(30)
+    expect(parseInterval("15.5")).toBe(30)
+    expect(parseInterval("0")).toBe(30)
+    expect(parseInterval("-15")).toBe(30)
+  })
+})
+
+describe("isPresent (15分粒度スロット境界)", () => {
+  it("9:00-10:00 シフト: 15分スロットで正しく判定 (半開区間)", () => {
+    expect(isPresent(time("09:00"), time("10:00"), "09:00")).toBe(true)
+    expect(isPresent(time("09:00"), time("10:00"), "09:15")).toBe(true)
+    expect(isPresent(time("09:00"), time("10:00"), "09:30")).toBe(true)
+    expect(isPresent(time("09:00"), time("10:00"), "09:45")).toBe(true)
+    expect(isPresent(time("09:00"), time("10:00"), "10:00")).toBe(false)
+  })
+
+  it("9:00-9:15 シフト: 09:00は勤務中、09:15は終業 (半開区間)", () => {
+    expect(isPresent(time("09:00"), time("09:15"), "09:00")).toBe(true)
+    expect(isPresent(time("09:00"), time("09:15"), "09:15")).toBe(false)
   })
 })
 
@@ -290,6 +366,32 @@ describe("computeSlotStats", () => {
     for (const stat of stats) {
       expect(stat.onDuty).toBe(0)
     }
+  })
+
+  describe("粒度別スロット長に対する出力配列長", () => {
+    it("96スロット入力 (15分粒度 × 夜勤含む) → 96要素の stats 返却", () => {
+      const slots = generateTimeSlots(0, 24, 15)
+      const stats = computeSlotStats([], slots, undefined, ROLE_TYPES)
+      expect(stats).toHaveLength(96)
+    })
+
+    it("56スロット入力 (15分粒度 × 日中のみ) → 56要素の stats 返却", () => {
+      const slots = generateTimeSlots(8, 22, 15)
+      const stats = computeSlotStats([], slots, undefined, ROLE_TYPES)
+      expect(stats).toHaveLength(56)
+    })
+
+    it("14スロット入力 (60分粒度 × 日中のみ) → 14要素の stats 返却", () => {
+      const slots = generateTimeSlots(8, 22, 60)
+      const stats = computeSlotStats([], slots, undefined, ROLE_TYPES)
+      expect(stats).toHaveLength(14)
+    })
+
+    it("24スロット入力 (60分粒度 × 夜勤含む) → 24要素の stats 返却", () => {
+      const slots = generateTimeSlots(0, 24, 60)
+      const stats = computeSlotStats([], slots, undefined, ROLE_TYPES)
+      expect(stats).toHaveLength(24)
+    })
   })
 
   describe("availableEmployees", () => {
