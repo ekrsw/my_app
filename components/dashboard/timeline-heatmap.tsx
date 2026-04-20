@@ -13,6 +13,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
 import { DutyBarsOverlay, computeLaneCount, computeRowHeight, type DutyBarInput } from "@/components/common/duty-bars-overlay"
 import { DutyAssignmentDetailDialog } from "@/components/duty-assignments/duty-assignment-detail-dialog"
+import { OtherDutyDialog } from "@/components/dashboard/other-duty-dialog"
 import { ShiftBadge } from "@/components/shifts/shift-badge"
 import type { ShiftCodeInfo } from "@/lib/constants"
 import type { TodayShift } from "@/components/dashboard/today-overview-client"
@@ -121,6 +122,8 @@ export type SlotStat = {
   available: number
   /** 対応可能な従業員（昼休憩中・reducesCapacity業務中を除外、50音順） */
   availableEmployees: { id: string; name: string }[]
+  /** このスロットで実施中の他業務（reducesCapacity=true のみ） */
+  onDutyAssignments: DutyAssignmentWithDetails[]
 }
 
 /** フッター統計を計算する純粋関数 */
@@ -132,6 +135,8 @@ export function computeSlotStats(
 ): SlotStat[] {
   // 業務割当のスロット判定（reducesCapacity=true のみ、日跨ぎ対応）
   const dutyPresence = new Map<string, boolean[]>()
+  // スロットインデックス → そのスロットでアクティブな他業務一覧
+  const slotDutyAssignments: DutyAssignmentWithDetails[][] = timeSlots.map(() => [])
   if (duties) {
     for (const duty of duties) {
       if (!duty.startTime || !duty.endTime || !duty.reducesCapacity) continue
@@ -143,6 +148,9 @@ export function computeSlotStats(
           ? (slot >= start || slot < end)
           : (start <= slot && slot < end)
       )
+      slots.forEach((active, i) => {
+        if (active) slotDutyAssignments[i].push(duty)
+      })
       const existing = dutyPresence.get(duty.employeeId)
       if (existing) {
         dutyPresence.set(duty.employeeId, existing.map((v, i) => v || slots[i]))
@@ -186,6 +194,7 @@ export function computeSlotStats(
       onDuty,
       available: Math.max(0, present - unavailable),
       availableEmployees,
+      onDutyAssignments: slotDutyAssignments[i],
     }
   })
 }
@@ -311,6 +320,7 @@ export function TimelineHeatmap({
   const [maxHeight, setMaxHeight] = useState<number>(600)
   const [selectedDutyId, setSelectedDutyId] = useState<number | null>(null)
   const [footerExpanded, setFooterExpanded] = useState(false)
+  const [otherDutySlotIndex, setOtherDutySlotIndex] = useState<number | null>(null)
 
   const selectedDuty = useMemo(
     () => (selectedDutyId !== null ? (duties?.find((d) => d.id === selectedDutyId) ?? null) : null),
@@ -819,19 +829,33 @@ export function TimelineHeatmap({
               <td colSpan={2} className="sticky left-0 z-30 bg-muted px-3 py-0.5 pl-6 text-xs text-muted-foreground shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)]">
                 他業務
               </td>
-              {slotStats.map((stat, i) => (
-                <td
-                  key={i}
-                  className={cn(
-                    "bg-muted px-0 py-0.5 text-center text-xs text-muted-foreground",
-                    cellWidthClass,
-                    i % slotsPerHour === 0 && "border-l border-border",
-                    i === currentSlotIndex && stat.onDuty > 0 && "bg-primary/20 dark:bg-primary/30"
-                  )}
-                >
-                  {stat.onDuty}
-                </td>
-              ))}
+              {slotStats.map((stat, i) => {
+                const cellBase = cn(
+                  "bg-muted text-center text-xs text-muted-foreground",
+                  cellWidthClass,
+                  i % slotsPerHour === 0 && "border-l border-border",
+                  i === currentSlotIndex && stat.onDuty > 0 && "bg-primary/20 dark:bg-primary/30"
+                )
+                if (stat.onDuty === 0) {
+                  return (
+                    <td key={i} className={cn(cellBase, "px-0 py-0.5")}>
+                      {stat.onDuty}
+                    </td>
+                  )
+                }
+                return (
+                  <td key={i} className={cn(cellBase, "p-0")}>
+                    <button
+                      type="button"
+                      aria-label={`${timeSlots[i]} 他業務 ${stat.onDuty}件`}
+                      onClick={() => setOtherDutySlotIndex(i)}
+                      className="w-full h-full px-0 py-0.5 cursor-pointer hover:ring-1 hover:ring-inset hover:ring-primary focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-primary focus-visible:outline-none"
+                    >
+                      {stat.onDuty}
+                    </button>
+                  </td>
+                )
+              })}
             </tr>
           )}
           {/* 対応可能行 */}
@@ -906,6 +930,18 @@ export function TimelineHeatmap({
         </tfoot>
       </table>
       </div>
+
+      {/* 他業務一覧ダイアログ（スロット単位） */}
+      <OtherDutyDialog
+        open={otherDutySlotIndex !== null}
+        onOpenChange={(open) => { if (!open) setOtherDutySlotIndex(null) }}
+        duties={otherDutySlotIndex !== null ? slotStats[otherDutySlotIndex]?.onDutyAssignments ?? [] : []}
+        timeLabel={otherDutySlotIndex !== null ? timeSlots[otherDutySlotIndex] ?? null : null}
+        onSelectDuty={(dutyId) => {
+          setOtherDutySlotIndex(null)
+          setSelectedDutyId(dutyId)
+        }}
+      />
 
       {/* 業務割当詳細ダイアログ */}
       <DutyAssignmentDetailDialog
