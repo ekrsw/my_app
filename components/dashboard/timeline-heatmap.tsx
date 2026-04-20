@@ -9,6 +9,8 @@ import { ColumnFilterPopover } from "@/components/common/filters/column-filter-p
 import { CheckboxListFilter } from "@/components/common/filters/checkbox-list-filter"
 import { ToggleFilter } from "@/components/common/filters/toggle-filter"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { Label } from "@/components/ui/label"
 import { DutyBarsOverlay, computeLaneCount, computeRowHeight, type DutyBarInput } from "@/components/common/duty-bars-overlay"
 import { DutyAssignmentDetailDialog } from "@/components/duty-assignments/duty-assignment-detail-dialog"
 import { ShiftBadge } from "@/components/shifts/shift-badge"
@@ -16,21 +18,38 @@ import type { ShiftCodeInfo } from "@/lib/constants"
 import type { TodayShift } from "@/components/dashboard/today-overview-client"
 import type { DutyAssignmentWithDetails } from "@/types/duties"
 
-/** 指定範囲の30分刻みスロットを生成 */
-export function generateTimeSlots(startHour: number, endHour: number): string[] {
+/** タイムラインの時間粒度（分） */
+export type IntervalMin = 15 | 30 | 60
+
+/** 粒度に応じたセル幅 Tailwind クラス */
+export const CELL_WIDTH_BY_INTERVAL: Record<IntervalMin, string> = {
+  15: "w-7 min-w-7",
+  30: "w-9 min-w-9",
+  60: "w-14 min-w-14",
+}
+
+/** URL パラメータ文字列を IntervalMin にパースする。不正値は 30 にフォールバック */
+export function parseInterval(value: string | null | undefined): IntervalMin {
+  if (value === "15" || value === "30" || value === "60") {
+    return Number(value) as IntervalMin
+  }
+  return 30
+}
+
+/** 指定範囲の `intervalMin` 分刻みスロットを生成 */
+export function generateTimeSlots(
+  startHour: number,
+  endHour: number,
+  intervalMin: number = 30
+): string[] {
   const slots: string[] = []
   for (let h = startHour; h < endHour; h++) {
-    for (let m = 0; m < 60; m += 30) {
+    for (let m = 0; m < 60; m += intervalMin) {
       slots.push(`${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`)
     }
   }
   return slots
 }
-
-/** 8:00〜21:30 の30分刻みスロット（28個） */
-const TIME_SLOTS_DAY = generateTimeSlots(8, 22)
-/** 0:00〜23:30 の30分刻みスロット（48個） */
-const TIME_SLOTS_FULL = generateTimeSlots(0, 24)
 
 /**
  * ヒートマップ用の在席判定（今日のシフト）。
@@ -232,6 +251,9 @@ type Props = {
   twPopoverOpen: boolean
   onTwPopoverOpenChange: (open: boolean) => void
   onTwFilterChange: (checked: boolean) => void
+  // 粒度切替
+  interval: IntervalMin
+  onIntervalChange: (interval: IntervalMin) => void
   // 業務割当詳細ダイアログ用
   isAuthenticated?: boolean
   employees?: { id: string; name: string }[]
@@ -278,6 +300,8 @@ export function TimelineHeatmap({
   twPopoverOpen,
   onTwPopoverOpenChange,
   onTwFilterChange,
+  interval,
+  onIntervalChange,
   isAuthenticated = false,
   employees = [],
   dutyTypes = [],
@@ -293,18 +317,27 @@ export function TimelineHeatmap({
     [selectedDutyId, duties]
   )
 
-  const timeSlots = showFullDay ? TIME_SLOTS_FULL : TIME_SLOTS_DAY
+  const timeSlots = useMemo(
+    () => showFullDay ? generateTimeSlots(0, 24, interval) : generateTimeSlots(8, 22, interval),
+    [showFullDay, interval]
+  )
   const hourLabels = showFullDay ? HOUR_LABELS_FULL : HOUR_LABELS_DAY
+  /** 1時間あたりのスロット数 (15min:4, 30min:2, 60min:1) */
+  const slotsPerHour = 60 / interval
+  /** セル幅クラス (7箇所で参照するため単一参照点に集約) */
+  const cellWidthClass = CELL_WIDTH_BY_INTERVAL[interval]
+  /** interval=60 ではサブラベル行が消えるため固定列の rowSpan を 1 に落とす */
+  const headerRowSpan = interval === 60 ? 1 : 2
 
   // 業務バーの時間軸範囲（ヒートマップの表示範囲と対応）
   const axisStartMinutes = showFullDay ? 0 : 8 * 60
   const axisEndMinutes = showFullDay ? 24 * 60 : 22 * 60
 
   useEffect(() => {
-    const interval = setInterval(() => {
+    const timer = setInterval(() => {
       setCurrentTime(getCurrentJSTTimeHHMM())
     }, 60_000)
-    return () => clearInterval(interval)
+    return () => clearInterval(timer)
   }, [])
 
   useEffect(() => {
@@ -551,6 +584,27 @@ export function TimelineHeatmap({
             label="TWのみ表示"
           />
         </ColumnFilterPopover>
+        <div className="ml-auto flex items-center gap-2">
+          <span className="text-muted-foreground text-xs">粒度:</span>
+          <RadioGroup
+            value={String(interval)}
+            onValueChange={(v) => onIntervalChange(parseInterval(v))}
+            className="flex items-center gap-3"
+          >
+            <div className="flex items-center gap-1.5">
+              <RadioGroupItem id="interval-15" value="15" />
+              <Label htmlFor="interval-15" className="text-xs cursor-pointer">15分</Label>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <RadioGroupItem id="interval-30" value="30" />
+              <Label htmlFor="interval-30" className="text-xs cursor-pointer">30分</Label>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <RadioGroupItem id="interval-60" value="60" />
+              <Label htmlFor="interval-60" className="text-xs cursor-pointer">1時間</Label>
+            </div>
+          </RadioGroup>
+        </div>
       </div>
 
       {/* ヒートマップテーブル */}
@@ -560,30 +614,30 @@ export function TimelineHeatmap({
         style={{ maxHeight }}
       >
       <table className="border-collapse text-xs">
-        {/* ヘッダー: 2行構成 */}
+        {/* ヘッダー: interval=60 では1行構成、それ以外は2行構成 */}
         <thead className="sticky top-0 z-20">
-          {/* 1行目: 時間ラベル（colSpan=2で :00 と :30 をまとめる） */}
+          {/* 1行目: 時間ラベル（colSpan=slotsPerHour で1時間分のセルをまとめる） */}
           <tr>
             <th
-              rowSpan={2}
+              rowSpan={headerRowSpan}
               className="sticky left-0 z-30 w-[120px] min-w-[120px] max-w-[120px] bg-background px-3 py-1.5 text-left font-medium"
             >
               従業員名
             </th>
             <th
-              rowSpan={2}
+              rowSpan={headerRowSpan}
               className="sticky left-[120px] z-30 w-[72px] min-w-[72px] bg-background px-2 py-1.5 text-left font-medium shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)]"
             >
               シフト
             </th>
             {hourLabels.map((hour) => {
-              const slotIdx = (hour - hourLabels[0]) * 2
+              const slotIdx = (hour - hourLabels[0]) * slotsPerHour
               const isCurrent =
-                currentSlotIndex === slotIdx || currentSlotIndex === slotIdx + 1
+                currentSlotIndex >= slotIdx && currentSlotIndex < slotIdx + slotsPerHour
               return (
                 <th
                   key={hour}
-                  colSpan={2}
+                  colSpan={slotsPerHour}
                   className={cn(
                     "bg-background px-0 py-1 text-center font-medium border-l border-border",
                     isCurrent && "border-b-2 border-b-primary"
@@ -594,24 +648,27 @@ export function TimelineHeatmap({
               )
             })}
           </tr>
-          {/* 2行目: :00 / :30 サブラベル */}
-          <tr>
-            {timeSlots.map((slot, i) => {
-              const isCurrent = i === currentSlotIndex
-              return (
-                <th
-                  key={slot}
-                  className={cn(
-                    "bg-background w-9 min-w-9 px-0 py-0.5 text-center font-normal text-muted-foreground",
-                    i % 2 === 0 && "border-l border-border",
-                    isCurrent && "border-b-2 border-b-primary"
-                  )}
-                >
-                  {slot.substring(3)}
-                </th>
-              )
-            })}
-          </tr>
+          {/* 2行目: :00 / :15 / :30 / :45 サブラベル (interval=60 では非表示) */}
+          {interval !== 60 && (
+            <tr>
+              {timeSlots.map((slot, i) => {
+                const isCurrent = i === currentSlotIndex
+                return (
+                  <th
+                    key={slot}
+                    className={cn(
+                      "bg-background px-0 py-0.5 text-center font-normal text-muted-foreground",
+                      cellWidthClass,
+                      i % slotsPerHour === 0 && "border-l border-border",
+                      isCurrent && "border-b-2 border-b-primary"
+                    )}
+                  >
+                    {slot.substring(3)}
+                  </th>
+                )
+              })}
+            </tr>
+          )}
         </thead>
 
         <tbody>
@@ -670,8 +727,9 @@ export function TimelineHeatmap({
                         <div
                           key={i}
                           className={cn(
-                            "w-9 min-w-9 shrink-0 h-full",
-                            i % 2 === 0 && "border-l border-border",
+                            "shrink-0 h-full",
+                            cellWidthClass,
+                            i % slotsPerHour === 0 && "border-l border-border",
                             present
                               ? (i === currentSlotIndex
                                   ? "bg-primary/40 dark:bg-primary/50"
@@ -720,8 +778,9 @@ export function TimelineHeatmap({
               <td
                 key={i}
                 className={cn(
-                  "bg-muted w-9 min-w-9 px-0 py-1 text-center text-xs font-semibold",
-                  i % 2 === 0 && "border-l border-border",
+                  "bg-muted px-0 py-1 text-center text-xs font-semibold",
+                  cellWidthClass,
+                  i % slotsPerHour === 0 && "border-l border-border",
                   stat.present === 0
                     ? "text-muted-foreground"
                     : i === currentSlotIndex
@@ -743,8 +802,9 @@ export function TimelineHeatmap({
                 <td
                   key={i}
                   className={cn(
-                    "bg-muted w-9 min-w-9 px-0 py-0.5 text-center text-xs text-muted-foreground",
-                    i % 2 === 0 && "border-l border-border",
+                    "bg-muted px-0 py-0.5 text-center text-xs text-muted-foreground",
+                    cellWidthClass,
+                    i % slotsPerHour === 0 && "border-l border-border",
                     i === currentSlotIndex && stat.lunch > 0 && "bg-primary/20 dark:bg-primary/30"
                   )}
                 >
@@ -763,8 +823,9 @@ export function TimelineHeatmap({
                 <td
                   key={i}
                   className={cn(
-                    "bg-muted w-9 min-w-9 px-0 py-0.5 text-center text-xs text-muted-foreground",
-                    i % 2 === 0 && "border-l border-border",
+                    "bg-muted px-0 py-0.5 text-center text-xs text-muted-foreground",
+                    cellWidthClass,
+                    i % slotsPerHour === 0 && "border-l border-border",
                     i === currentSlotIndex && stat.onDuty > 0 && "bg-primary/20 dark:bg-primary/30"
                   )}
                 >
@@ -781,8 +842,9 @@ export function TimelineHeatmap({
             {slotStats.map((stat, i) => {
               const color = getCapacityColor(stat.available)
               const cellClass = cn(
-                "w-9 min-w-9 px-0 py-1 text-center text-xs font-semibold",
-                i % 2 === 0 && "border-l border-border",
+                "px-0 py-1 text-center text-xs font-semibold",
+                cellWidthClass,
+                i % slotsPerHour === 0 && "border-l border-border",
                 color === "green" && "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
                 color === "yellow" && "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300",
                 color === "red" && "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300",
@@ -831,8 +893,9 @@ export function TimelineHeatmap({
               <td
                 key={i}
                 className={cn(
-                  "bg-muted w-9 min-w-9 px-0 py-0.5 text-center text-xs text-muted-foreground",
-                  i % 2 === 0 && "border-l border-border",
+                  "bg-muted px-0 py-0.5 text-center text-xs text-muted-foreground",
+                  cellWidthClass,
+                  i % slotsPerHour === 0 && "border-l border-border",
                   i === currentSlotIndex && stat.sv > 0 && "bg-primary/20 dark:bg-primary/30"
                 )}
               >

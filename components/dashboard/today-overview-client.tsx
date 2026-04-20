@@ -23,7 +23,7 @@ import { ActiveFilterTags, FilterTag } from "@/components/common/filters/active-
 import { ShiftBadge } from "@/components/shifts/shift-badge"
 import { useDashboardFilters } from "@/hooks/use-dashboard-filters"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
-import { TimelineHeatmap } from "@/components/dashboard/timeline-heatmap"
+import { TimelineHeatmap, parseInterval, type IntervalMin } from "@/components/dashboard/timeline-heatmap"
 import { ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -170,6 +170,11 @@ export function TodayOverviewClient({ shifts, overnightShifts, filterOptions, di
   const selectedSupervisorRoleNames = useMemo(() => parseStrings(getParam("supervisorRoleNames")), [getParam])
   const selectedBusinessRoleNames = useMemo(() => parseStrings(getParam("businessRoleNames")), [getParam])
   const isRemoteFilter = getParam("isRemote") === "true"
+  const interval = useMemo(() => parseInterval(getParam("interval")), [getParam])
+
+  const handleIntervalChange = useCallback((v: IntervalMin) => {
+    setParams({ interval: String(v) })
+  }, [setParams])
 
   // --- Popover open state ---
   const [employeePopoverOpen, setEmployeePopoverOpen] = useState(false)
@@ -529,6 +534,8 @@ export function TodayOverviewClient({ shifts, overnightShifts, filterOptions, di
                 twPopoverOpen={twPopoverOpen}
                 onTwPopoverOpenChange={setTwPopoverOpen}
                 onTwFilterChange={handleTwFilterChange}
+                interval={interval}
+                onIntervalChange={handleIntervalChange}
                 isAuthenticated={isAuthenticated}
                 employees={employees}
                 dutyTypes={dutyTypes}
