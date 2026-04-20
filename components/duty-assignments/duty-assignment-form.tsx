@@ -117,15 +117,24 @@ export function DutyAssignmentForm({
   }
 
   function handleDutyTypeChange(value: string) {
+    const isFirstSelection = selectedDutyTypeId === ""
     setSelectedDutyTypeId(value)
     const dt = dutyTypes.find((d) => d.id.toString() === value)
     if (dt) {
-      setReducesCapacity(dt.defaultReducesCapacity)
-      setStartTime(dt.defaultStartTime ?? "")
-      setEndTime(dt.defaultEndTime ?? "")
-      setNote(dt.defaultNote ?? "")
-      if (!isEdit) {
+      if (isFirstSelection) {
+        setReducesCapacity(dt.defaultReducesCapacity)
+      }
+      if (title.trim() === "") {
         setTitle(dt.defaultTitle ?? "")
+      }
+      if (startTime.trim() === "") {
+        setStartTime(dt.defaultStartTime ?? "")
+      }
+      if (endTime.trim() === "") {
+        setEndTime(dt.defaultEndTime ?? "")
+      }
+      if (note.trim() === "") {
+        setNote(dt.defaultNote ?? "")
       }
     }
   }
