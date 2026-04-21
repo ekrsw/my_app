@@ -1,16 +1,16 @@
 import { PageHeader } from "@/components/layout/page-header"
 import { PageContainer } from "@/components/layout/page-container"
-import { TodayOverviewClient } from "@/components/dashboard/today-overview-client"
+import { DailyOverviewClient } from "@/components/dashboard/daily-overview-client"
 import { TodayDuties } from "@/components/dashboard/today-duties"
 import { TodayAttendance } from "@/components/dashboard/today-attendance"
 import { CapacitySummary } from "@/components/dashboard/capacity-summary"
 import {
-  getTodayOverview,
-  getDashboardFilterOptions,
+  getDailyOverview,
+  getDailyFilterOptions,
   getTodayShiftChangeHistory,
-  getYesterdayOvernightShifts,
+  getPreviousDayOvernightShifts,
 } from "@/lib/db/dashboard"
-import { getTodayDutyAssignments, getYesterdayOvernightDutyAssignments } from "@/lib/db/duty-assignments"
+import { getDailyDutyAssignments, getPreviousDayOvernightDutyAssignments } from "@/lib/db/duty-assignments"
 import { getActiveDutyTypes } from "@/lib/db/duty-types"
 import { getAllEmployees } from "@/lib/db/employees"
 import { getFunctionRoles } from "@/lib/db/roles"
@@ -64,10 +64,10 @@ export default async function DashboardPage({ searchParams }: Props) {
 
   const [todayShifts, todayDuties, todayChanges, filterOptions, roles, session, activeShiftCodes, shiftIdsWithHistorySet, latestHistoryEntries, dutyTypes, allEmployees, overnightShifts, overnightDuties] =
     await Promise.all([
-      getTodayOverview(filter),
-      getTodayDutyAssignments(),
+      getDailyOverview(todayJST, filter),
+      getDailyDutyAssignments(todayJST),
       getTodayShiftChangeHistory(),
-      getDashboardFilterOptions(),
+      getDailyFilterOptions(todayJST),
       getFunctionRoles(),
       auth(),
       getActiveShiftCodes(),
@@ -75,8 +75,8 @@ export default async function DashboardPage({ searchParams }: Props) {
       getLatestShiftHistoryEntries(todayYear, todayMonth),
       getActiveDutyTypes(),
       getAllEmployees(),
-      getYesterdayOvernightShifts(filter),
-      getYesterdayOvernightDutyAssignments(),
+      getPreviousDayOvernightShifts(todayJST, filter),
+      getPreviousDayOvernightDutyAssignments(todayJST),
     ])
 
   // ロールタイプからカラム名を決定（shift-daily-viewと同じロジック）
@@ -148,7 +148,9 @@ export default async function DashboardPage({ searchParams }: Props) {
               todayDateString={todayDateString}
             />
           </div>
-          <TodayOverviewClient
+          <DailyOverviewClient
+            date={todayDateString}
+            isToday={true}
             shifts={todayShifts}
             overnightShifts={overnightShifts}
             filterOptions={filterOptions}
@@ -157,7 +159,6 @@ export default async function DashboardPage({ searchParams }: Props) {
             shiftCodes={activeShiftCodes}
             shiftIdsWithHistory={[...shiftIdsWithHistorySet]}
             shiftLatestHistory={latestHistoryEntries}
-            todayDateString={todayDateString}
             dutyAssignments={todayDuties}
             employees={allEmployees.map((e) => ({ id: e.id, name: e.name }))}
             dutyTypes={dutyTypes.map((dt) => ({ id: dt.id, name: dt.name, defaultReducesCapacity: dt.defaultReducesCapacity, defaultStartTime: dt.defaultStartTime, defaultEndTime: dt.defaultEndTime, defaultNote: dt.defaultNote, defaultTitle: dt.defaultTitle }))}

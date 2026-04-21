@@ -22,7 +22,6 @@ import { ToggleFilter } from "@/components/common/filters/toggle-filter"
 import { ActiveFilterTags, FilterTag } from "@/components/common/filters/active-filter-tags"
 import { ShiftBadge } from "@/components/shifts/shift-badge"
 import { useDashboardFilters } from "@/hooks/use-dashboard-filters"
-import { getTodayJSTDateStr } from "@/lib/capacity-utils"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { TimelineHeatmap, parseInterval, type IntervalMin } from "@/components/dashboard/timeline-heatmap"
 import { ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react"
@@ -68,8 +67,10 @@ type ActiveShiftCode = {
 }
 
 type Props = {
-  /** 表示対象の日付 (YYYY-MM-DD)。今日と一致する場合は「本日の出勤者」、それ以外は日付入りタイトル。 */
+  /** 表示対象の日付 (YYYY-MM-DD)。 */
   date: string
+  /** サーバー計算済みの「今日フラグ」。SSR ハイドレーション mismatch を避けるため、クライアント側では計算せず Server Component で確定させる。 */
+  isToday: boolean
   shifts: TodayShift[]
   overnightShifts: TodayShift[]
   filterOptions: DashboardFilterOptions
@@ -83,9 +84,8 @@ type Props = {
   dutyTypes?: { id: number; name: string; defaultReducesCapacity: boolean; defaultStartTime: string | null; defaultEndTime: string | null; defaultNote: string | null; defaultTitle: string | null }[]
 }
 
-export function DailyOverviewClient({ date, shifts, overnightShifts, filterOptions, distinctRoleTypes, isAuthenticated, shiftCodes: shiftCodesData, shiftIdsWithHistory, shiftLatestHistory, dutyAssignments, employees = [], dutyTypes = [] }: Props) {
+export function DailyOverviewClient({ date, isToday, shifts, overnightShifts, filterOptions, distinctRoleTypes, isAuthenticated, shiftCodes: shiftCodesData, shiftIdsWithHistory, shiftLatestHistory, dutyAssignments, employees = [], dutyTypes = [] }: Props) {
   const { setParams, getParam } = useDashboardFilters()
-  const isToday = date === getTodayJSTDateStr()
 
   // --- Dynamic height calculation (same pattern as shift-calendar) ---
   const scrollContainerRef = useRef<HTMLDivElement>(null)
@@ -110,7 +110,7 @@ export function DailyOverviewClient({ date, shifts, overnightShifts, filterOptio
       window.removeEventListener("resize", updateHeight)
       observer.disconnect()
     }
-  })
+  }, [])
 
   // --- Tab and timeline row count state ---
   const [activeTab, setActiveTab] = useState("timeline")
@@ -503,6 +503,7 @@ export function DailyOverviewClient({ date, shifts, overnightShifts, filterOptio
             <TabsContent value="timeline" className="flex-1 min-h-0">
               <TimelineHeatmap
                 date={date}
+                isToday={isToday}
                 shifts={nightShiftFiltered}
                 overnightShifts={excludeNightShift ? [] : overnightShifts}
                 showFullDay={!excludeNightShift}
