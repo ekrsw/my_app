@@ -2,6 +2,32 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.0.0] - 2026-04-21
+
+### Added
+- 業務管理（日次）画面で、ダッシュボードと同じタイムラインビューが見られるように。これまで業務一覧のテーブルだけだった画面が、シフト塗り分け+業務バー+複数フィルタ+間隔切替(15/30/60分)+シフトセルクリック編集を備えた統合ビューに変わり、片方の画面で改善したタイムライン機能が両方に自動反映される
+- 業務管理（日次）で任意の日付を選択するとタイムラインが表示される。過去日・未来日の出勤状況・業務割当を俯瞰でき、前日の夜勤も正しく該当日として扱われる
+- 過去日/未来日表示時は現在時刻マーカーと ticker が非表示、Card タイトルが「出勤者 YYYY-MM-DD (N名)」に切り替わる
+
+### Changed
+- `TodayOverviewClient` → `DailyOverviewClient` にリネーム・一般化。`date: string` と `isToday: boolean` を prop として受け取る（`isToday` は Server Component で計算しハイドレーション mismatch を回避）
+- `TimelineHeatmap` に `date`, `isToday` prop を追加。`computeSlotStats` の第5引数に `date` を追加
+- `lib/capacity-utils.ts` の `isRoleActiveToday` を `isRoleActiveOnDate` にリネーム（機能同等、任意日付対応を明示）
+- `lib/db/dashboard.ts` の `getTodayOverview` → `getDailyOverview(date, filter)`、`getYesterdayOvernightShifts` → `getPreviousDayOvernightShifts(date, filter)`、`getDashboardFilterOptions` → `getDailyFilterOptions(date)` にリネーム・汎用化
+- `lib/db/duty-assignments.ts` の `getTodayDutyAssignments` → `getDailyDutyAssignments(date)`、`getYesterdayOvernightDutyAssignments` → `getPreviousDayOvernightDutyAssignments(date)` にリネーム・汎用化
+- 業務管理（日次）の画面名を維持したまま、URL パラメータ `dailyDate=YYYY-MM-DD` で日付切替。不正な日付文字列（例: `2025-02-30` のような rollover）は今日へフォールバック
+- FilterPresetManager の daily プリセット保存先キーを `duty-filter-presets-daily-v2` に bump。スキーマ変更で旧キー(reducesCapacity/dutyTypeIds/sortBy 等)の古いプリセットは無効化される
+
+### Removed
+- 業務管理（日次）の `DutyDailyView`（テーブル）と `DutyDailyTimeline`（簡易業務バー専用タイムライン）を撤去。テーブル固有機能（業務種別フィルタ・控除フィルタ・ソート・備考列・無限スクロール）は失うが、ダッシュボードと同一 UI の原則を優先
+- `loadMoreDutyDailyData` Server Action、`getDutyAssignmentsForDaily`・`getDutyDailyFilterOptions` DB 関数、`DutyDailyFilterParams`・`DutyDailySortField`・`DutyDailyPaginatedResult`・`DutyDailyFilterOptions` 型を削除
+
+### Fixed
+- 月次ビューの日付ロールオーバー検証を強化（`new Date("2025-02-30")` が 3/2 に rollover する JS 挙動を regex + round-trip チェックで弾く）
+- DB テスト（dashboard.test.ts / duty-assignments.test.ts）に任意日付ケースを追加し、リファクタの本質である「引数 date の値でウィンドウを評価する」動作を初めて実機検証
+- 動的高さ計算の `useEffect` に依存配列 `[]` を追加（毎レンダーの無駄な observer 再生成を解消）
+- `isRoleActiveOnDate` 参照の統一、`DutyDailyTimeline` を参照する古いコメントを除去
+
 ## [0.2.21.0] - 2026-04-21
 
 ### Added
