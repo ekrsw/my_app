@@ -23,17 +23,17 @@ function toDateStr(d: Date | string): string {
   return String(d).substring(0, 10)
 }
 
-/** ロール割り当ての startDate/endDate が今日を含む有効期間内かを判定 */
-export function isRoleActiveToday(
+/** ロール割り当ての startDate/endDate が指定日を含む有効期間内かを判定 */
+export function isRoleActiveOnDate(
   startDate: Date | string | null | undefined,
   endDate: Date | string | null | undefined,
-  todayStr: string
+  dateStr: string
 ): boolean {
   if (startDate) {
-    if (toDateStr(startDate) > todayStr) return false
+    if (toDateStr(startDate) > dateStr) return false
   }
   if (endDate) {
-    if (toDateStr(endDate) < todayStr) return false
+    if (toDateStr(endDate) < dateStr) return false
   }
   return true
 }
@@ -232,7 +232,7 @@ export function calculateFilteredCapacity(
     const todayStr = getTodayJSTDateStr()
     for (const e of filtered) {
       const isSV = e.roles.some(
-        (r) => r.roleName === svRoleName && isRoleActiveToday(r.startDate, r.endDate, todayStr)
+        (r) => r.roleName === svRoleName && isRoleActiveOnDate(r.startDate, r.endDate, todayStr)
       )
       if (isSV) {
         svTotal++

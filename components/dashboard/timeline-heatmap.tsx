@@ -3,7 +3,7 @@
 import { ReactNode, useMemo, useState, useEffect, useRef } from "react"
 import Link from "next/link"
 import { Home } from "lucide-react"
-import { getTimeHHMM, getCurrentJSTTimeHHMM, isLunchBreak, getCapacityColor, getTodayJSTDateStr, isRoleActiveToday } from "@/lib/capacity-utils"
+import { getTimeHHMM, getCurrentJSTTimeHHMM, isLunchBreak, getCapacityColor, isRoleActiveOnDate } from "@/lib/capacity-utils"
 import { cn } from "@/lib/utils"
 import { ColumnFilterPopover } from "@/components/common/filters/column-filter-popover"
 import { CheckboxListFilter } from "@/components/common/filters/checkbox-list-filter"
@@ -16,7 +16,7 @@ import { DutyAssignmentDetailDialog } from "@/components/duty-assignments/duty-a
 import { OtherDutyDialog } from "@/components/dashboard/other-duty-dialog"
 import { ShiftBadge } from "@/components/shifts/shift-badge"
 import type { ShiftCodeInfo } from "@/lib/constants"
-import type { TodayShift } from "@/components/dashboard/today-overview-client"
+import type { TodayShift } from "@/components/dashboard/daily-overview-client"
 import type { DutyAssignmentWithDetails } from "@/types/duties"
 
 /** タイムラインの時間粒度（分） */
@@ -132,6 +132,7 @@ export function computeSlotStats(
   timeSlots: string[],
   duties: DutyAssignmentWithDetails[] | undefined,
   distinctRoleTypes: readonly [string, string],
+  date: string,
 ): SlotStat[] {
   // 業務割当のスロット判定（reducesCapacity=true のみ、日跨ぎ対応）
   const dutyPresence = new Map<string, boolean[]>()
@@ -161,11 +162,10 @@ export function computeSlotStats(
   }
 
   // SV判定（roleType=distinctRoleTypes[0]、有効期間内）
-  const todayStr = getTodayJSTDateStr()
   const isSV = (emp: MergedRow["employee"]) =>
     emp?.functionRoles?.some(r =>
       r.functionRole?.roleType === distinctRoleTypes[0] &&
-      isRoleActiveToday(r.startDate, r.endDate, todayStr)
+      isRoleActiveOnDate(r.startDate, r.endDate, date)
     ) ?? false
 
   return timeSlots.map((_, i) => {
@@ -215,6 +215,10 @@ export type MergedRow = {
 }
 
 type Props = {
+  /** 表示対象の日付 (YYYY-MM-DD)。 */
+  date: string
+  /** サーバー計算済みの「今日フラグ」。現在時刻マーカーと ticker は isToday=true のときのみ有効。 */
+  isToday: boolean
   shifts: TodayShift[]
   overnightShifts?: TodayShift[]
   showFullDay?: boolean
@@ -270,6 +274,8 @@ type Props = {
 }
 
 export function TimelineHeatmap({
+  date,
+  isToday,
   shifts,
   overnightShifts = [],
   showFullDay = false,
@@ -315,7 +321,7 @@ export function TimelineHeatmap({
   employees = [],
   dutyTypes = [],
 }: Props) {
-  const [currentTime, setCurrentTime] = useState(getCurrentJSTTimeHHMM)
+  const [currentTime, setCurrentTime] = useState<string>(() => getCurrentJSTTimeHHMM())
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const [maxHeight, setMaxHeight] = useState<number>(600)
   const [selectedDutyId, setSelectedDutyId] = useState<number | null>(null)
@@ -344,11 +350,12 @@ export function TimelineHeatmap({
   const axisEndMinutes = showFullDay ? 24 * 60 : 22 * 60
 
   useEffect(() => {
+    if (!isToday) return
     const timer = setInterval(() => {
       setCurrentTime(getCurrentJSTTimeHHMM())
     }, 60_000)
     return () => clearInterval(timer)
-  }, [])
+  }, [isToday])
 
   useEffect(() => {
     const container = scrollContainerRef.current
@@ -498,16 +505,17 @@ export function TimelineHeatmap({
   }, [filteredGrid.length, onRowCountChange])
 
   const slotStats = useMemo(
-    () => computeSlotStats(filteredGrid, timeSlots, duties, distinctRoleTypes),
-    [filteredGrid, timeSlots, duties, distinctRoleTypes]
+    () => computeSlotStats(filteredGrid, timeSlots, duties, distinctRoleTypes, date),
+    [filteredGrid, timeSlots, duties, distinctRoleTypes, date]
   )
 
   const currentSlotIndex = useMemo(() => {
+    if (!isToday) return -1
     for (let i = timeSlots.length - 1; i >= 0; i--) {
       if (currentTime >= timeSlots[i]) return i
     }
     return -1
-  }, [currentTime, timeSlots])
+  }, [isToday, currentTime, timeSlots])
 
   return (
     <div className="flex flex-col gap-2">

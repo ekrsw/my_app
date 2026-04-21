@@ -178,7 +178,7 @@ describe("isWorkerPresent - forTodayShift フラグ（今日の夜勤判定）",
 
   it("forTodayShift 未指定: 夜勤 22:00〜08:00 の07:00は出勤中（深夜跨ぎロジック適用・既存挙動維持）", () => {
     // forTodayShift を省略すると isTimeInRange の深夜跨ぎロジックが適用され 07:00 は true になる
-    // getYesterdayOvernightShifts（isYesterdayOvernight=true）で使用される挙動
+    // getPreviousDayOvernightShifts（isYesterdayOvernight=true）で使用される挙動
     expect(isWorkerPresent("1970-01-01T22:00:00Z", "1970-01-01T08:00:00Z", "07:00")).toBe(true)
     expect(isWorkerPresent("1970-01-01T22:00:00Z", "1970-01-01T08:00:00Z", "07:00", false)).toBe(true)
   })
