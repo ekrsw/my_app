@@ -263,6 +263,22 @@
 
 **Context:** 今回の CEO Review (2026-04-18) で発見。HOLD SCOPE下で今回のタイムラインはHomeアイコンのみ追加し、既存の不整合は据え置いた。
 
+## UX: dailyDate のみ指定された共有リンクで localStorage フィルタが意図せず適用される
+
+**What:** `/duty-assignments?view=daily&dailyDate=2025-01-15` のように dailyDate だけを指定した URL で訪問すると、`useDashboardFilters` が "フィルタパラメータが URL にない" と判定して localStorage から前回のフィルタを復元する。共有リンク受信者は「この日のデータを見たい」のつもりなのに、自分(または前のタブ)の最新フィルタが自動適用されたビューを見せられる。
+
+**Why:** `useDashboardFilters` の `FILTER_KEYS` に `dailyDate` が含まれていないため、`hasAnyParam` の判定対象外。共有リンクの pureness が失われる。Adversarial review (v0.3.0.0) で発見。
+
+**Pros:** 共有リンクが意図通り動く。ブックマーク可能性の向上。
+
+**Cons:** 既存ユーザーの「フィルタが保たれる」体験が一部失われる(日付指定で URL を開いた場合のみ)。
+
+**Effort:** XS (human) → XS (CC+gstack) | **Priority:** P3 | **Risk:** Low
+
+**Depends on:** なし（独立した修正）
+
+**Context:** `hooks/use-dashboard-filters.ts` の初回マウント時の `hasAnyParam` 判定に `searchParams.has("dailyDate")` または `searchParams.get("view") === "daily"` を加えるだけで解消。修正範囲は1ファイル約2行。
+
 ## 機能: 勤怠修正ダイアログに「変更履歴を残さない」チェックボックス
 
 **What:** 本日の勤怠 > 勤怠修正ダイアログに「変更履歴を残さない」チェックボックスを追加し、チェック時のみ `app.skip_shift_history = 'true'` を適用する（現状は常時スキップ）

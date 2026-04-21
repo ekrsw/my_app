@@ -42,13 +42,13 @@ async function getRoleTypes(): Promise<[string, string]> {
 
 /**
  * フィルター条件から従業員の Prisma where 句を構築する共通ヘルパー。
- * getTodayOverview / getYesterdayOvernightShifts で共有。
+ * getDailyOverview / getPreviousDayOvernightShifts で共有。
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function buildEmployeeFilterWhere(filter: DashboardOverviewFilter, today: Date): Promise<any> {
+async function buildEmployeeFilterWhere(filter: DashboardOverviewFilter, date: Date): Promise<any> {
   const roleTypes = await getRoleTypes()
-  const groupDateFilter = currentGroupDateWhere(today)
-  const roleDateFilter = currentRoleDateWhere(today)
+  const groupDateFilter = currentGroupDateWhere(date)
+  const roleDateFilter = currentRoleDateWhere(date)
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const employeeWhere: any = {
@@ -56,7 +56,7 @@ async function buildEmployeeFilterWhere(filter: DashboardOverviewFilter, today: 
       {
         OR: [
           { terminationDate: null },
-          { terminationDate: { gte: today } },
+          { terminationDate: { gte: date } },
         ],
       },
     ],
@@ -131,14 +131,13 @@ function applyShiftFilterWhere(shiftWhere: any, filter: DashboardOverviewFilter)
   }
 }
 
-export async function getTodayOverview(filter: DashboardOverviewFilter = {}) {
-  const today = getTodayJST()
-  const employeeWhere = await buildEmployeeFilterWhere(filter, today)
+export async function getDailyOverview(date: Date, filter: DashboardOverviewFilter = {}) {
+  const employeeWhere = await buildEmployeeFilterWhere(filter, date)
 
   // シフトwhere句
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const shiftWhere: any = {
-    shiftDate: today,
+    shiftDate: date,
     startTime: { not: null },
     isHoliday: { not: true },
   }
@@ -156,15 +155,15 @@ export async function getTodayOverview(filter: DashboardOverviewFilter = {}) {
         include: {
           groups: {
             include: { group: true },
-            where: currentGroupDateWhere(today),
+            where: currentGroupDateWhere(date),
           },
           functionRoles: {
             where: {
               OR: [
                 { startDate: null, endDate: null },
-                { startDate: null, endDate: { gte: today } },
-                { startDate: { lte: today }, endDate: null },
-                { startDate: { lte: today }, endDate: { gte: today } },
+                { startDate: null, endDate: { gte: date } },
+                { startDate: { lte: date }, endDate: null },
+                { startDate: { lte: date }, endDate: { gte: date } },
               ],
             },
             include: { functionRole: true },
@@ -178,19 +177,18 @@ export async function getTodayOverview(filter: DashboardOverviewFilter = {}) {
   })
 }
 
-export async function getDashboardFilterOptions(): Promise<DashboardFilterOptions> {
-  const today = getTodayJST()
+export async function getDailyFilterOptions(date: Date): Promise<DashboardFilterOptions> {
   const roleTypes = await getRoleTypes()
 
-  const todayShifts = await prisma.shift.findMany({
+  const dayShifts = await prisma.shift.findMany({
     where: {
-      shiftDate: today,
+      shiftDate: date,
       startTime: { not: null },
       isHoliday: { not: true },
       employee: {
         OR: [
           { terminationDate: null },
-          { terminationDate: { gte: today } },
+          { terminationDate: { gte: date } },
         ],
       },
     },
@@ -199,15 +197,15 @@ export async function getDashboardFilterOptions(): Promise<DashboardFilterOption
         include: {
           groups: {
             include: { group: true },
-            where: currentGroupDateWhere(today),
+            where: currentGroupDateWhere(date),
           },
           functionRoles: {
             where: {
               OR: [
                 { startDate: null, endDate: null },
-                { startDate: null, endDate: { gte: today } },
-                { startDate: { lte: today }, endDate: null },
-                { startDate: { lte: today }, endDate: { gte: today } },
+                { startDate: null, endDate: { gte: date } },
+                { startDate: { lte: date }, endDate: null },
+                { startDate: { lte: date }, endDate: { gte: date } },
               ],
             },
             include: { functionRole: true },
@@ -224,7 +222,7 @@ export async function getDashboardFilterOptions(): Promise<DashboardFilterOption
   const businessRoleNameSet = new Set<string>()
   let hasUnassigned = false
 
-  for (const shift of todayShifts) {
+  for (const shift of dayShifts) {
     if (shift.shiftCode) shiftCodeSet.add(shift.shiftCode)
 
     const emp = shift.employee
@@ -322,18 +320,17 @@ export async function getTodayShiftChangeHistory() {
 }
 
 /**
- * 前日の夜勤シフト（日跨ぎで現在も勤務中のもの）を取得する。
+ * 指定日の前日の夜勤シフト（日跨ぎで当日も勤務中のもの）を取得する。
  * endTime の HH:mm が startTime の HH:mm より小さいシフトを夜勤とみなす。
  * ダッシュボードフィルター（SV・グループ・シフトコード等）にも対応。
  */
-export async function getYesterdayOvernightShifts(filter: DashboardOverviewFilter = {}) {
-  const today = getTodayJST()
-  const yesterday = new Date(today.getTime() - 24 * 60 * 60 * 1000)
-  const employeeWhere = await buildEmployeeFilterWhere(filter, today)
+export async function getPreviousDayOvernightShifts(date: Date, filter: DashboardOverviewFilter = {}) {
+  const previousDay = new Date(date.getTime() - 24 * 60 * 60 * 1000)
+  const employeeWhere = await buildEmployeeFilterWhere(filter, date)
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const shiftWhere: any = {
-    shiftDate: yesterday,
+    shiftDate: previousDay,
     startTime: { not: null },
     endTime: { not: null },
     isHoliday: { not: true },
@@ -345,17 +342,17 @@ export async function getYesterdayOvernightShifts(filter: DashboardOverviewFilte
     shiftWhere.employee = employeeWhere
   }
 
-  const yesterdayShifts = await prisma.shift.findMany({
+  const previousDayShifts = await prisma.shift.findMany({
     where: shiftWhere,
     include: {
       employee: {
         include: {
           groups: {
             include: { group: true },
-            where: currentGroupDateWhere(today),
+            where: currentGroupDateWhere(date),
           },
           functionRoles: {
-            where: currentRoleDateWhere(today),
+            where: currentRoleDateWhere(date),
             include: { functionRole: true },
           },
         },
@@ -364,7 +361,7 @@ export async function getYesterdayOvernightShifts(filter: DashboardOverviewFilte
   })
 
   // endTime < startTime のシフトのみ返す（日跨ぎ夜勤）
-  return yesterdayShifts.filter((s) => {
+  return previousDayShifts.filter((s) => {
     if (!s.startTime || !s.endTime) return false
     return getTimeHHMM(s.startTime) > getTimeHHMM(s.endTime)
   })

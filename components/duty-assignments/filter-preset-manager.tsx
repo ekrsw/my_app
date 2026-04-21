@@ -34,6 +34,10 @@ type FilterPresetManagerProps = {
 const MAX_PRESETS = 10
 
 function getStorageKey(viewMode: "daily" | "monthly"): string {
+  // daily は v2 に bump: 旧 daily ビューのフィルタスキーマ(reducesCapacity/dutyTypeIds/sortBy 等)が
+  // DailyOverviewClient 移行でシフトベース(groupIds/employeeIds/shiftCodes 等)に変わったため、
+  // 旧プリセットを無効化しユーザーに再作成させる。
+  if (viewMode === "daily") return "duty-filter-presets-daily-v2"
   return `duty-filter-presets-${viewMode}`
 }
 

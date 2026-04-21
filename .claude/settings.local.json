@@ -161,7 +161,9 @@
       "Bash(NO_PROXY=localhost,127.0.0.1 no_proxy=localhost,127.0.0.1 npx playwright test --reporter=list)",
       "Bash(gh pr *)",
       "Bash(git branch *)",
-      "Bash(git merge *)"
+      "Bash(git merge *)",
+      "Bash(~/.claude/skills/gstack/bin/gstack-builder-profile)",
+      "Bash(git mv *)"
     ]
   }
 }

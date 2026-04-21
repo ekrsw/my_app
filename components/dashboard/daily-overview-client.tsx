@@ -67,6 +67,10 @@ type ActiveShiftCode = {
 }
 
 type Props = {
+  /** 表示対象の日付 (YYYY-MM-DD)。 */
+  date: string
+  /** サーバー計算済みの「今日フラグ」。SSR ハイドレーション mismatch を避けるため、クライアント側では計算せず Server Component で確定させる。 */
+  isToday: boolean
   shifts: TodayShift[]
   overnightShifts: TodayShift[]
   filterOptions: DashboardFilterOptions
@@ -75,13 +79,12 @@ type Props = {
   shiftCodes: ActiveShiftCode[]
   shiftIdsWithHistory: number[]
   shiftLatestHistory: Record<number, LatestShiftHistory>
-  todayDateString: string
   dutyAssignments?: DutyAssignmentWithDetails[]
   employees?: { id: string; name: string }[]
   dutyTypes?: { id: number; name: string; defaultReducesCapacity: boolean; defaultStartTime: string | null; defaultEndTime: string | null; defaultNote: string | null; defaultTitle: string | null }[]
 }
 
-export function TodayOverviewClient({ shifts, overnightShifts, filterOptions, distinctRoleTypes, isAuthenticated, shiftCodes: shiftCodesData, shiftIdsWithHistory, shiftLatestHistory, todayDateString, dutyAssignments, employees = [], dutyTypes = [] }: Props) {
+export function DailyOverviewClient({ date, isToday, shifts, overnightShifts, filterOptions, distinctRoleTypes, isAuthenticated, shiftCodes: shiftCodesData, shiftIdsWithHistory, shiftLatestHistory, dutyAssignments, employees = [], dutyTypes = [] }: Props) {
   const { setParams, getParam } = useDashboardFilters()
 
   // --- Dynamic height calculation (same pattern as shift-calendar) ---
@@ -107,7 +110,7 @@ export function TodayOverviewClient({ shifts, overnightShifts, filterOptions, di
       window.removeEventListener("resize", updateHeight)
       observer.disconnect()
     }
-  })
+  }, [])
 
   // --- Tab and timeline row count state ---
   const [activeTab, setActiveTab] = useState("timeline")
@@ -463,7 +466,11 @@ export function TodayOverviewClient({ shifts, overnightShifts, filterOptions, di
     <Card className="h-full flex flex-col min-w-0">
       <CardHeader className="flex-shrink-0">
         <div className="flex items-center justify-between gap-4">
-          <CardTitle>本日の出勤者 ({activeTab === "timeline" && timelineRowCount !== null ? timelineRowCount : filteredShifts.length}名)</CardTitle>
+          <CardTitle>
+            {isToday ? "本日の出勤者" : `出勤者 ${date}`} (
+            {activeTab === "timeline" && timelineRowCount !== null ? timelineRowCount : filteredShifts.length}
+            名)
+          </CardTitle>
           <div className="flex items-center gap-3">
             <label className="flex items-center gap-1.5 text-sm cursor-pointer select-none">
               <Checkbox
@@ -484,7 +491,7 @@ export function TodayOverviewClient({ shifts, overnightShifts, filterOptions, di
       <CardContent className="flex-1 flex flex-col min-h-0">
         <ActiveFilterTags tags={filterTags} onClearAll={clearAllFilters} />
         {shifts.length === 0 && overnightShifts.length === 0 ? (
-          <p className="text-sm text-muted-foreground">本日の出勤者はいません</p>
+          <p className="text-sm text-muted-foreground">{isToday ? "本日の出勤者はいません" : "この日の出勤者はいません"}</p>
         ) : !hasAnyContent ? (
           <p className="text-sm text-muted-foreground py-4 text-center">該当する従業員が見つかりません</p>
         ) : (
@@ -495,6 +502,8 @@ export function TodayOverviewClient({ shifts, overnightShifts, filterOptions, di
             </TabsList>
             <TabsContent value="timeline" className="flex-1 min-h-0">
               <TimelineHeatmap
+                date={date}
+                isToday={isToday}
                 shifts={nightShiftFiltered}
                 overnightShifts={excludeNightShift ? [] : overnightShifts}
                 showFullDay={!excludeNightShift}
@@ -733,7 +742,7 @@ export function TodayOverviewClient({ shifts, overnightShifts, filterOptions, di
           onOpenChange={setDetailOpen}
           shift={editRow}
           employeeName={editRow.employee?.name ?? "-"}
-          date={todayDateString}
+          date={date}
           shiftCodeMap={shiftCodeMap}
           hasHistory={shiftIdsWithHistorySet.has(editRow.id)}
           latestHistory={shiftLatestHistory[editRow.id] ?? null}
@@ -760,7 +769,7 @@ export function TodayOverviewClient({ shifts, overnightShifts, filterOptions, di
             lunchBreakEnd: editRow.lunchBreakEnd,
           }}
           employeeId={editRow.employeeId ?? undefined}
-          date={todayDateString}
+          date={date}
           shiftCodes={shiftCodesData}
         />
       )}

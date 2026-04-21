@@ -17,7 +17,7 @@ vi.mock("@/lib/date-utils", async (importOriginal) => {
   }
 })
 
-const { getTodayOverview, getDashboardFilterOptions, getYesterdayOvernightShifts } = await import(
+const { getDailyOverview, getDailyFilterOptions, getPreviousDayOvernightShifts } = await import(
   "@/lib/db/dashboard"
 )
 
@@ -44,7 +44,7 @@ describe("Dashboard DB Queries - 日付範囲フィルタリング", () => {
     await cleanupDatabase()
   })
 
-  describe("getTodayOverview - グループの日付フィルタ", () => {
+  describe("getDailyOverview - グループの日付フィルタ", () => {
     it("startDate <= today かつ endDate が null のグループは表示される", async () => {
       const group = await prisma.group.create({ data: { name: "開発部" } })
       const emp = await prisma.employee.create({ data: { name: "田中太郎" } })
@@ -58,7 +58,7 @@ describe("Dashboard DB Queries - 日付範囲フィルタリング", () => {
       })
       await prisma.shift.create({ data: shiftData(emp.id) })
 
-      const result = await getTodayOverview()
+      const result = await getDailyOverview(MOCK_TODAY)
 
       expect(result).toHaveLength(1)
       expect(result[0].employee!.groups).toHaveLength(1)
@@ -78,7 +78,7 @@ describe("Dashboard DB Queries - 日付範囲フィルタリング", () => {
       })
       await prisma.shift.create({ data: shiftData(emp.id) })
 
-      const result = await getTodayOverview()
+      const result = await getDailyOverview(MOCK_TODAY)
 
       expect(result).toHaveLength(1)
       expect(result[0].employee!.groups).toHaveLength(0)
@@ -97,7 +97,7 @@ describe("Dashboard DB Queries - 日付範囲フィルタリング", () => {
       })
       await prisma.shift.create({ data: shiftData(emp.id) })
 
-      const result = await getTodayOverview()
+      const result = await getDailyOverview(MOCK_TODAY)
 
       expect(result).toHaveLength(1)
       expect(result[0].employee!.groups).toHaveLength(0)
@@ -116,7 +116,7 @@ describe("Dashboard DB Queries - 日付範囲フィルタリング", () => {
       })
       await prisma.shift.create({ data: shiftData(emp.id) })
 
-      const result = await getTodayOverview()
+      const result = await getDailyOverview(MOCK_TODAY)
 
       expect(result).toHaveLength(1)
       expect(result[0].employee!.groups).toHaveLength(1)
@@ -135,7 +135,7 @@ describe("Dashboard DB Queries - 日付範囲フィルタリング", () => {
       })
       await prisma.shift.create({ data: shiftData(emp.id) })
 
-      const result = await getTodayOverview()
+      const result = await getDailyOverview(MOCK_TODAY)
 
       expect(result).toHaveLength(1)
       expect(result[0].employee!.groups).toHaveLength(1)
@@ -154,14 +154,14 @@ describe("Dashboard DB Queries - 日付範囲フィルタリング", () => {
       })
       await prisma.shift.create({ data: shiftData(emp.id) })
 
-      const result = await getTodayOverview()
+      const result = await getDailyOverview(MOCK_TODAY)
 
       expect(result).toHaveLength(1)
       expect(result[0].employee!.groups).toHaveLength(1)
     })
   })
 
-  describe("getTodayOverview - ロールの日付フィルタ", () => {
+  describe("getDailyOverview - ロールの日付フィルタ", () => {
     it("startDate <= today かつ endDate が null のロールは表示される", async () => {
       const role = await prisma.functionRole.create({
         data: { roleCode: "SV", roleName: "SV", roleType: "権限" },
@@ -177,7 +177,7 @@ describe("Dashboard DB Queries - 日付範囲フィルタリング", () => {
       })
       await prisma.shift.create({ data: shiftData(emp.id) })
 
-      const result = await getTodayOverview()
+      const result = await getDailyOverview(MOCK_TODAY)
 
       expect(result).toHaveLength(1)
       expect(result[0].employee!.functionRoles).toHaveLength(1)
@@ -199,7 +199,7 @@ describe("Dashboard DB Queries - 日付範囲フィルタリング", () => {
       })
       await prisma.shift.create({ data: shiftData(emp.id) })
 
-      const result = await getTodayOverview()
+      const result = await getDailyOverview(MOCK_TODAY)
 
       expect(result).toHaveLength(1)
       expect(result[0].employee!.functionRoles).toHaveLength(0)
@@ -220,7 +220,7 @@ describe("Dashboard DB Queries - 日付範囲フィルタリング", () => {
       })
       await prisma.shift.create({ data: shiftData(emp.id) })
 
-      const result = await getTodayOverview()
+      const result = await getDailyOverview(MOCK_TODAY)
 
       expect(result).toHaveLength(1)
       expect(result[0].employee!.functionRoles).toHaveLength(0)
@@ -241,7 +241,7 @@ describe("Dashboard DB Queries - 日付範囲フィルタリング", () => {
       })
       await prisma.shift.create({ data: shiftData(emp.id) })
 
-      const result = await getTodayOverview()
+      const result = await getDailyOverview(MOCK_TODAY)
 
       expect(result).toHaveLength(1)
       expect(result[0].employee!.functionRoles).toHaveLength(1)
@@ -262,7 +262,7 @@ describe("Dashboard DB Queries - 日付範囲フィルタリング", () => {
       })
       await prisma.shift.create({ data: shiftData(emp.id) })
 
-      const result = await getTodayOverview()
+      const result = await getDailyOverview(MOCK_TODAY)
 
       expect(result).toHaveLength(1)
       expect(result[0].employee!.functionRoles).toHaveLength(1)
@@ -315,7 +315,7 @@ describe("Dashboard DB Queries - 日付範囲フィルタリング", () => {
       await prisma.shift.create({ data: shiftData(emp2.id) })
       await prisma.shift.create({ data: shiftData(emp3.id) })
 
-      const result = await getTodayOverview()
+      const result = await getDailyOverview(MOCK_TODAY)
 
       expect(result).toHaveLength(3)
 
@@ -331,7 +331,7 @@ describe("Dashboard DB Queries - 日付範囲フィルタリング", () => {
     })
   })
 
-  describe("getDashboardFilterOptions - 日付フィルタ", () => {
+  describe("getDailyFilterOptions - 日付フィルタ", () => {
     it("現在有効なロールのみがフィルタオプションに含まれる", async () => {
       // getRoleTypes は asc ソート: "業務"(U+696D) < "監督"(U+76E3) → roleTypes[0]="業務", roleTypes[1]="監督"
       const svRole = await prisma.functionRole.create({
@@ -364,7 +364,7 @@ describe("Dashboard DB Queries - 日付範囲フィルタリング", () => {
 
       await prisma.shift.create({ data: shiftData(emp.id) })
 
-      const options = await getDashboardFilterOptions()
+      const options = await getDailyFilterOptions(MOCK_TODAY)
 
       // 現在有効な SV は表示される、期限切れの OP は表示されない
       const allRoleNames = [...options.supervisorRoleNames, ...options.businessRoleNames]
@@ -399,7 +399,7 @@ describe("Dashboard DB Queries - 日付範囲フィルタリング", () => {
 
       await prisma.shift.create({ data: shiftData(emp.id) })
 
-      const options = await getDashboardFilterOptions()
+      const options = await getDailyFilterOptions(MOCK_TODAY)
 
       expect(options.groups).toHaveLength(1)
       expect(options.groups[0].name).toBe("開発部")
@@ -421,14 +421,14 @@ describe("Dashboard DB Queries - 日付範囲フィルタリング", () => {
 
       await prisma.shift.create({ data: shiftData(emp.id) })
 
-      const options = await getDashboardFilterOptions()
+      const options = await getDailyFilterOptions(MOCK_TODAY)
 
       expect(options.groups).toHaveLength(0)
       expect(options.hasUnassigned).toBe(true)
     })
   })
 
-  describe("getYesterdayOvernightShifts - フィルター適用", () => {
+  describe("getPreviousDayOvernightShifts - フィルター適用", () => {
     const MOCK_YESTERDAY = new Date(MOCK_TODAY.getTime() - 24 * 60 * 60 * 1000)
 
     // 夜勤シフト: startTime > endTime (HH:mm) = 日跨ぎ
@@ -448,7 +448,7 @@ describe("Dashboard DB Queries - 日付範囲フィルタリング", () => {
       const emp = await prisma.employee.create({ data: { name: "夜勤太郎" } })
       await prisma.shift.create({ data: overnightShiftData(emp.id) })
 
-      const result = await getYesterdayOvernightShifts()
+      const result = await getPreviousDayOvernightShifts(MOCK_TODAY)
 
       expect(result).toHaveLength(1)
       expect(result[0].employeeId).toBe(emp.id)
@@ -464,7 +464,7 @@ describe("Dashboard DB Queries - 日付範囲フィルタリング", () => {
         }),
       })
 
-      const result = await getYesterdayOvernightShifts()
+      const result = await getPreviousDayOvernightShifts(MOCK_TODAY)
 
       expect(result).toHaveLength(0)
     })
@@ -500,7 +500,7 @@ describe("Dashboard DB Queries - 日付範囲フィルタリング", () => {
       await prisma.shift.create({ data: overnightShiftData(svEmp.id) })
       await prisma.shift.create({ data: overnightShiftData(nonSvEmp.id) })
 
-      const result = await getYesterdayOvernightShifts({
+      const result = await getPreviousDayOvernightShifts(MOCK_TODAY, {
         supervisorRoleNames: ["SV"],
       })
 
@@ -535,7 +535,7 @@ describe("Dashboard DB Queries - 日付範囲フィルタリング", () => {
       await prisma.shift.create({ data: overnightShiftData(empA.id) })
       await prisma.shift.create({ data: overnightShiftData(empB.id) })
 
-      const result = await getYesterdayOvernightShifts({
+      const result = await getPreviousDayOvernightShifts(MOCK_TODAY, {
         groupIds: [groupA.id],
       })
 
@@ -550,12 +550,128 @@ describe("Dashboard DB Queries - 日付範囲フィルタリング", () => {
       await prisma.shift.create({ data: overnightShiftData(emp1.id, { shiftCode: "N" }) })
       await prisma.shift.create({ data: overnightShiftData(emp2.id, { shiftCode: "X" }) })
 
-      const result = await getYesterdayOvernightShifts({
+      const result = await getPreviousDayOvernightShifts(MOCK_TODAY, {
         shiftCodes: ["N"],
       })
 
       expect(result).toHaveLength(1)
       expect(result[0].employee!.name).toBe("N勤務")
+    })
+  })
+
+  describe("任意日付対応 - リファクタの検証", () => {
+    it("getDailyOverview は引数の date のシフトのみ返す(過去日)", async () => {
+      const emp = await prisma.employee.create({ data: { name: "過去出勤" } })
+      const PAST_DATE = utcDate("2025-03-10")
+
+      // 過去日に出勤、today(MOCK_TODAY=2025-06-15)にも出勤
+      await prisma.shift.create({
+        data: {
+          employeeId: emp.id,
+          shiftDate: PAST_DATE,
+          shiftCode: "A",
+          startTime: new Date("1970-01-01T09:00:00Z"),
+          endTime: new Date("1970-01-01T17:00:00Z"),
+          isHoliday: false,
+        },
+      })
+      await prisma.shift.create({ data: shiftData(emp.id) })
+
+      const pastResult = await getDailyOverview(PAST_DATE)
+      expect(pastResult).toHaveLength(1)
+      expect(pastResult[0].shiftDate.toISOString().substring(0, 10)).toBe("2025-03-10")
+
+      const todayResult = await getDailyOverview(MOCK_TODAY)
+      expect(todayResult).toHaveLength(1)
+      expect(todayResult[0].shiftDate.toISOString().substring(0, 10)).toBe("2025-06-15")
+    })
+
+    it("getDailyOverview の group 日付ウィンドウは引数 date で評価される", async () => {
+      const emp = await prisma.employee.create({ data: { name: "田中" } })
+      const group = await prisma.group.create({ data: { name: "旧部署" } })
+
+      // 2025-04-01 から 2025-05-31 まで所属(過去日)
+      await prisma.employeeGroup.create({
+        data: {
+          employeeId: emp.id,
+          groupId: group.id,
+          startDate: utcDate("2025-04-01"),
+          endDate: utcDate("2025-05-31"),
+        },
+      })
+
+      // 2025-05-15 と 2025-06-15(MOCK_TODAY) 両方にシフト
+      await prisma.shift.create({
+        data: {
+          employeeId: emp.id,
+          shiftDate: utcDate("2025-05-15"),
+          shiftCode: "A",
+          startTime: new Date("1970-01-01T09:00:00Z"),
+          endTime: new Date("1970-01-01T17:00:00Z"),
+          isHoliday: false,
+        },
+      })
+      await prisma.shift.create({ data: shiftData(emp.id) })
+
+      // 2025-05-15 では group はアクティブ → 所属表示あり
+      const activeResult = await getDailyOverview(utcDate("2025-05-15"))
+      expect(activeResult).toHaveLength(1)
+      expect(activeResult[0].employee!.groups).toHaveLength(1)
+
+      // MOCK_TODAY(2025-06-15)では group 期限切れ → 所属なし
+      const expiredResult = await getDailyOverview(MOCK_TODAY)
+      expect(expiredResult).toHaveLength(1)
+      expect(expiredResult[0].employee!.groups).toHaveLength(0)
+    })
+
+    it("getPreviousDayOvernightShifts の前日は引数 date を基準とする", async () => {
+      const emp = await prisma.employee.create({ data: { name: "夜勤者" } })
+
+      // 2025-03-09 に夜勤(22:00-08:00)を作成
+      await prisma.shift.create({
+        data: {
+          employeeId: emp.id,
+          shiftDate: utcDate("2025-03-09"),
+          shiftCode: "22_8",
+          startTime: new Date("1970-01-01T22:00:00Z"),
+          endTime: new Date("1970-01-01T08:00:00Z"),
+          isHoliday: false,
+        },
+      })
+
+      // date=2025-03-10 を渡すと前日(2025-03-09)の夜勤が取得される
+      const pastResult = await getPreviousDayOvernightShifts(utcDate("2025-03-10"))
+      expect(pastResult).toHaveLength(1)
+      expect(pastResult[0].shiftDate.toISOString().substring(0, 10)).toBe("2025-03-09")
+
+      // date=2025-03-11 を渡すと前日=2025-03-10 → 該当なし
+      const otherResult = await getPreviousDayOvernightShifts(utcDate("2025-03-11"))
+      expect(otherResult).toHaveLength(0)
+    })
+
+    it("getDailyFilterOptions は引数 date のシフトからオプションを構築", async () => {
+      const emp1 = await prisma.employee.create({ data: { name: "過去者" } })
+      const emp2 = await prisma.employee.create({ data: { name: "今日者" } })
+
+      await prisma.shift.create({
+        data: {
+          employeeId: emp1.id,
+          shiftDate: utcDate("2025-03-10"),
+          shiftCode: "A",
+          startTime: new Date("1970-01-01T09:00:00Z"),
+          endTime: new Date("1970-01-01T17:00:00Z"),
+          isHoliday: false,
+        },
+      })
+      await prisma.shift.create({ data: shiftData(emp2.id, { shiftCode: "B" }) })
+
+      const pastOptions = await getDailyFilterOptions(utcDate("2025-03-10"))
+      expect(pastOptions.employees.map((e) => e.name)).toEqual(["過去者"])
+      expect(pastOptions.shiftCodes).toEqual(["A"])
+
+      const todayOptions = await getDailyFilterOptions(MOCK_TODAY)
+      expect(todayOptions.employees.map((e) => e.name)).toEqual(["今日者"])
+      expect(todayOptions.shiftCodes).toEqual(["B"])
     })
   })
 })

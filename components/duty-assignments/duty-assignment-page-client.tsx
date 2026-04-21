@@ -9,8 +9,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { CalendarIcon, ChevronLeft, ChevronRight, Plus, Search } from "lucide-react"
 import { DutyViewModeSelect } from "@/components/duty-assignments/duty-view-mode-select"
 import { DutyAssignmentForm } from "@/components/duty-assignments/duty-assignment-form"
-import { DutyDailyView } from "@/components/duty-assignments/duty-daily-view"
-import { DutyDailyTimeline } from "@/components/duty-assignments/duty-daily-timeline"
 import { DutyMonthlyCalendar } from "@/components/duty-assignments/duty-monthly-calendar"
 import { DutyTypeSummaryRow } from "@/components/duty-assignments/duty-type-summary-row"
 import { FilterPresetManager } from "@/components/duty-assignments/filter-preset-manager"
@@ -19,20 +17,19 @@ import { RoleMultiSelect } from "@/components/shifts/role-multi-select"
 import { DutyTypeMultiSelect } from "@/components/duty-assignments/duty-type-multi-select"
 import { ShiftDetailDialog } from "@/components/shifts/shift-detail-dialog"
 import { ShiftForm } from "@/components/shifts/shift-form"
+import { DailyOverviewClient, type TodayShift } from "@/components/dashboard/daily-overview-client"
 import { loadMoreDutyCalendarData } from "@/lib/actions/duty-assignment-actions"
 import { useRouter } from "next/navigation"
 import { toDateString, formatMonth } from "@/lib/date-utils"
 import { SHIFT_CODE_MAP, getColorClasses, type ShiftCodeInfo } from "@/lib/constants"
 import type { Shift } from "@/app/generated/prisma/client"
 import type { LatestShiftHistory } from "@/lib/db/shifts"
+import type { DashboardFilterOptions } from "@/types"
 import type {
   DutyAssignmentWithDetails,
   DutyCalendarData,
   DutyCalendarFilterParams,
-  DutyDailyFilterOptions,
-  DutyDailySortField,
   ShiftCodeMap,
-  SortOrder,
 } from "@/types/duties"
 
 function parseMonthInput(input: string): { year: number; month: number } | null {
@@ -52,22 +49,33 @@ function parseMonthInput(input: string): { year: number; month: number } | null 
   return null
 }
 
+type ActiveShiftCode = {
+  id: number
+  code: string
+  color: string | null
+  defaultStartTime: Date | null
+  defaultEndTime: Date | null
+  defaultIsHoliday: boolean
+  isActive: boolean | null
+  sortOrder: number
+  defaultLunchBreakStart: Date | null
+  defaultLunchBreakEnd: Date | null
+}
+
 type DutyAssignmentPageClientProps = {
   viewMode: "monthly" | "daily"
   isAuthenticated: boolean
-  // 日次ビュー用
-  dailyData: DutyAssignmentWithDetails[]
-  dailyTotal: number
-  dailyHasMore: boolean
-  dailyNextCursor: number | null
+  // 日次ビュー用（タイムラインに渡すデータ）
   dailyDate: string
-  filterOptions: DutyDailyFilterOptions
-  employeeIds: string[]
-  groupIds: number[]
-  dutyTypeIds: number[]
-  reducesCapacity: boolean | null
-  sortBy: DutyDailySortField
-  sortOrder: SortOrder
+  dailyIsToday: boolean
+  dailyShifts: TodayShift[]
+  dailyOvernightShifts: TodayShift[]
+  dailyDuties: DutyAssignmentWithDetails[]
+  dailyFilterOptions: DashboardFilterOptions
+  dailyDistinctRoleTypes: readonly [string, string]
+  dailyShiftCodes: ActiveShiftCode[]
+  dailyShiftIdsWithHistory: number[]
+  dailyShiftLatestHistory: Record<number, LatestShiftHistory>
   // 月次ビュー用
   calendarData: DutyCalendarData[]
   dutyTypeSummary: { name: string; color: string | null; count: number; sortOrder: number }[]
@@ -86,7 +94,7 @@ type DutyAssignmentPageClientProps = {
   shiftCodeMap: ShiftCodeMap
   shiftCodeInfoMap: Record<string, ShiftCodeInfo>
   shiftDataMap: Record<string, Record<string, Shift>>
-  shiftCodes: { id: number; code: string; color: string | null; defaultStartTime: Date | null; defaultEndTime: Date | null; defaultIsHoliday: boolean; isActive: boolean | null; sortOrder: number; defaultLunchBreakStart: Date | null; defaultLunchBreakEnd: Date | null }[]
+  shiftCodes: ActiveShiftCode[]
   shiftIdsWithHistory: number[]
   shiftLatestHistory: Record<number, LatestShiftHistory>
   groups: { id: number; name: string }[]
@@ -99,18 +107,16 @@ type DutyAssignmentPageClientProps = {
 export function DutyAssignmentPageClient({
   viewMode,
   isAuthenticated,
-  dailyData,
-  dailyTotal,
-  dailyHasMore: initialDailyHasMore,
-  dailyNextCursor: initialDailyNextCursor,
   dailyDate,
-  filterOptions,
-  employeeIds,
-  groupIds,
-  dutyTypeIds,
-  reducesCapacity,
-  sortBy,
-  sortOrder,
+  dailyIsToday,
+  dailyShifts,
+  dailyOvernightShifts,
+  dailyDuties,
+  dailyFilterOptions,
+  dailyDistinctRoleTypes,
+  dailyShiftCodes,
+  dailyShiftIdsWithHistory,
+  dailyShiftLatestHistory,
   calendarData,
   dutyTypeSummary,
   calendarTotal,
@@ -137,17 +143,6 @@ export function DutyAssignmentPageClient({
   dutyTypeOptions,
 }: DutyAssignmentPageClientProps) {
   const { setParams, getParam } = useQueryParams()
-
-  // --- 日次ビュー: ページネーション状態 ---
-  const [dailyRows, setDailyRows] = useState(dailyData)
-  const [dailyHasMoreState, setDailyHasMoreState] = useState(initialDailyHasMore)
-  const [dailyNextCursorState, setDailyNextCursorState] = useState(initialDailyNextCursor)
-
-  useEffect(() => {
-    setDailyRows(dailyData)
-    setDailyHasMoreState(initialDailyHasMore)
-    setDailyNextCursorState(initialDailyNextCursor)
-  }, [dailyData, initialDailyHasMore, initialDailyNextCursor])
 
   // --- フォームダイアログ状態 ---
   const [formOpen, setFormOpen] = useState(false)
@@ -341,12 +336,21 @@ export function DutyAssignmentPageClient({
   const currentFilterParams = useMemo(() => {
     const p: Record<string, string> = {}
     if (viewMode === "daily") {
-      if (employeeIds.length > 0) p.employeeIds = employeeIds.join(",")
-      if (groupIds.length > 0) p.groupIds = groupIds.join(",")
-      if (dutyTypeIds.length > 0) p.dutyTypeIds = dutyTypeIds.join(",")
-      if (reducesCapacity !== null) p.reducesCapacity = String(reducesCapacity)
-      if (sortBy !== "startTime") p.sortBy = sortBy
-      if (sortOrder !== "asc") p.sortOrder = sortOrder
+      // ダッシュボードと同じフィルタパラメータを共有
+      const e = getParam("employeeIds")
+      const g = getParam("groupIds")
+      const u = getParam("unassigned")
+      const s = getParam("shiftCodes")
+      const sr = getParam("supervisorRoleNames")
+      const br = getParam("businessRoleNames")
+      const r = getParam("isRemote")
+      if (e) p.employeeIds = e
+      if (g) p.groupIds = g
+      if (u) p.unassigned = u
+      if (s) p.shiftCodes = s
+      if (sr) p.supervisorRoleNames = sr
+      if (br) p.businessRoleNames = br
+      if (r) p.isRemote = r
     } else {
       if (monthlyEmployeeIds.length > 0) p.monthlyEmployeeIds = monthlyEmployeeIds.join(",")
       if (monthlyGroupIds.length > 0) p.monthlyGroupIds = monthlyGroupIds.join(",")
@@ -357,7 +361,7 @@ export function DutyAssignmentPageClient({
       if (monthlyDutyUnassigned) p.monthlyDutyUnassigned = "true"
     }
     return p
-  }, [viewMode, employeeIds, groupIds, dutyTypeIds, reducesCapacity, sortBy, sortOrder, monthlyEmployeeIds])
+  }, [viewMode, getParam, monthlyEmployeeIds, monthlyGroupIds, monthlyUnassigned, monthlyRoleIds, monthlyRoleUnassigned, monthlyDutyTypeIds, monthlyDutyUnassigned])
 
   // --- 月次: 新規追加（日付・従業員プリセット） ---
   const handleAddNew = useCallback((dateStr: string, employeeId: string) => {
@@ -398,24 +402,20 @@ export function DutyAssignmentPageClient({
           </div>
         </div>
 
-        <DutyDailyTimeline data={dailyRows} />
-
-        <DutyDailyView
-          data={dailyRows}
-          total={dailyTotal}
-          hasMore={dailyHasMoreState}
-          nextCursor={dailyNextCursorState}
+        <DailyOverviewClient
           date={dailyDate}
-          filterOptions={filterOptions}
+          isToday={dailyIsToday}
+          shifts={dailyShifts}
+          overnightShifts={dailyOvernightShifts}
+          filterOptions={dailyFilterOptions}
+          distinctRoleTypes={dailyDistinctRoleTypes}
           isAuthenticated={isAuthenticated}
+          shiftCodes={dailyShiftCodes}
+          shiftIdsWithHistory={dailyShiftIdsWithHistory}
+          shiftLatestHistory={dailyShiftLatestHistory}
+          dutyAssignments={dailyDuties}
           employees={employeeOptions}
           dutyTypes={dutyTypeOptions}
-          selectedEmployeeIds={employeeIds}
-          selectedGroupIds={groupIds}
-          selectedDutyTypeIds={dutyTypeIds}
-          reducesCapacityFilter={reducesCapacity}
-          sortBy={sortBy}
-          sortOrder={sortOrder}
         />
 
         <DutyAssignmentForm
