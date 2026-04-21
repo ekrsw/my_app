@@ -2,10 +2,14 @@ import { PageHeader } from "@/components/layout/page-header"
 import { PageContainer } from "@/components/layout/page-container"
 import { DutyAssignmentPageClient } from "@/components/duty-assignments/duty-assignment-page-client"
 import {
-  getDutyAssignmentsForDaily,
   getDutyAssignmentsForCalendar,
-  getDutyDailyFilterOptions,
+  getDailyDutyAssignments,
 } from "@/lib/db/duty-assignments"
+import {
+  getDailyOverview,
+  getDailyFilterOptions,
+  getPreviousDayOvernightShifts,
+} from "@/lib/db/dashboard"
 import { getActiveDutyTypes } from "@/lib/db/duty-types"
 import { getAllEmployees } from "@/lib/db/employees"
 import { getShiftsForCalendar, getShiftIdsWithHistory, getLatestShiftHistoryEntries } from "@/lib/db/shifts"
@@ -15,11 +19,24 @@ import { getFunctionRoles } from "@/lib/db/roles"
 import { getTodayJST } from "@/lib/date-utils"
 import { SHIFT_CODE_MAP, getColorClasses, type ShiftCodeInfo } from "@/lib/constants"
 import { auth } from "@/auth"
-import type { DutyDailySortField, ShiftCodeMap, SortOrder } from "@/types/duties"
+import type { DashboardOverviewFilter } from "@/types"
+import type { ShiftCodeMap } from "@/types/duties"
 import type { Shift } from "@/app/generated/prisma/client"
 
 type Props = {
   searchParams: Promise<Record<string, string | string[] | undefined>>
+}
+
+function parseIds(value: string | string[] | undefined): number[] {
+  const str = Array.isArray(value) ? value[0] : value
+  if (!str) return []
+  return str.split(",").map(Number).filter((n) => !isNaN(n) && n > 0)
+}
+
+function parseStrings(value: string | string[] | undefined): string[] {
+  const str = Array.isArray(value) ? value[0] : value
+  if (!str) return []
+  return str.split(",").filter(Boolean)
 }
 
 export default async function DutyAssignmentsPage({ searchParams }: Props) {
@@ -53,32 +70,61 @@ export default async function DutyAssignmentsPage({ searchParams }: Props) {
     // --- 日次ビュー ---
     const rawDateStr = typeof params.dailyDate === "string" ? params.dailyDate : todayStr
     const parsedDate = new Date(rawDateStr + "T00:00:00Z")
-    const dailyDateStr = isNaN(parsedDate.getTime()) ? todayStr : rawDateStr
-    const dailyDate = isNaN(parsedDate.getTime()) ? today : parsedDate
+    // ISO 形式 (YYYY-MM-DD) かつ round-trip で同一の場合のみ受け入れる
+    // ("2025-02-30" → JS では 3/2 に rollover → 弾く)
+    const isValidDate = /^\d{4}-\d{2}-\d{2}$/.test(rawDateStr)
+      && !isNaN(parsedDate.getTime())
+      && parsedDate.toISOString().substring(0, 10) === rawDateStr
+    const dailyDateStr = isValidDate ? rawDateStr : todayStr
+    const dailyDate = isValidDate ? parsedDate : today
 
-    // フィルターパラメータ
-    const employeeIds = typeof params.employeeIds === "string" ? params.employeeIds.split(",") : []
-    const groupIds = typeof params.groupIds === "string" ? params.groupIds.split(",").map(Number).filter(Boolean) : []
-    const dutyTypeIds = typeof params.dutyTypeIds === "string" ? params.dutyTypeIds.split(",").map(Number).filter(Boolean) : []
-    const reducesCapacityParam = typeof params.reducesCapacity === "string" ? params.reducesCapacity : null
-    const reducesCapacity = reducesCapacityParam === "true" ? true : reducesCapacityParam === "false" ? false : null
-    const sortBy = (typeof params.sortBy === "string" ? params.sortBy : "startTime") as DutyDailySortField
-    const sortOrder = (typeof params.sortOrder === "string" ? params.sortOrder : "asc") as SortOrder
+    // URL フィルタパラメータ（ダッシュボードと共有）
+    const dailyGroupIds = parseIds(params.groupIds)
+    const dailyUnassigned = params.unassigned === "true"
+    const dailyEmployeeIds = parseStrings(params.employeeIds)
+    const dailyShiftCodes = parseStrings(params.shiftCodes)
+    const dailySupervisorRoleNames = parseStrings(params.supervisorRoleNames)
+    const dailyBusinessRoleNames = parseStrings(params.businessRoleNames)
+    const dailyIsRemote = params.isRemote === "true" || undefined
 
-    const filterParams = {
-      date: dailyDate,
-      employeeIds: employeeIds.length > 0 ? employeeIds : undefined,
-      groupIds: groupIds.length > 0 ? groupIds : undefined,
-      dutyTypeIds: dutyTypeIds.length > 0 ? dutyTypeIds : undefined,
-      reducesCapacity,
-      sortBy,
-      sortOrder,
+    const filter: DashboardOverviewFilter = {
+      groupIds: dailyGroupIds,
+      unassigned: dailyUnassigned,
+      employeeIds: dailyEmployeeIds,
+      shiftCodes: dailyShiftCodes,
+      supervisorRoleNames: dailySupervisorRoleNames,
+      businessRoleNames: dailyBusinessRoleNames,
+      isRemote: dailyIsRemote,
     }
 
-    const [result, filterOptions] = await Promise.all([
-      getDutyAssignmentsForDaily(filterParams),
-      getDutyDailyFilterOptions(dailyDate),
+    const dailyYear = dailyDate.getUTCFullYear()
+    const dailyMonth = dailyDate.getUTCMonth() + 1
+
+    const [
+      dailyShifts,
+      dailyDuties,
+      overnightShifts,
+      filterOptions,
+      roles,
+      activeShiftCodes,
+      shiftIdsWithHistorySet,
+      latestHistoryEntries,
+    ] = await Promise.all([
+      getDailyOverview(dailyDate, filter),
+      getDailyDutyAssignments(dailyDate),
+      getPreviousDayOvernightShifts(dailyDate, filter),
+      getDailyFilterOptions(dailyDate),
+      getFunctionRoles(),
+      getActiveShiftCodes(),
+      getShiftIdsWithHistory(dailyYear, dailyMonth),
+      getLatestShiftHistoryEntries(dailyYear, dailyMonth),
     ])
+
+    // roleTypes 決定（dashboard と同じロジック）
+    const distinctRoleTypes = (() => {
+      const types = [...new Set(roles.map((r) => r.roleType))].sort()
+      return [types[0] ?? "権限", types[1] ?? "職務"] as const
+    })()
 
     return (
       <>
@@ -93,18 +139,16 @@ export default async function DutyAssignmentsPage({ searchParams }: Props) {
           <DutyAssignmentPageClient
             viewMode="daily"
             isAuthenticated={isAuthenticated}
-            dailyData={result.data}
-            dailyTotal={result.total}
-            dailyHasMore={result.hasMore}
-            dailyNextCursor={result.nextCursor}
             dailyDate={dailyDateStr}
-            filterOptions={filterOptions}
-            employeeIds={employeeIds}
-            groupIds={groupIds}
-            dutyTypeIds={dutyTypeIds}
-            reducesCapacity={reducesCapacity}
-            sortBy={sortBy}
-            sortOrder={sortOrder}
+            dailyIsToday={dailyDateStr === todayStr}
+            dailyShifts={dailyShifts}
+            dailyOvernightShifts={overnightShifts}
+            dailyDuties={dailyDuties}
+            dailyFilterOptions={filterOptions}
+            dailyDistinctRoleTypes={distinctRoleTypes}
+            dailyShiftCodes={activeShiftCodes}
+            dailyShiftIdsWithHistory={[...shiftIdsWithHistorySet]}
+            dailyShiftLatestHistory={latestHistoryEntries}
             calendarData={[]}
             dutyTypeSummary={[]}
             calendarTotal={0}
@@ -221,18 +265,16 @@ export default async function DutyAssignmentsPage({ searchParams }: Props) {
         <DutyAssignmentPageClient
           viewMode="monthly"
           isAuthenticated={isAuthenticated}
-          dailyData={[]}
-          dailyTotal={0}
-          dailyHasMore={false}
-          dailyNextCursor={null}
           dailyDate={todayStr}
-          filterOptions={{ employees: [], groups: [], dutyTypes: [] }}
-          employeeIds={[]}
-          groupIds={[]}
-          dutyTypeIds={[]}
-          reducesCapacity={null}
-          sortBy="startTime"
-          sortOrder="asc"
+          dailyIsToday={true}
+          dailyShifts={[]}
+          dailyOvernightShifts={[]}
+          dailyDuties={[]}
+          dailyFilterOptions={{ employees: [], groups: [], shiftCodes: [], hasUnassigned: false, supervisorRoleNames: [], businessRoleNames: [] }}
+          dailyDistinctRoleTypes={["権限", "職務"] as const}
+          dailyShiftCodes={[]}
+          dailyShiftIdsWithHistory={[]}
+          dailyShiftLatestHistory={{}}
           calendarData={calendarResult.data}
           dutyTypeSummary={calendarResult.dutyTypeSummary}
           calendarTotal={calendarResult.total}

@@ -77,7 +77,7 @@ function formatMinutes(m: number): string {
 /**
  * 業務割当をカラーバーとして描画する共有コンポーネント。
  * 重複する業務はレーンを分けてスタッキングされる。
- * DutyDailyTimeline および TimelineHeatmap の両方で利用する。
+ * TimelineHeatmap のタイムラインビューで利用する。
  */
 export function DutyBarsOverlay({
   bars,

@@ -13,31 +13,6 @@ export type DutyAssignmentWithDetails = DutyAssignment & {
   dutyType: DutyType
 }
 
-export type DutyDailyFilterParams = {
-  date: Date
-  employeeIds?: string[]
-  groupIds?: number[]
-  dutyTypeIds?: number[]
-  reducesCapacity?: boolean | null
-  sortBy?: DutyDailySortField
-  sortOrder?: SortOrder
-}
-
-export type DutyDailySortField =
-  | "employeeName"
-  | "groupName"
-  | "dutyTypeName"
-  | "startTime"
-
-export type SortOrder = "asc" | "desc"
-
-export type DutyDailyPaginatedResult = {
-  data: DutyAssignmentWithDetails[]
-  total: number
-  hasMore: boolean
-  nextCursor: number | null
-}
-
 export type DutyCalendarData = {
   employeeId: string
   employeeName: string
@@ -59,12 +34,6 @@ export type DutyCalendarCell = {
 export type DutyCalendarResult = {
   data: DutyCalendarData[]
   dutyTypeSummary: { name: string; color: string | null; count: number; sortOrder: number }[]
-}
-
-export type DutyDailyFilterOptions = {
-  employees: { id: string; name: string }[]
-  groups: { id: number; name: string }[]
-  dutyTypes: { id: number; name: string; color: string | null }[]
 }
 
 export type DutyCalendarFilterParams = {
