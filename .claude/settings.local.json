@@ -163,7 +163,9 @@
       "Bash(git branch *)",
       "Bash(git merge *)",
       "Bash(~/.claude/skills/gstack/bin/gstack-builder-profile)",
-      "Bash(git mv *)"
+      "Bash(git mv *)",
+      "Skill(design-review)",
+      "Bash(git rebase *)"
     ]
   }
 }
