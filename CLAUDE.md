@@ -63,12 +63,14 @@ Form (Client Component) → lib/actions/ (Server Actions) → requireAuth() → 
 - `lib/db/` — Database query functions (read operations, filtering, pagination). No auth required
 - `lib/auth-guard.ts` — `requireAuth()` helper that throws if unauthenticated
 - `lib/validators.ts` — All Zod schemas used for form validation
+- `lib/excel/` — Excel (`.xlsx`) パース/変換ロジック (現場シフト表 Excel → 既存 CSV インポート互換フォーマット)。`parse-shift-xlsx.ts` 参照
 - `auth.ts` — Auth.js v5 configuration (Credentials Provider, JWT strategy)
 - `middleware.ts` — Attaches session info to requests (does not enforce auth)
 - `types/` — Application types extending Prisma generated types
 - `components/auth/` — Login form and SessionProvider wrapper
 - `components/ui/` — shadcn/ui base components (do not edit manually, use `npx shadcn add`)
 - `app/generated/prisma/` — Prisma generated client (do not edit)
+- `app/api/` — Route Handler (export CSV エンドポイント、Excel→CSV 変換 POST エンドポイント等)。mutation 系 Server Action と同様に先頭で `auth()` による認証ガードを実施
 
 ### Authentication
 - Auth.js v5 with Credentials Provider + JWT sessions
@@ -94,7 +96,7 @@ Form (Client Component) → lib/actions/ (Server Actions) → requireAuth() → 
 - **History tables** auto-populated by PostgreSQL triggers (PL/pgSQL in migration SQL files): `employee_group_history`, `shift_change_history`, etc.
 - Prisma schema uses `@@map()` to map PascalCase models to snake_case table names
 - Prisma client is imported from `@/lib/prisma` (singleton pattern)
-- **Schema documentation**: `docs/shift_database_schema.md` — When the database schema changes (e.g., adding/removing tables, columns, indexes, triggers, or modifying migrations), this file must be updated to reflect the current state
+- **Schema documentation**: `docs/shift_database_schema_v9.md` — When the database schema changes (e.g., adding/removing tables, columns, indexes, triggers, or modifying migrations), this file must be updated to reflect the current state
 
 ### Testing Patterns
 - Tests live in `tests/` organized by category: `actions/`, `db/`, `triggers/`, `validators/`
