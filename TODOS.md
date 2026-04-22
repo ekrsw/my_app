@@ -1,5 +1,21 @@
 # TODOS
 
+## Excel→CSV変換機能の E2E テスト追加
+
+**What:** Excel→CSV変換機能（`components/data/shift-conversion-section.tsx`）の Playwright E2E テストを `tests/e2e/shift-conversion.spec.ts` に追加する。4ケース想定: (1) `sample/202605_shift.xlsx` アップロード → 検証OK → CSV DL → 既存 `ShiftImportSection` に流し込み取り込み成功、(2) 未知 shift_code を含む xlsx で変換ブロック + `/shift-codes` リンク表示、(3) 未一致従業員名で変換ブロック + `/employees` リンク表示、(4) 5MB 超のダミーxlsx で 413 エラー表示
+
+**Why:** plan-eng-review (2026-04-22) で Unit + Integration のみをスコープ決定した経緯あり。Unit + Integration では Route Handler の認証ガード・FormData処理・クライアント側 Blob DL までは検証できるが、「ブラウザで実ファイルを <input type=file> から選択して実際のDL動作を確認」は E2E でしか拾えない。月次運用が始まってから「実はダウンロードが動いていない」が起きると痛い
+
+**Pros:** ラウンドトリップ（生成CSVが既存 `parseShiftCsv` で受理される）の end-to-end 保証 / 認証ガードの実動作確認 / ブラウザのファイルダウンロード挙動確認 / 将来 Next.js/exceljs アップグレードでの regression 検知
+
+**Cons:** Playwright が CI 未統合のため、当面はローカル実行のみ。CI 統合 TODO が完了してから取りかかるのが自然
+
+**Depends on:** 「Playwright E2E を CI パイプラインに統合」TODO の完了
+
+**Context:** 対象画面は `/data` の「シフト変換」セクション。関連ファイル: `components/data/shift-conversion-section.tsx`, `hooks/use-shift-conversion.ts`, `app/api/data/shift-conversion/route.ts`, `lib/excel/parse-shift-xlsx.ts`。設計ドキュメント: `~/.gstack/projects/ekrsw-my_app/ekoresawa-develop-design-20260422-073609.md`。test plan: `~/.gstack/projects/ekrsw-my_app/ekoresawa-develop-eng-review-test-plan-20260422-133446.md`。テスト用 fixture として `sample/202605_shift.xlsx` をそのまま流用。
+
+**Effort:** S (CC+gstack: ~30min) | **Priority:** P3 | **Risk:** Low
+
 ## タイムライン粒度切替の E2E テスト追加
 
 **What:** ダッシュボード『本日の出勤者』タイムラインの粒度切替ラジオ (15/30/60分) に対する Playwright E2E テストを追加する。4 ケースを想定: (1) ラジオクリックで URL 更新と再描画、(2) `?interval=15` 直接アクセス、(3) `?interval=abc` などの不正値フォールバック、(4) 夜勤含む × 15 分で 96 列レンダリング崩れなし

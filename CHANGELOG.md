@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.1.0] - 2026-04-22
+
+### Added
+- データ管理画面に「Excel変換」モードを追加。現場で組んだシフト表Excel (`.xlsx`) をアップロードすると、本システムの「シフト管理」インポートにそのまま流せるCSVに変換できる。未登録のシフトコードや従業員名、Excel内の重複セルを検出すると変換をブロックし、シフトコード管理画面・従業員管理画面への修正リンクを提示する
+- 変換時の安全策: 5MB アップロード上限、`.xlsm` 拒否、シートのセル数上限 (100万)、数式エラーセル (#N/A 等) の警告、CSV Injection 対策 (先頭 `=`/`+`/`-`/`@`/TAB/CR のエスケープ)、macOS発行 `date1904` ワークブックのオフセット補正
+- 生成CSVは BOM付きUTF-8 + CRLF 改行、`(従業員名, 日付)` 辞書順で決定論的に出力
+- `exceljs@^4.4.0` を dependencies に追加
+
+### Fixed
+- `package.json` の version が `0.1.0` のまま VERSION ファイルと長期間ドリフトしていたのを揃えた
+
 ## [0.3.0.0] - 2026-04-21
 
 ### Added
