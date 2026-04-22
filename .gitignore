@@ -55,3 +55,6 @@ next-env.d.ts
 .gstack/
 .claude/skills/gstack/
 .claude/scheduled_tasks.lock
+
+# local sample data (real employee data, never commit)
+/sample/

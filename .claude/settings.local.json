@@ -165,7 +165,12 @@
       "Bash(~/.claude/skills/gstack/bin/gstack-builder-profile)",
       "Bash(git mv *)",
       "Skill(design-review)",
-      "Bash(git rebase *)"
+      "Bash(git rebase *)",
+      "Bash(open __TRACKED_VAR__/.gstack/builder-journey.md)",
+      "Bash(open \"https://www.youtube.com/watch?v=ASABxNenD_U\")",
+      "Bash(~/.claude/skills/gstack/bin/gstack-learnings-log '{\"skill\":\"office-hours\",\"type\":\"architecture\",\"key\":\"shift-csv-import-infra-exists\",\"insight\":\"my_appには既にCSVインポート基盤が整備されている: ShiftImportSection + useShiftImport hook + csv-import/csv-file-input.tsx + csv-preview-table.tsx + shift-codes/page.tsx + ShiftCodeマスタ\\(defaultStartTime等含む\\)。新規Excelインポート系機能を設計する際は、このinfra延長で考えるとreinvent回避できる。\",\"confidence\":9,\"source\":\"observed\",\"files\":[\"components/data/shift-import-section.tsx\",\"hooks/use-shift-import.ts\",\"components/csv-import/csv-file-input.tsx\",\"prisma/schema.prisma\",\"app/\\(main\\)/shift-codes/page.tsx\"]}')",
+      "Bash(npm view *)",
+      "Bash(~/.claude/skills/gstack/bin/gstack-learnings-log '{\"skill\":\"plan-eng-review\",\"type\":\"architecture\",\"key\":\"importShifts-auto-resolves-names\",\"insight\":\"importShifts \\(shift-actions.ts:434-484\\) は従業員名→Employee.id の自動解決、同姓同名ブロック、未登録名ブロックを完全装備。CSVインポート設計時、CSVには `従業員ID` 空 + `従業員名` を入れるだけでOK。ID解決をクライアントや外部で行うと重複になる。\",\"confidence\":9,\"source\":\"observed\",\"files\":[\"lib/actions/shift-actions.ts\",\"lib/csv/parse-shift-csv.ts\"]}')"
     ]
   }
 }
