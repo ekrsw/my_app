@@ -233,6 +233,7 @@ export type RoleCsvRow = z.infer<typeof roleCsvRowSchema>
 export type DutyTypeCsvRow = z.infer<typeof dutyTypeCsvRowSchema>
 export type DutyAssignmentCsvRow = z.infer<typeof dutyAssignmentCsvRowSchema>
 
+
 // 履歴編集スキーマ
 export const groupHistoryEditSchema = z.object({
   groupId: z.coerce.number().int().positive("グループを選択してください").nullable().optional(),
