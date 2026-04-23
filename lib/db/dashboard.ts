@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma"
 import { getTodayJST } from "@/lib/date-utils"
 import { getTimeHHMM } from "@/lib/capacity-utils"
+import { DISTINCT_ROLE_TYPES } from "@/lib/constants/role-types"
 import type { DashboardOverviewFilter, DashboardFilterOptions } from "@/types"
 
 /** EmployeeGroup 用 Prisma where 条件（startDate nullable） */
@@ -24,20 +25,12 @@ function currentRoleDateWhere(today: Date) {
 }
 
 /**
- * DB から distinct role_type を取得して動的にカラムマッピング（getShiftsForDaily と同じロジック）
- * roleTypes[0] = 監督系 (権限), roleTypes[1] = 業務系 (職務)
- * ASC ソートにより roleType の昇順で取得（権限 < 職務）
+ * roleTypes[0] = SV (監督系)、roleTypes[1] = 業務系で固定 (lib/constants/role-types.ts)。
+ * 以前は `orderBy: { roleType: "asc" }` でDBから動的に取得していたが、日本語
+ * "業務"/"監督" のASCソートで[0]=業務 になりSV判定が逆転するバグがあった。
  */
 async function getRoleTypes(): Promise<[string, string]> {
-  const distinctTypes = await prisma.functionRole.findMany({
-    select: { roleType: true },
-    distinct: ["roleType"],
-    orderBy: { roleType: "asc" },
-  })
-  return [
-    distinctTypes[0]?.roleType ?? "権限",
-    distinctTypes[1]?.roleType ?? "職務",
-  ]
+  return [DISTINCT_ROLE_TYPES[0], DISTINCT_ROLE_TYPES[1]]
 }
 
 /**
