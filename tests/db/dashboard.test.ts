@@ -164,7 +164,7 @@ describe("Dashboard DB Queries - 日付範囲フィルタリング", () => {
   describe("getDailyOverview - ロールの日付フィルタ", () => {
     it("startDate <= today かつ endDate が null のロールは表示される", async () => {
       const role = await prisma.functionRole.create({
-        data: { roleCode: "SV", roleName: "SV", roleType: "権限" },
+        data: { roleCode: "SV", roleName: "SV", roleType: "監督" },
       })
       const emp = await prisma.employee.create({ data: { name: "田中太郎" } })
       await prisma.employeeFunctionRole.create({
@@ -186,7 +186,7 @@ describe("Dashboard DB Queries - 日付範囲フィルタリング", () => {
 
     it("startDate が未来のロールは表示されない", async () => {
       const role = await prisma.functionRole.create({
-        data: { roleCode: "SV", roleName: "SV", roleType: "権限" },
+        data: { roleCode: "SV", roleName: "SV", roleType: "監督" },
       })
       const emp = await prisma.employee.create({ data: { name: "田中太郎" } })
       await prisma.employeeFunctionRole.create({
@@ -207,7 +207,7 @@ describe("Dashboard DB Queries - 日付範囲フィルタリング", () => {
 
     it("endDate が過去のロールは表示されない", async () => {
       const role = await prisma.functionRole.create({
-        data: { roleCode: "SV", roleName: "SV", roleType: "権限" },
+        data: { roleCode: "SV", roleName: "SV", roleType: "監督" },
       })
       const emp = await prisma.employee.create({ data: { name: "田中太郎" } })
       await prisma.employeeFunctionRole.create({
@@ -228,7 +228,7 @@ describe("Dashboard DB Queries - 日付範囲フィルタリング", () => {
 
     it("endDate が未来のロールは表示される", async () => {
       const role = await prisma.functionRole.create({
-        data: { roleCode: "SV", roleName: "SV", roleType: "権限" },
+        data: { roleCode: "SV", roleName: "SV", roleType: "監督" },
       })
       const emp = await prisma.employee.create({ data: { name: "田中太郎" } })
       await prisma.employeeFunctionRole.create({
@@ -249,7 +249,7 @@ describe("Dashboard DB Queries - 日付範囲フィルタリング", () => {
 
     it("startDate が null のロール（旧データ）は表示される", async () => {
       const role = await prisma.functionRole.create({
-        data: { roleCode: "SV", roleName: "SV", roleType: "権限" },
+        data: { roleCode: "SV", roleName: "SV", roleType: "監督" },
       })
       const emp = await prisma.employee.create({ data: { name: "田中太郎" } })
       await prisma.employeeFunctionRole.create({
@@ -471,7 +471,7 @@ describe("Dashboard DB Queries - 日付範囲フィルタリング", () => {
 
     it("SVフィルター適用時、現在SVロールがない夜勤従業員は除外される", async () => {
       const svRole = await prisma.functionRole.create({
-        data: { roleCode: "SV", roleName: "SV", roleType: "権限" },
+        data: { roleCode: "SV", roleName: "SV", roleType: "監督" },
       })
 
       const svEmp = await prisma.employee.create({ data: { name: "SV夜勤" } })
