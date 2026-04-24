@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/select"
 import { ShiftImportSection } from "@/components/data/shift-import-section"
 import { ShiftExportSection } from "@/components/data/shift-export-section"
+import { ShiftConversionSection } from "@/components/data/shift-conversion-section"
 import { EmployeeImportSection } from "@/components/data/employee-import-section"
 import { EmployeeExportSection } from "@/components/data/employee-export-section"
 import { RoleImportSection } from "@/components/data/role-import-section"
@@ -45,7 +46,7 @@ type Props = {
   dutyTypes: DutyType[]
 }
 
-type Mode = "import" | "export"
+type Mode = "import" | "export" | "convert"
 type DataType = "shifts" | "employees" | "roles" | "dutyTypes" | "dutyAssignments"
 
 export function DataPageClient({ groups, roles, dutyTypes }: Props) {
@@ -67,6 +68,10 @@ export function DataPageClient({ groups, roles, dutyTypes }: Props) {
           <div className="flex items-center space-x-2">
             <RadioGroupItem value="export" id="mode-export" />
             <Label htmlFor="mode-export">エクスポート</Label>
+          </div>
+          <div className="flex items-center space-x-2">
+            <RadioGroupItem value="convert" id="mode-convert" />
+            <Label htmlFor="mode-convert">Excel変換</Label>
           </div>
         </RadioGroup>
 
@@ -114,6 +119,14 @@ export function DataPageClient({ groups, roles, dutyTypes }: Props) {
         )}
         {mode === "export" && dataType === "dutyAssignments" && (
           <DutyAssignmentExportSection dutyTypes={dutyTypes} />
+        )}
+        {mode === "convert" && dataType === "shifts" && (
+          <ShiftConversionSection />
+        )}
+        {mode === "convert" && dataType !== "shifts" && (
+          <div className="py-8 text-center text-sm text-muted-foreground">
+            Excel変換は現在「シフト管理」のみ対応しています
+          </div>
         )}
       </div>
     </div>
