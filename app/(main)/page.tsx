@@ -19,6 +19,7 @@ import { getActiveShiftCodes } from "@/lib/db/shift-codes"
 import { getShiftIdsWithHistory, getLatestShiftHistoryEntries } from "@/lib/db/shifts"
 import { getTodayJST } from "@/lib/date-utils"
 import { format } from "date-fns"
+import { DISTINCT_ROLE_TYPES } from "@/lib/constants/role-types"
 import type { DashboardOverviewFilter } from "@/types"
 
 function parseIds(value: string | string[] | undefined): number[] {
@@ -79,12 +80,8 @@ export default async function DashboardPage({ searchParams }: Props) {
       getPreviousDayOvernightDutyAssignments(todayJST),
     ])
 
-  // ロールタイプからカラム名を決定（shift-daily-viewと同じロジック）
-  // ASC ソートで roleTypes[0]=監督系(権限), roleTypes[1]=業務系(職務)
-  const distinctRoleTypes = (() => {
-    const types = [...new Set(roles.map((r) => r.roleType))].sort()
-    return [types[0] ?? "権限", types[1] ?? "職務"] as const
-  })()
+  // roleTypes[0] = SV (監督系)、roleTypes[1] = 業務系で固定 (lib/constants/role-types.ts)
+  const distinctRoleTypes = DISTINCT_ROLE_TYPES
 
   return (
     <>
