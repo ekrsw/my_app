@@ -39,6 +39,7 @@ describe("Role Actions", () => {
           roleCode: "MANAGER",
           roleName: "マネージャー",
           roleType: "FUNCTION",
+          kind: "OTHER",
           isActive: "true",
         })
       )
@@ -64,6 +65,7 @@ describe("Role Actions", () => {
           roleCode: "MANAGER",
           roleName: "別のマネージャー",
           roleType: "FUNCTION",
+          kind: "OTHER",
           isActive: "true",
         })
       )
@@ -89,6 +91,7 @@ describe("Role Actions", () => {
           roleCode: "MANAGER",
           roleName: "シニアマネージャー",
           roleType: "FUNCTION",
+          kind: "OTHER",
           isActive: "true",
         })
       )

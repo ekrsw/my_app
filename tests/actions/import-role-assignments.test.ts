@@ -18,9 +18,14 @@ async function createEmployee(name: string, terminationDate?: Date) {
   })
 }
 
-async function createRole(roleCode: string, roleType = "FUNCTION", isActive = true) {
+async function createRole(
+  roleCode: string,
+  roleType = "FUNCTION",
+  isActive = true,
+  kind: "SUPERVISOR" | "BUSINESS" | "OTHER" = "OTHER"
+) {
   return prisma.functionRole.create({
-    data: { roleCode, roleName: roleCode, roleType, isActive },
+    data: { roleCode, roleName: roleCode, roleType, kind, isActive },
   })
 }
 
@@ -179,7 +184,7 @@ describe("importRoleAssignments", () => {
 
       expect(result.created).toBe(0)
       expect(result.errors).toHaveLength(1)
-      expect(result.errors[0].error).toContain("既に同タイプのロールが割当済み")
+      expect(result.errors[0].error).toContain("既に同カテゴリのロールが割当済み")
     })
 
     it("CSV内で同一従業員×同一roleTypeが重複した場合、後の行がエラー", async () => {
