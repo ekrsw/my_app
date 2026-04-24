@@ -141,6 +141,9 @@ export function getCapacityColor(available: number): "green" | "yellow" | "red" 
   return "red"
 }
 
+/** ロール意味論カテゴリ（DB enum function_role_kind と一致） */
+export type RoleKind = "SUPERVISOR" | "BUSINESS" | "OTHER"
+
 export type ShiftWithDetails = {
   employeeId: string | null
   startTime: Date | string | null
@@ -148,7 +151,7 @@ export type ShiftWithDetails = {
   lunchBreakStart?: Date | string | null
   lunchBreakEnd?: Date | string | null
   groups: Array<{ id: number; name: string }>
-  roles: Array<{ roleType: string; roleName: string; startDate?: Date | string | null; endDate?: Date | string | null }>
+  roles: Array<{ kind: RoleKind; roleName: string; startDate?: Date | string | null; endDate?: Date | string | null }>
   isYesterdayOvernight?: boolean
 }
 
@@ -161,7 +164,8 @@ export type DutyInput = {
 
 export type CapacityFilter = {
   groupIds?: number[]
-  roleNames?: Record<string, string[]>  // roleType -> roleName[]
+  /** key = RoleKind, value = 選択された roleName 配列 */
+  roleNames?: Partial<Record<RoleKind, string[]>>
 }
 
 /** 出勤中の従業員をフィルター条件で絞り込んでキャパシティを計算 */
@@ -170,7 +174,8 @@ export function calculateFilteredCapacity(
   duties: DutyInput[],
   currentTime: string,
   filter?: CapacityFilter,
-  svRoleName?: string
+  /** 後方互換パラメータ（現在は未使用。SV 判定は kind = SUPERVISOR で行う）。 */
+  _svRoleNameDeprecated?: string
 ): { total: number; onDuty: number; onLunch: number; available: number; svTotal: number; svAvailable: number } {
   // 出勤中の従業員を特定（昼休憩中も「出勤」に含める）
   const presentEmployees: Array<{ id: string; groups: Array<{ id: number }>; roles: ShiftWithDetails["roles"]; isOnLunch: boolean }> = []
@@ -195,11 +200,11 @@ export function calculateFilteredCapacity(
     filtered = filtered.filter((e) => e.groups.some((g) => gids.has(g.id)))
   }
   if (filter?.roleNames) {
-    for (const [roleType, names] of Object.entries(filter.roleNames)) {
-      if (names.length > 0) {
+    for (const [kind, names] of Object.entries(filter.roleNames) as [RoleKind, string[]][]) {
+      if (names && names.length > 0) {
         const nameSet = new Set(names)
         filtered = filtered.filter((e) =>
-          e.roles.some((r) => r.roleType === roleType && nameSet.has(r.roleName))
+          e.roles.some((r) => r.kind === kind && nameSet.has(r.roleName))
         )
       }
     }
@@ -225,32 +230,32 @@ export function calculateFilteredCapacity(
   const unavailableIds = new Set([...lunchIds, ...onDutyIds])
   const unavailable = unavailableIds.size
 
-  // SV人数カウント（filteredIds の中でSVロールを持ち、かつ今日が有効期間内の従業員）
+  // SV人数カウント（kind = SUPERVISOR を持ち、かつ今日が有効期間内の従業員）
   let svTotal = 0
   let svAvailable = 0
-  if (svRoleName) {
-    const todayStr = getTodayJSTDateStr()
-    for (const e of filtered) {
-      const isSV = e.roles.some(
-        (r) => r.roleName === svRoleName && isRoleActiveOnDate(r.startDate, r.endDate, todayStr)
-      )
-      if (isSV) {
-        svTotal++
-        if (!onDutyIds.has(e.id) && !lunchIds.has(e.id)) svAvailable++
-      }
+  const todayStr = getTodayJSTDateStr()
+  for (const e of filtered) {
+    const isSV = e.roles.some(
+      (r) => r.kind === "SUPERVISOR" && isRoleActiveOnDate(r.startDate, r.endDate, todayStr)
+    )
+    if (isSV) {
+      svTotal++
+      if (!onDutyIds.has(e.id) && !lunchIds.has(e.id)) svAvailable++
     }
   }
+  void _svRoleNameDeprecated // 未使用引数の警告抑止（後方互換のため残置）
 
   return { total, onDuty, onLunch, available: Math.max(0, total - unavailable), svTotal, svAvailable }
 }
 
-/** 出勤中の従業員から、フィルター選択肢（グループ・ロール）を抽出 */
+/** 出勤中の従業員から、フィルター選択肢（グループ・ロール）を抽出。
+ *  ロールは kind（SUPERVISOR / BUSINESS / OTHER）でグループ化する。 */
 export function extractFilterOptions(
   shifts: ShiftWithDetails[],
   currentTime: string
-): { groups: Array<{ id: number; name: string }>; roles: Record<string, string[]> } {
+): { groups: Array<{ id: number; name: string }>; roles: Partial<Record<RoleKind, string[]>> } {
   const groupMap = new Map<number, string>()
-  const roleMap = new Map<string, Set<string>>()  // roleType -> Set<roleName>
+  const roleMap = new Map<RoleKind, Set<string>>()
   const seen = new Set<string>()
 
   for (const shift of shifts) {
@@ -263,8 +268,8 @@ export function extractFilterOptions(
         groupMap.set(g.id, g.name)
       }
       for (const r of shift.roles) {
-        if (!roleMap.has(r.roleType)) roleMap.set(r.roleType, new Set())
-        roleMap.get(r.roleType)!.add(r.roleName)
+        if (!roleMap.has(r.kind)) roleMap.set(r.kind, new Set())
+        roleMap.get(r.kind)!.add(r.roleName)
       }
     }
   }
@@ -273,9 +278,9 @@ export function extractFilterOptions(
     .map(([id, name]) => ({ id, name }))
     .sort((a, b) => a.name.localeCompare(b.name, "ja"))
 
-  const roles: Record<string, string[]> = {}
-  for (const [type, names] of roleMap) {
-    roles[type] = Array.from(names).sort((a, b) => a.localeCompare(b, "ja"))
+  const roles: Partial<Record<RoleKind, string[]>> = {}
+  for (const [kind, names] of roleMap) {
+    roles[kind] = Array.from(names).sort((a, b) => a.localeCompare(b, "ja"))
   }
 
   return { groups, roles }

@@ -3,7 +3,6 @@ import { Prisma } from "@/app/generated/prisma/client"
 import type { ShiftFilterParams, ShiftDailyFilterParams, ShiftDailyRow, PaginatedResult, ShiftDailySortField, SortOrder } from "@/types"
 import type { ShiftCalendarData, ShiftCalendarPaginatedResult, ShiftDailyPaginatedResult, DailyFilterOptions } from "@/types/shifts"
 import { toDateString, getTodayJST } from "@/lib/date-utils"
-import { DISTINCT_ROLE_TYPES } from "@/lib/constants/role-types"
 
 /** EmployeeGroup 用 Prisma where 条件（startDate nullable） */
 function currentGroupDateWhere(today: Date) {
@@ -381,15 +380,15 @@ export async function getCalendarEmployeeOptions(
 const DEFAULT_DAILY_PAGE_SIZE = 30
 
 // ソートフィールド → SQL式マッピング（GROUP BY対応で集約関数を使用）
-function getDailySortExpression(sortBy: ShiftDailySortField, roleTypes: [string, string], dateStr: string): string {
-  // SQL インジェクション防止: シングルクォートをエスケープ
+// 意味論は kind enum で判定（環境ごとの role_type 文字列差に依存しない）。
+function getDailySortExpression(sortBy: ShiftDailySortField, dateStr: string): string {
   const escapeSQL = (val: string) => val.replace(/'/g, "''")
   const escapedDate = escapeSQL(dateStr)
   switch (sortBy) {
     case "employeeName": return "e.name"
     case "groupName": return "MIN(g.name)"
-    case "supervisorRoleName": return `MIN((SELECT fr.role_name FROM employee_function_roles efr JOIN function_roles fr ON efr.function_role_id = fr.id WHERE efr.employee_id = e.id AND (efr.start_date IS NULL OR efr.start_date <= '${escapedDate}'::date) AND (efr.end_date IS NULL OR efr.end_date >= '${escapedDate}'::date) AND fr.role_type = '${escapeSQL(roleTypes[0])}' LIMIT 1))`
-    case "businessRoleName": return `MIN((SELECT fr.role_name FROM employee_function_roles efr JOIN function_roles fr ON efr.function_role_id = fr.id WHERE efr.employee_id = e.id AND (efr.start_date IS NULL OR efr.start_date <= '${escapedDate}'::date) AND (efr.end_date IS NULL OR efr.end_date >= '${escapedDate}'::date) AND fr.role_type = '${escapeSQL(roleTypes[1])}' LIMIT 1))`
+    case "supervisorRoleName": return `MIN((SELECT fr.role_name FROM employee_function_roles efr JOIN function_roles fr ON efr.function_role_id = fr.id WHERE efr.employee_id = e.id AND (efr.start_date IS NULL OR efr.start_date <= '${escapedDate}'::date) AND (efr.end_date IS NULL OR efr.end_date >= '${escapedDate}'::date) AND fr.kind = 'SUPERVISOR'::function_role_kind LIMIT 1))`
+    case "businessRoleName": return `MIN((SELECT fr.role_name FROM employee_function_roles efr JOIN function_roles fr ON efr.function_role_id = fr.id WHERE efr.employee_id = e.id AND (efr.start_date IS NULL OR efr.start_date <= '${escapedDate}'::date) AND (efr.end_date IS NULL OR efr.end_date >= '${escapedDate}'::date) AND fr.kind = 'BUSINESS'::function_role_kind LIMIT 1))`
     case "shiftCode": return "MIN(s.shift_code)"
     case "isRemote": return "MIN(s.is_remote::int)"
     default: return "e.name"
@@ -404,8 +403,7 @@ function getDailySortExpression(sortBy: ShiftDailySortField, roleTypes: [string,
 function buildDailyFilterConditions(
   filter: ShiftDailyFilterParams,
   dateStr: string,
-  exclude?: "employeeIds" | "groupIds" | "shiftCodes" | "supervisorRoleNames" | "businessRoleNames",
-  roleTypes?: [string, string]
+  exclude?: "employeeIds" | "groupIds" | "shiftCodes" | "supervisorRoleNames" | "businessRoleNames"
 ): {
   conditions: Prisma.Sql[]
   shiftFilterConditions: Prisma.Sql[]
@@ -453,28 +451,28 @@ function buildDailyFilterConditions(
     conditions.push(Prisma.sql`e.id = ANY(${filter.employeeIds}::uuid[])`)
   }
 
-  // 監督ロール名フィルター
-  if (exclude !== "supervisorRoleNames" && filter.supervisorRoleNames && filter.supervisorRoleNames.length > 0 && roleTypes) {
+  // 監督ロール名フィルター（kind = SUPERVISOR）
+  if (exclude !== "supervisorRoleNames" && filter.supervisorRoleNames && filter.supervisorRoleNames.length > 0) {
     conditions.push(Prisma.sql`EXISTS (
       SELECT 1 FROM employee_function_roles efr
       JOIN function_roles fr ON efr.function_role_id = fr.id
       WHERE efr.employee_id = e.id
         AND (efr.start_date IS NULL OR efr.start_date <= ${dateStr}::date)
         AND (efr.end_date IS NULL OR efr.end_date >= ${dateStr}::date)
-        AND fr.role_type = ${roleTypes[0]}
+        AND fr.kind = 'SUPERVISOR'::function_role_kind
         AND fr.role_name = ANY(${filter.supervisorRoleNames})
     )`)
   }
 
-  // 業務ロール名フィルター
-  if (exclude !== "businessRoleNames" && filter.businessRoleNames && filter.businessRoleNames.length > 0 && roleTypes) {
+  // 業務ロール名フィルター（kind = BUSINESS）
+  if (exclude !== "businessRoleNames" && filter.businessRoleNames && filter.businessRoleNames.length > 0) {
     conditions.push(Prisma.sql`EXISTS (
       SELECT 1 FROM employee_function_roles efr
       JOIN function_roles fr ON efr.function_role_id = fr.id
       WHERE efr.employee_id = e.id
         AND (efr.start_date IS NULL OR efr.start_date <= ${dateStr}::date)
         AND (efr.end_date IS NULL OR efr.end_date >= ${dateStr}::date)
-        AND fr.role_type = ${roleTypes[1]}
+        AND fr.kind = 'BUSINESS'::function_role_kind
         AND fr.role_name = ANY(${filter.businessRoleNames})
     )`)
   }
@@ -510,9 +508,6 @@ export async function getShiftsForDaily(
   const cursor = options.cursor ?? 0
   const pageSize = options.pageSize ?? DEFAULT_DAILY_PAGE_SIZE
 
-  // roleTypes[0] = SV (監督系)、roleTypes[1] = 業務系で固定 (lib/constants/role-types.ts)
-  const roleTypes: [string, string] = [DISTINCT_ROLE_TYPES[0], DISTINCT_ROLE_TYPES[1]]
-
   // Raw SQL では文字列 + ::date キャストで日付比較（Date オブジェクトは型不一致になるため）
   const dateStr = filter.date // "YYYY-MM-DD" 形式
   // Prisma findMany 用（@db.Date カラム比較用 UTC midnight）
@@ -523,12 +518,12 @@ export async function getShiftsForDaily(
   const sortOrder: SortOrder = filter.sortOrder ?? "asc"
 
   // --- Step 1: Raw SQLで動的 ORDER BY + OFFSET/LIMIT で従業員IDリスト取得 ---
-  const { conditions, shiftJoin } = buildDailyFilterConditions(filter, dateStr, undefined, roleTypes)
+  const { conditions, shiftJoin } = buildDailyFilterConditions(filter, dateStr)
 
   const whereClause = Prisma.sql`WHERE ${Prisma.join(conditions, " AND ")}`
 
   // ソート式構築
-  const sortExpr = getDailySortExpression(sortBy, roleTypes, dateStr)
+  const sortExpr = getDailySortExpression(sortBy, dateStr)
   const nullsHandling = sortOrder === "asc" ? "NULLS LAST" : "NULLS FIRST"
   // セカンダリソートとして常に e.name ASC を追加
   const orderByRaw = sortBy === "employeeName"
@@ -602,8 +597,8 @@ export async function getShiftsForDaily(
 
   const data: ShiftDailyRow[] = employees.map((emp) => {
     const shift = emp.shifts[0] ?? null
-    const supervisorRole = emp.functionRoles.find(fr => fr.functionRole?.roleType === roleTypes[0])
-    const businessRole = emp.functionRoles.find(fr => fr.functionRole?.roleType === roleTypes[1])
+    const supervisorRole = emp.functionRoles.find(fr => fr.functionRole?.kind === "SUPERVISOR")
+    const businessRole = emp.functionRoles.find(fr => fr.functionRole?.kind === "BUSINESS")
     return {
       employeeId: emp.id,
       employeeName: emp.name,
@@ -696,14 +691,11 @@ export async function getDailyFilterOptions(
 ): Promise<DailyFilterOptions> {
   const dateStr = filter.date
 
-  // roleTypes[0] = SV (監督系)、roleTypes[1] = 業務系で固定 (lib/constants/role-types.ts)
-  const roleTypes: [string, string] = [DISTINCT_ROLE_TYPES[0], DISTINCT_ROLE_TYPES[1]]
-
   // クエリを並列実行
   const [employeeRows, groupRows, unassignedRows, shiftCodeRows, supervisorRoleRows, businessRoleRows] = await Promise.all([
     // 従業員オプション: employeeIds 条件を除外
     (() => {
-      const { conditions, shiftJoin } = buildDailyFilterConditions(filter, dateStr, "employeeIds", roleTypes)
+      const { conditions, shiftJoin } = buildDailyFilterConditions(filter, dateStr, "employeeIds")
       const whereClause = Prisma.sql`WHERE ${Prisma.join(conditions, " AND ")}`
       return prisma.$queryRaw<{ id: string; name: string }[]>(Prisma.sql`
         SELECT DISTINCT e.id, e.name
@@ -717,7 +709,7 @@ export async function getDailyFilterOptions(
     })(),
     // グループオプション: groupIds 条件を除外
     (() => {
-      const { conditions, shiftJoin } = buildDailyFilterConditions(filter, dateStr, "groupIds", roleTypes)
+      const { conditions, shiftJoin } = buildDailyFilterConditions(filter, dateStr, "groupIds")
       const whereClause = Prisma.sql`WHERE ${Prisma.join(conditions, " AND ")}`
       return prisma.$queryRaw<{ id: number; name: string }[]>(Prisma.sql`
         SELECT DISTINCT g.id, g.name
@@ -732,7 +724,7 @@ export async function getDailyFilterOptions(
     })(),
     // 未所属の従業員が存在するかチェック（groupIds 条件を除外）
     (() => {
-      const { conditions, shiftJoin } = buildDailyFilterConditions(filter, dateStr, "groupIds", roleTypes)
+      const { conditions, shiftJoin } = buildDailyFilterConditions(filter, dateStr, "groupIds")
       const whereClause = Prisma.sql`WHERE ${Prisma.join(conditions, " AND ")}`
       return prisma.$queryRaw<{ exists: boolean }[]>(Prisma.sql`
         SELECT EXISTS (
@@ -747,7 +739,7 @@ export async function getDailyFilterOptions(
     })(),
     // シフトコードオプション: shiftCodes 条件を除外
     (() => {
-      const { conditions, shiftJoin } = buildDailyFilterConditions(filter, dateStr, "shiftCodes", roleTypes)
+      const { conditions, shiftJoin } = buildDailyFilterConditions(filter, dateStr, "shiftCodes")
       const whereClause = Prisma.sql`WHERE ${Prisma.join(conditions, " AND ")}`
       return prisma.$queryRaw<{ shift_code: string }[]>(Prisma.sql`
         SELECT DISTINCT s2.shift_code
@@ -762,7 +754,7 @@ export async function getDailyFilterOptions(
     })(),
     // 監督ロール名オプション: supervisorRoleNames 条件を除外
     (() => {
-      const { conditions, shiftJoin } = buildDailyFilterConditions(filter, dateStr, "supervisorRoleNames", roleTypes)
+      const { conditions, shiftJoin } = buildDailyFilterConditions(filter, dateStr, "supervisorRoleNames")
       const whereClause = Prisma.sql`WHERE ${Prisma.join(conditions, " AND ")}`
       return prisma.$queryRaw<{ role_name: string }[]>(Prisma.sql`
         SELECT DISTINCT fr.role_name
@@ -770,14 +762,14 @@ export async function getDailyFilterOptions(
         LEFT JOIN employee_groups eg ON e.id = eg.employee_id AND (eg.start_date IS NULL OR eg.start_date <= ${dateStr}::date) AND (eg.end_date IS NULL OR eg.end_date >= ${dateStr}::date)
         ${shiftJoin}
         INNER JOIN employee_function_roles efr ON efr.employee_id = e.id AND (efr.start_date IS NULL OR efr.start_date <= ${dateStr}::date) AND (efr.end_date IS NULL OR efr.end_date >= ${dateStr}::date)
-        INNER JOIN function_roles fr ON efr.function_role_id = fr.id AND fr.role_type = ${roleTypes[0]}
+        INNER JOIN function_roles fr ON efr.function_role_id = fr.id AND fr.kind = 'SUPERVISOR'::function_role_kind
         ${whereClause}
         ORDER BY fr.role_name
       `)
     })(),
     // 業務ロール名オプション: businessRoleNames 条件を除外
     (() => {
-      const { conditions, shiftJoin } = buildDailyFilterConditions(filter, dateStr, "businessRoleNames", roleTypes)
+      const { conditions, shiftJoin } = buildDailyFilterConditions(filter, dateStr, "businessRoleNames")
       const whereClause = Prisma.sql`WHERE ${Prisma.join(conditions, " AND ")}`
       return prisma.$queryRaw<{ role_name: string }[]>(Prisma.sql`
         SELECT DISTINCT fr.role_name
@@ -785,7 +777,7 @@ export async function getDailyFilterOptions(
         LEFT JOIN employee_groups eg ON e.id = eg.employee_id AND (eg.start_date IS NULL OR eg.start_date <= ${dateStr}::date) AND (eg.end_date IS NULL OR eg.end_date >= ${dateStr}::date)
         ${shiftJoin}
         INNER JOIN employee_function_roles efr ON efr.employee_id = e.id AND (efr.start_date IS NULL OR efr.start_date <= ${dateStr}::date) AND (efr.end_date IS NULL OR efr.end_date >= ${dateStr}::date)
-        INNER JOIN function_roles fr ON efr.function_role_id = fr.id AND fr.role_type = ${roleTypes[1]}
+        INNER JOIN function_roles fr ON efr.function_role_id = fr.id AND fr.kind = 'BUSINESS'::function_role_kind
         ${whereClause}
         ORDER BY fr.role_name
       `)

@@ -11,6 +11,7 @@ export async function createFunctionRole(formData: FormData) {
     roleCode: formData.get("roleCode"),
     roleName: formData.get("roleName"),
     roleType: formData.get("roleType"),
+    kind: formData.get("kind"),
     isActive: formData.get("isActive") === "true",
   })
 
@@ -36,6 +37,7 @@ export async function updateFunctionRole(id: number, formData: FormData) {
     roleCode: formData.get("roleCode"),
     roleName: formData.get("roleName"),
     roleType: formData.get("roleType"),
+    kind: formData.get("kind"),
     isActive: formData.get("isActive") === "true",
   })
 
@@ -197,18 +199,18 @@ export async function importRoleAssignments(
         where: { isActive: true },
       })
       const roleCodeMap = new Map(
-        allRoles.map((r) => [r.roleCode, { id: r.id, roleType: r.roleType }])
+        allRoles.map((r) => [r.roleCode, { id: r.id, roleType: r.roleType, kind: r.kind }])
       )
 
-      // 既存アクティブ割当を取得
+      // 既存アクティブ割当を取得（kind でカテゴリ衝突判定）
       const activeAssignments = await tx.employeeFunctionRole.findMany({
         where: { endDate: null },
-        select: { employeeId: true, roleType: true },
+        select: { employeeId: true, kind: true },
       })
       const activeAssignmentSet = new Set(
         activeAssignments
           .filter((a) => a.employeeId !== null)
-          .map((a) => `${a.employeeId}-${a.roleType}`)
+          .map((a) => `${a.employeeId}-${a.kind}`)
       )
 
       // CSV内重複チェック用
@@ -245,13 +247,13 @@ export async function importRoleAssignments(
         }
 
         const employeeId = nameIdMap.get(row.employeeName)!
-        const assignmentKey = `${employeeId}-${roleInfo.roleType}`
+        const assignmentKey = `${employeeId}-${roleInfo.kind}`
 
-        // 既存アクティブ割当とのroleType衝突チェック
+        // 既存アクティブ割当との kind 衝突チェック（同じ意味論カテゴリは1人1つ）
         if (activeAssignmentSet.has(assignmentKey)) {
           errors.push({
             rowIndex: row.rowIndex,
-            error: `既に同タイプのロールが割当済み: ${row.employeeName}, タイプ${roleInfo.roleType}`,
+            error: `既に同カテゴリのロールが割当済み: ${row.employeeName}, ${roleInfo.roleType}(${roleInfo.kind})`,
           })
           continue
         }
@@ -260,7 +262,7 @@ export async function importRoleAssignments(
         if (csvSeenSet.has(assignmentKey)) {
           errors.push({
             rowIndex: row.rowIndex,
-            error: `CSV内で重複: ${row.employeeName}, タイプ${roleInfo.roleType}`,
+            error: `CSV内で重複: ${row.employeeName}, ${roleInfo.roleType}(${roleInfo.kind})`,
           })
           continue
         }
@@ -281,7 +283,10 @@ export async function importRoleAssignments(
             data: {
               employeeId,
               functionRoleId: roleInfo.id,
+              // roleType / kind はトリガー set_efr_role_type が function_roles から自動複製するが、
+              // 明示的に渡して意図を記録する（トリガー未適用環境でのセーフティネットも兼ねる）。
               roleType: roleInfo.roleType,
+              kind: roleInfo.kind,
               isPrimary: row.isPrimary,
               startDate: row.startDate ? new Date(row.startDate) : null,
               endDate: row.endDate ? new Date(row.endDate) : null,

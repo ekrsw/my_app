@@ -1,7 +1,6 @@
 import { prisma } from "@/lib/prisma"
 import { getTodayJST } from "@/lib/date-utils"
 import { getTimeHHMM } from "@/lib/capacity-utils"
-import { DISTINCT_ROLE_TYPES } from "@/lib/constants/role-types"
 import type { DashboardOverviewFilter, DashboardFilterOptions } from "@/types"
 
 /** EmployeeGroup 用 Prisma where 条件（startDate nullable） */
@@ -25,21 +24,16 @@ function currentRoleDateWhere(today: Date) {
 }
 
 /**
- * roleTypes[0] = SV (監督系)、roleTypes[1] = 業務系で固定 (lib/constants/role-types.ts)。
- * 以前は `orderBy: { roleType: "asc" }` でDBから動的に取得していたが、日本語
- * "業務"/"監督" のASCソートで[0]=業務 になりSV判定が逆転するバグがあった。
- */
-async function getRoleTypes(): Promise<[string, string]> {
-  return [DISTINCT_ROLE_TYPES[0], DISTINCT_ROLE_TYPES[1]]
-}
-
-/**
  * フィルター条件から従業員の Prisma where 句を構築する共通ヘルパー。
  * getDailyOverview / getPreviousDayOvernightShifts で共有。
+ *
+ * 意味論（SUPERVISOR / BUSINESS）は FunctionRole.kind enum で判定する。
+ * 以前は role_type 文字列（"監督"/"業務" 等）で判定していたが、環境ごとに
+ * マスタ値が異なり（"権限"/"職務" など）ヒットしない不具合があったため、
+ * kind enum を導入して意味論を文字列から分離した。
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function buildEmployeeFilterWhere(filter: DashboardOverviewFilter, date: Date): Promise<any> {
-  const roleTypes = await getRoleTypes()
+function buildEmployeeFilterWhere(filter: DashboardOverviewFilter, date: Date): any {
   const groupDateFilter = currentGroupDateWhere(date)
   const roleDateFilter = currentRoleDateWhere(date)
 
@@ -81,7 +75,7 @@ async function buildEmployeeFilterWhere(filter: DashboardOverviewFilter, date: D
           some: {
             ...roleDateFilter,
             functionRole: {
-              roleType: roleTypes[0],
+              kind: "SUPERVISOR",
               roleName: { in: filter.supervisorRoleNames },
             },
           },
@@ -99,7 +93,7 @@ async function buildEmployeeFilterWhere(filter: DashboardOverviewFilter, date: D
           some: {
             ...roleDateFilter,
             functionRole: {
-              roleType: roleTypes[1],
+              kind: "BUSINESS",
               roleName: { in: filter.businessRoleNames },
             },
           },
@@ -125,7 +119,7 @@ function applyShiftFilterWhere(shiftWhere: any, filter: DashboardOverviewFilter)
 }
 
 export async function getDailyOverview(date: Date, filter: DashboardOverviewFilter = {}) {
-  const employeeWhere = await buildEmployeeFilterWhere(filter, date)
+  const employeeWhere = buildEmployeeFilterWhere(filter, date)
 
   // シフトwhere句
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -171,8 +165,6 @@ export async function getDailyOverview(date: Date, filter: DashboardOverviewFilt
 }
 
 export async function getDailyFilterOptions(date: Date): Promise<DashboardFilterOptions> {
-  const roleTypes = await getRoleTypes()
-
   const dayShifts = await prisma.shift.findMany({
     where: {
       shiftDate: date,
@@ -232,9 +224,9 @@ export async function getDailyFilterOptions(date: Date): Promise<DashboardFilter
 
     for (const efr of emp.functionRoles) {
       if (!efr.functionRole) continue
-      if (efr.functionRole.roleType === roleTypes[0]) {
+      if (efr.functionRole.kind === "SUPERVISOR") {
         supervisorRoleNameSet.add(efr.functionRole.roleName)
-      } else if (efr.functionRole.roleType === roleTypes[1]) {
+      } else if (efr.functionRole.kind === "BUSINESS") {
         businessRoleNameSet.add(efr.functionRole.roleName)
       }
     }
@@ -319,7 +311,7 @@ export async function getTodayShiftChangeHistory() {
  */
 export async function getPreviousDayOvernightShifts(date: Date, filter: DashboardOverviewFilter = {}) {
   const previousDay = new Date(date.getTime() - 24 * 60 * 60 * 1000)
-  const employeeWhere = await buildEmployeeFilterWhere(filter, date)
+  const employeeWhere = buildEmployeeFilterWhere(filter, date)
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const shiftWhere: any = {
