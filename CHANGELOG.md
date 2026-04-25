@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.4.0] - 2026-04-25
+
+### Added
+- 業務管理（日次）画面に日付テキスト入力欄とカレンダーポップオーバーを追加。`YYYY年M月D日` / `YYYY/M/D` / `YYYY-M-D` の3形式を受理し、Enter または focus 外しで日付遷移する。シフト管理（日次）画面の date-picker と同じ操作感
+
+### Changed
+- 業務管理（日次）画面の日付ナビゲーションのレイアウトを `[<][>][📅 Calendar Popover][Input] (曜日)` に変更。月次ビュー・シフト管理日次画面と並び順を統一。曜日表示は別 span に分離
+
 ## [0.3.2.0] - 2026-04-25
 
 ### Fixed
