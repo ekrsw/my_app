@@ -65,7 +65,7 @@ async function main() {
 
   // 2. Run prisma db push to sync schema
   console.log("Syncing schema with prisma db push...")
-  execSync("npx prisma db push --skip-generate --accept-data-loss", {
+  execSync("npx prisma db push --accept-data-loss", {
     cwd: path.resolve(__dirname, ".."),
     env: { ...process.env, DATABASE_URL: TEST_DB_URL },
     stdio: "inherit",

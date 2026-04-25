@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.2.0] - 2026-04-25
+
+### Changed
+- Prisma を v6.19.x から v7.8.0 にアップグレード。`PrismaClient` は driver adapter (`@prisma/adapter-pg`) 経由で PostgreSQL に接続する方式に移行。`schema.prisma` の `datasource.url` は v7 で廃止されたため `prisma.config.ts` 側に集約
+- `prisma.config.ts` から v7 で廃止された `engine: "classic"` フィールドを削除
+- 必要 Node.js バージョンが v22.12+ (もしくは v20.19+ / v24.0+) に引き上げられた
+
+### Added
+- 本番依存関係に `@prisma/adapter-pg@^7.8.0` を追加
+- `pg@^8.18.0` を `devDependencies` から `dependencies` に昇格(adapter 経由でランタイム利用するため)
+
+### Fixed
+- `tests/setup-db.ts` の `prisma db push` から v7 で廃止された `--skip-generate` フラグを削除し、テスト DB セットアップを v7 に対応
+
 ## [0.3.1.0] - 2026-04-22
 
 ### Added
