@@ -3,6 +3,7 @@
 import { useState, useCallback, useMemo, useEffect, useRef } from "react"
 import { useQueryParams } from "@/hooks/use-query-params"
 import { Button } from "@/components/ui/button"
+import { Calendar } from "@/components/ui/calendar"
 import { Input } from "@/components/ui/input"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -45,6 +46,31 @@ function parseMonthInput(input: string): { year: number; month: number } | null 
     const y = parseInt(slashMatch[1], 10)
     const m = parseInt(slashMatch[2], 10)
     if (m >= 1 && m <= 12) return { year: y, month: m }
+  }
+  return null
+}
+
+function parseDailyDateInput(input: string): string | null {
+  const trimmed = input.trim()
+  const jaMatch = trimmed.match(/^(\d{4})年(\d{1,2})月(\d{1,2})日?$/)
+  if (jaMatch) {
+    const y = parseInt(jaMatch[1], 10)
+    const m = parseInt(jaMatch[2], 10)
+    const d = parseInt(jaMatch[3], 10)
+    const date = new Date(y, m - 1, d)
+    if (!isNaN(date.getTime()) && date.getFullYear() === y && date.getMonth() === m - 1 && date.getDate() === d) {
+      return `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`
+    }
+  }
+  const slashMatch = trimmed.match(/^(\d{4})[/\-](\d{1,2})[/\-](\d{1,2})$/)
+  if (slashMatch) {
+    const y = parseInt(slashMatch[1], 10)
+    const m = parseInt(slashMatch[2], 10)
+    const d = parseInt(slashMatch[3], 10)
+    const date = new Date(y, m - 1, d)
+    if (!isNaN(date.getTime()) && date.getFullYear() === y && date.getMonth() === m - 1 && date.getDate() === d) {
+      return `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`
+    }
   }
   return null
 }
@@ -216,12 +242,48 @@ export function DutyAssignmentPageClient({
     [dailyDate, setParams]
   )
 
-  const formattedDailyDate = useMemo(() => {
+  const dailyInputDateText = useMemo(() => {
     const d = new Date(dailyDate + "T00:00:00+09:00")
-    const dayNames = ["日", "月", "火", "水", "木", "金", "土"]
-    const dayOfWeek = dayNames[d.getDay()]
-    return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日(${dayOfWeek})`
+    return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`
   }, [dailyDate])
+
+  const dailyDayOfWeek = useMemo(() => {
+    const d = new Date(dailyDate + "T00:00:00+09:00")
+    return ["日", "月", "火", "水", "木", "金", "土"][d.getDay()]
+  }, [dailyDate])
+
+  const dailySelectedCalendarDate = useMemo(() => {
+    const [y, m, d] = dailyDate.split("-").map(Number)
+    return new Date(y, m - 1, d)
+  }, [dailyDate])
+
+  const [dailyCalendarOpen, setDailyCalendarOpen] = useState(false)
+  const [editingDailyDateValue, setEditingDailyDateValue] = useState<string | null>(null)
+  const dailyDateInputRef = useRef<HTMLInputElement>(null)
+
+  const handleDailyDateInputCommit = useCallback(() => {
+    if (editingDailyDateValue !== null) {
+      const parsed = parseDailyDateInput(editingDailyDateValue)
+      if (parsed) {
+        setParams({ dailyDate: parsed })
+      }
+      setEditingDailyDateValue(null)
+    }
+  }, [editingDailyDateValue, setParams])
+
+  const handleDailyDateInputKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault()
+      handleDailyDateInputCommit()
+      dailyDateInputRef.current?.blur()
+    }
+  }, [handleDailyDateInputCommit])
+
+  const navigateToDailyDate = useCallback((date: Date) => {
+    const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`
+    setParams({ dailyDate: dateStr })
+    setDailyCalendarOpen(false)
+  }, [setParams])
 
   // --- 月次: ページネーション状態 ---
   const [calendarRows, setCalendarRows] = useState(calendarData)
@@ -381,12 +443,35 @@ export function DutyAssignmentPageClient({
             <Button variant="outline" size="icon" onClick={() => navigateDay(-1)} aria-label="前日">
               <ChevronLeft className="h-4 w-4" />
             </Button>
-            <span className="text-sm font-medium min-w-[140px] text-center">
-              {formattedDailyDate}
-            </span>
             <Button variant="outline" size="icon" onClick={() => navigateDay(1)} aria-label="翌日">
               <ChevronRight className="h-4 w-4" />
             </Button>
+            <Popover open={dailyCalendarOpen} onOpenChange={setDailyCalendarOpen}>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="icon" aria-label="日付を選択">
+                  <CalendarIcon className="h-4 w-4" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={dailySelectedCalendarDate}
+                  onSelect={(date) => date && navigateToDailyDate(date)}
+                  defaultMonth={dailySelectedCalendarDate}
+                />
+              </PopoverContent>
+            </Popover>
+            <Input
+              ref={dailyDateInputRef}
+              value={editingDailyDateValue ?? dailyInputDateText}
+              onFocus={() => setEditingDailyDateValue(dailyInputDateText)}
+              onChange={(e) => setEditingDailyDateValue(e.target.value)}
+              onBlur={handleDailyDateInputCommit}
+              onKeyDown={handleDailyDateInputKeyDown}
+              className="w-[140px] text-center font-medium"
+              aria-label="日付を入力"
+            />
+            <span className="text-sm font-medium text-muted-foreground">({dailyDayOfWeek})</span>
           </div>
           <div className="flex items-center gap-2">
             <FilterPresetManager
