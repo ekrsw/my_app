@@ -161,10 +161,11 @@ export function computeSlotStats(
     }
   }
 
-  // SV判定（roleType=distinctRoleTypes[0]、有効期間内）
+  // SV判定（kind = SUPERVISOR、有効期間内）。
+  // distinctRoleTypes は列見出しラベル用途のみで、意味論には使わない。
   const isSV = (emp: MergedRow["employee"]) =>
     emp?.functionRoles?.some(r =>
-      r.functionRole?.roleType === distinctRoleTypes[0] &&
+      r.functionRole?.kind === "SUPERVISOR" &&
       isRoleActiveOnDate(r.startDate, r.endDate, date)
     ) ?? false
 

@@ -11,7 +11,8 @@ import {
   getCapacityColor,
   getCurrentJSTTimeHHMM,
 } from "@/lib/capacity-utils"
-import type { ShiftWithDetails, CapacityFilter } from "@/lib/capacity-utils"
+import type { ShiftWithDetails, CapacityFilter, RoleKind } from "@/lib/capacity-utils"
+import { SUPERVISOR_LABEL, BUSINESS_LABEL } from "@/lib/constants/role-types"
 
 type DutyForCapacity = {
   employeeId: string
@@ -23,7 +24,6 @@ type DutyForCapacity = {
 type Props = {
   shifts: ShiftWithDetails[]
   duties: DutyForCapacity[]
-  roleTypes: readonly [string, string]
 }
 
 const COLOR_STYLES = {
@@ -32,12 +32,18 @@ const COLOR_STYLES = {
   red: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300",
 } as const
 
-export function CapacitySummary({ shifts, duties, roleTypes }: Props) {
+/** UI に表示するロールカテゴリと日本語ラベルの対応。OTHER は意味論的に位置づけなしなので UI に出さない。 */
+const ROLE_KIND_DISPLAY: ReadonlyArray<{ kind: RoleKind; label: string }> = [
+  { kind: "SUPERVISOR", label: SUPERVISOR_LABEL },
+  { kind: "BUSINESS", label: BUSINESS_LABEL },
+]
+
+export function CapacitySummary({ shifts, duties }: Props) {
   const [currentTime, setCurrentTime] = useState(getCurrentJSTTimeHHMM)
   const [selectedGroupIds, setSelectedGroupIds] = useState<number[]>([])
-  const [selectedRoleNames, setSelectedRoleNames] = useState<Record<string, string[]>>({})
+  const [selectedRoleNames, setSelectedRoleNames] = useState<Partial<Record<RoleKind, string[]>>>({})
   const [groupFilterOpen, setGroupFilterOpen] = useState(false)
-  const [roleFilterOpen, setRoleFilterOpen] = useState<Record<string, boolean>>({})
+  const [roleFilterOpen, setRoleFilterOpen] = useState<Partial<Record<RoleKind, boolean>>>({})
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -63,7 +69,7 @@ export function CapacitySummary({ shifts, duties, roleTypes }: Props) {
 
   const isFiltered = !!filter
   const capacity = useMemo(
-    () => calculateFilteredCapacity(shifts, duties, currentTime, filter, "SV"),
+    () => calculateFilteredCapacity(shifts, duties, currentTime, filter),
     [shifts, duties, currentTime, filter]
   )
   const { total, onDuty, onLunch, available, svTotal, svAvailable } = capacity
@@ -107,31 +113,31 @@ export function CapacitySummary({ shifts, duties, roleTypes }: Props) {
             />
           </ColumnFilterPopover>
 
-          {/* ロールフィルター（roleType ごと） */}
-          {[roleTypes[0], roleTypes[1]].map((rt) => {
-            const names = filterOptions.roles[rt]
+          {/* ロールフィルター（kind ごとに固定の UI ラベルで表示） */}
+          {ROLE_KIND_DISPLAY.map(({ kind, label }) => {
+            const names = filterOptions.roles[kind]
             if (!names || names.length === 0) return null
-            const selected = selectedRoleNames[rt] ?? []
-            const open = roleFilterOpen[rt] ?? false
+            const selected = selectedRoleNames[kind] ?? []
+            const open = roleFilterOpen[kind] ?? false
             return (
               <ColumnFilterPopover
-                key={rt}
-                label={rt}
+                key={kind}
+                label={label}
                 isActive={selected.length > 0}
                 activeCount={selected.length}
                 open={open}
-                onOpenChange={(o) => setRoleFilterOpen((prev) => ({ ...prev, [rt]: o }))}
+                onOpenChange={(o) => setRoleFilterOpen((prev) => ({ ...prev, [kind]: o }))}
               >
                 <CheckboxListFilter
                   options={names.map((n) => ({ value: n, label: n }))}
                   selectedValues={selected}
                   onConfirm={(values) => {
-                    setSelectedRoleNames((prev) => ({ ...prev, [rt]: values }))
-                    setRoleFilterOpen((prev) => ({ ...prev, [rt]: false }))
+                    setSelectedRoleNames((prev) => ({ ...prev, [kind]: values }))
+                    setRoleFilterOpen((prev) => ({ ...prev, [kind]: false }))
                   }}
                   onClear={() => {
-                    setSelectedRoleNames((prev) => ({ ...prev, [rt]: [] }))
-                    setRoleFilterOpen((prev) => ({ ...prev, [rt]: false }))
+                    setSelectedRoleNames((prev) => ({ ...prev, [kind]: [] }))
+                    setRoleFilterOpen((prev) => ({ ...prev, [kind]: false }))
                   }}
                   popoverOpen={open}
                 />

@@ -101,7 +101,7 @@ export default async function DashboardPage({ searchParams }: Props) {
                   lunchBreakStart: s.lunchBreakStart,
                   lunchBreakEnd: s.lunchBreakEnd,
                   groups: s.employee?.groups.map((eg) => ({ id: eg.group.id, name: eg.group.name })) ?? [],
-                  roles: s.employee?.functionRoles.filter((efr) => efr.functionRole).map((efr) => ({ roleType: efr.functionRole!.roleType, roleName: efr.functionRole!.roleName, startDate: efr.startDate, endDate: efr.endDate })) ?? [],
+                  roles: s.employee?.functionRoles.filter((efr) => efr.functionRole).map((efr) => ({ kind: efr.functionRole!.kind, roleName: efr.functionRole!.roleName, startDate: efr.startDate, endDate: efr.endDate })) ?? [],
                 })),
                 ...overnightShifts.map((s) => ({
                   employeeId: s.employeeId,
@@ -110,7 +110,7 @@ export default async function DashboardPage({ searchParams }: Props) {
                   lunchBreakStart: s.lunchBreakStart,
                   lunchBreakEnd: s.lunchBreakEnd,
                   groups: s.employee?.groups.map((eg) => ({ id: eg.group.id, name: eg.group.name })) ?? [],
-                  roles: s.employee?.functionRoles.filter((efr) => efr.functionRole).map((efr) => ({ roleType: efr.functionRole!.roleType, roleName: efr.functionRole!.roleName, startDate: efr.startDate, endDate: efr.endDate })) ?? [],
+                  roles: s.employee?.functionRoles.filter((efr) => efr.functionRole).map((efr) => ({ kind: efr.functionRole!.kind, roleName: efr.functionRole!.roleName, startDate: efr.startDate, endDate: efr.endDate })) ?? [],
                   isYesterdayOvernight: true,
                 })),
               ]}
@@ -128,7 +128,6 @@ export default async function DashboardPage({ searchParams }: Props) {
                   reducesCapacity: d.reducesCapacity,
                 })),
               ]}
-              roleTypes={distinctRoleTypes}
             />
             <TodayDuties
               duties={todayDuties}
