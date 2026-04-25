@@ -45,7 +45,7 @@ npx prisma migrate deploy   # Apply migrations
 
 ### Tech Stack
 - **Next.js 16** (App Router) + **React 19** + **TypeScript**
-- **Prisma 6** with **PostgreSQL** (client generated to `app/generated/prisma/`)
+- **Prisma 7** with **PostgreSQL** (client generated to `app/generated/prisma/`, runtime via `@prisma/adapter-pg`)
 - **Auth.js v5** (next-auth@beta) + **bcrypt** for authentication
 - **Tailwind CSS 4** + **shadcn/ui** (new-york style) + **Radix UI**
 - **Vitest** for testing, **Zod** for validation, **React Hook Form** for forms, **TanStack React Table** for data tables

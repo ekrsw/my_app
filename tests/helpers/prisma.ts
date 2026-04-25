@@ -1,3 +1,4 @@
+import { PrismaPg } from "@prisma/adapter-pg"
 import { PrismaClient } from "@/app/generated/prisma/client"
 
 const testDatabaseUrl = process.env.DATABASE_URL
@@ -9,6 +10,6 @@ if (!testDatabaseUrl || !testDatabaseUrl.includes("_test")) {
   )
 }
 
-export const prisma = new PrismaClient({
-  datasourceUrl: testDatabaseUrl,
-})
+const adapter = new PrismaPg({ connectionString: testDatabaseUrl })
+
+export const prisma = new PrismaClient({ adapter })

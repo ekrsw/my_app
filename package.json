@@ -1,6 +1,6 @@
 {
   "name": "my_app",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -21,7 +21,8 @@
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
-    "@prisma/client": "^6.19.2",
+    "@prisma/adapter-pg": "^7.8.0",
+    "@prisma/client": "^7.8.0",
     "@tanstack/react-table": "^8.21.3",
     "bcrypt": "^6.0.0",
     "class-variance-authority": "^0.7.1",
@@ -33,6 +34,7 @@
     "next-auth": "^5.0.0-beta.30",
     "next-themes": "^0.4.6",
     "papaparse": "^5.5.3",
+    "pg": "^8.18.0",
     "radix-ui": "^1.4.3",
     "react": "19.2.3",
     "react-day-picker": "^9.13.2",
@@ -59,8 +61,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.1.1",
     "happy-dom": "^20.8.9",
-    "pg": "^8.18.0",
-    "prisma": "^6.19.2",
+    "prisma": "^7.8.0",
     "shadcn": "^3.8.5",
     "tailwindcss": "^4",
     "tsx": "^4.21.0",
