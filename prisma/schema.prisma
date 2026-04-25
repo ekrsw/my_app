@@ -57,12 +57,21 @@ model Shift {
   @@map("shifts")
 }
 
+enum FunctionRoleKind {
+  SUPERVISOR
+  BUSINESS
+  OTHER
+
+  @@map("function_role_kind")
+}
+
 model FunctionRole {
-  id       Int     @id @default(autoincrement())
-  roleCode String  @unique @map("role_code") @db.VarChar(20)
-  roleName String  @map("role_name") @db.VarChar(50)
-  roleType String  @default("FUNCTION") @map("role_type") @db.VarChar(20)
-  isActive Boolean? @default(true) @map("is_active")
+  id       Int              @id @default(autoincrement())
+  roleCode String           @unique @map("role_code") @db.VarChar(20)
+  roleName String           @map("role_name") @db.VarChar(50)
+  roleType String           @default("FUNCTION") @map("role_type") @db.VarChar(20)
+  kind     FunctionRoleKind @default(OTHER)
+  isActive Boolean?         @default(true) @map("is_active")
 
   employeeRoles EmployeeFunctionRole[]
 
@@ -70,13 +79,14 @@ model FunctionRole {
 }
 
 model EmployeeFunctionRole {
-  id             Int       @id @default(autoincrement())
-  employeeId     String?   @map("employee_id") @db.Uuid
-  functionRoleId Int?      @map("function_role_id")
-  roleType       String    @default("FUNCTION") @map("role_type") @db.VarChar(20)
-  isPrimary      Boolean?  @default(false) @map("is_primary")
-  startDate      DateTime? @map("start_date") @db.Date
-  endDate        DateTime? @map("end_date") @db.Date
+  id             Int              @id @default(autoincrement())
+  employeeId     String?          @map("employee_id") @db.Uuid
+  functionRoleId Int?             @map("function_role_id")
+  roleType       String           @default("FUNCTION") @map("role_type") @db.VarChar(20)
+  kind           FunctionRoleKind @default(OTHER)
+  isPrimary      Boolean?         @default(false) @map("is_primary")
+  startDate      DateTime?        @map("start_date") @db.Date
+  endDate        DateTime?        @map("end_date") @db.Date
 
   employee     Employee?     @relation(fields: [employeeId], references: [id], onDelete: Cascade)
   functionRole FunctionRole? @relation(fields: [functionRoleId], references: [id])
@@ -159,16 +169,17 @@ model EmployeeExternalAccount {
 }
 
 model EmployeeFunctionRoleHistory {
-  id             Int       @id @default(autoincrement())
-  employeeId     String    @map("employee_id") @db.Uuid
-  functionRoleId Int?      @map("function_role_id")
-  roleType       String?   @map("role_type") @db.VarChar(20)
-  isPrimary      Boolean?  @map("is_primary")
-  startDate      DateTime? @map("start_date") @db.Date
-  endDate        DateTime? @map("end_date") @db.Date
-  changeType     String    @map("change_type") @db.VarChar(10)
+  id             Int               @id @default(autoincrement())
+  employeeId     String            @map("employee_id") @db.Uuid
+  functionRoleId Int?              @map("function_role_id")
+  roleType       String?           @map("role_type") @db.VarChar(20)
+  kind           FunctionRoleKind?
+  isPrimary      Boolean?          @map("is_primary")
+  startDate      DateTime?         @map("start_date") @db.Date
+  endDate        DateTime?         @map("end_date") @db.Date
+  changeType     String            @map("change_type") @db.VarChar(10)
   version        Int
-  changedAt      DateTime  @default(now()) @map("changed_at")
+  changedAt      DateTime          @default(now()) @map("changed_at")
 
   employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
 

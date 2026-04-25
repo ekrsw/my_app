@@ -18,6 +18,7 @@ import { getGroups } from "@/lib/db/groups"
 import { getFunctionRoles } from "@/lib/db/roles"
 import { getTodayJST } from "@/lib/date-utils"
 import { SHIFT_CODE_MAP, getColorClasses, type ShiftCodeInfo } from "@/lib/constants"
+import { DISTINCT_ROLE_TYPES } from "@/lib/constants/role-types"
 import { auth } from "@/auth"
 import type { DashboardOverviewFilter } from "@/types"
 import type { ShiftCodeMap } from "@/types/duties"
@@ -120,11 +121,8 @@ export default async function DutyAssignmentsPage({ searchParams }: Props) {
       getLatestShiftHistoryEntries(dailyYear, dailyMonth),
     ])
 
-    // roleTypes 決定（dashboard と同じロジック）
-    const distinctRoleTypes = (() => {
-      const types = [...new Set(roles.map((r) => r.roleType))].sort()
-      return [types[0] ?? "権限", types[1] ?? "職務"] as const
-    })()
+    // roleTypes[0] = SV (監督系)、roleTypes[1] = 業務系で固定 (lib/constants/role-types.ts)
+    const distinctRoleTypes = DISTINCT_ROLE_TYPES
 
     return (
       <>
@@ -271,7 +269,7 @@ export default async function DutyAssignmentsPage({ searchParams }: Props) {
           dailyOvernightShifts={[]}
           dailyDuties={[]}
           dailyFilterOptions={{ employees: [], groups: [], shiftCodes: [], hasUnassigned: false, supervisorRoleNames: [], businessRoleNames: [] }}
-          dailyDistinctRoleTypes={["権限", "職務"] as const}
+          dailyDistinctRoleTypes={DISTINCT_ROLE_TYPES}
           dailyShiftCodes={[]}
           dailyShiftIdsWithHistory={[]}
           dailyShiftLatestHistory={{}}

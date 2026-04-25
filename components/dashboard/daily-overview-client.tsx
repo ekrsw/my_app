@@ -298,11 +298,11 @@ export function DailyOverviewClient({ date, isToday, shifts, overnightShifts, fi
           return emp?.groups?.[0]?.group?.name ?? ""
         case "businessRole":
           return emp?.functionRoles?.find(
-            (r) => r.functionRole?.roleType === distinctRoleTypes[1]
+            (r) => r.functionRole?.kind === "BUSINESS"
           )?.functionRole?.roleName ?? ""
         case "supervisorRole":
           return emp?.functionRoles?.find(
-            (r) => r.functionRole?.roleType === distinctRoleTypes[0]
+            (r) => r.functionRole?.kind === "SUPERVISOR"
           )?.functionRole?.roleName ?? ""
         case "shiftCode":
           return shift.shiftCode ?? ""
@@ -692,10 +692,10 @@ export function DailyOverviewClient({ date, isToday, shifts, overnightShifts, fi
                   const emp = shift.employee
                   const groupName = emp?.groups?.[0]?.group?.name ?? "-"
                   const supervisorRole = emp?.functionRoles?.find(
-                    (r) => r.functionRole?.roleType === distinctRoleTypes[0]
+                    (r) => r.functionRole?.kind === "SUPERVISOR"
                   )?.functionRole?.roleName ?? "-"
                   const businessRole = emp?.functionRoles?.find(
-                    (r) => r.functionRole?.roleType === distinctRoleTypes[1]
+                    (r) => r.functionRole?.kind === "BUSINESS"
                   )?.functionRole?.roleName ?? "-"
 
                   return (

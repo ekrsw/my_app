@@ -21,6 +21,7 @@ import { ShiftBadge } from "@/components/shifts/shift-badge"
 import { ShiftForm } from "@/components/shifts/shift-form"
 import { ShiftDetailDialog } from "@/components/shifts/shift-detail-dialog"
 import type { ShiftCodeInfo } from "@/lib/constants"
+import { SUPERVISOR_LABEL, BUSINESS_LABEL } from "@/lib/constants/role-types"
 import type { LatestShiftHistory } from "@/lib/db/shifts"
 import { ColumnFilterPopover } from "@/components/common/filters/column-filter-popover"
 import { EmployeeCheckboxFilter } from "@/components/common/filters/employee-checkbox-filter"
@@ -283,12 +284,8 @@ export function ShiftDailyView({
     setBusinessPopoverOpen(false)
   }, [setParams])
 
-  // --- Distinct role types for dynamic column headers ---
-  // ASC ソートで roleTypes[0]=監督系(権限), roleTypes[1]=業務系(職務)
-  const distinctRoleTypes = useMemo(() => {
-    const types = [...new Set(roles.map((r) => r.roleType))].sort()
-    return [types[0] ?? "権限", types[1] ?? "職務"] as const
-  }, [roles])
+  // UI 表示ラベル（意味論は kind enum で判定、ここは列見出し文字列のみ）
+  const distinctRoleTypes = [SUPERVISOR_LABEL, BUSINESS_LABEL] as const
 
   // --- Filter tags ---
   const filterTags = useMemo<FilterTag[]>(() => {
