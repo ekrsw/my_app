@@ -42,6 +42,9 @@ export const shiftBulkSchema = z.object({
   note: z.string().max(255).nullable().optional(),
 })
 
+export const functionRoleKindEnum = z.enum(["SUPERVISOR", "BUSINESS", "OTHER"])
+export type FunctionRoleKind = z.infer<typeof functionRoleKindEnum>
+
 export const functionRoleSchema = z.object({
   roleCode: z
     .string()
@@ -50,6 +53,7 @@ export const functionRoleSchema = z.object({
     .regex(/^[A-Z_]+$/, "大文字英字とアンダースコアのみ使用できます"),
   roleName: z.string().min(1, "ロール名は必須です").max(50, "50文字以内で入力してください"),
   roleType: z.string().min(1, "ロールタイプは必須です").max(20, "20文字以内で入力してください"),
+  kind: functionRoleKindEnum,
   isActive: z.boolean().default(true),
 })
 

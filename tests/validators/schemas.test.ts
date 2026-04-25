@@ -203,9 +203,41 @@ describe("Zod Validation Schemas", () => {
         roleCode: "MANAGER",
         roleName: "マネージャー",
         roleType: "FUNCTION",
+        kind: "OTHER",
         isActive: true,
       })
       expect(result.success).toBe(true)
+    })
+
+    it("should accept all kind enum values", () => {
+      for (const kind of ["SUPERVISOR", "BUSINESS", "OTHER"] as const) {
+        const result = functionRoleSchema.safeParse({
+          roleCode: "MANAGER",
+          roleName: "マネージャー",
+          roleType: "FUNCTION",
+          kind,
+        })
+        expect(result.success).toBe(true)
+      }
+    })
+
+    it("should reject invalid kind", () => {
+      const result = functionRoleSchema.safeParse({
+        roleCode: "MANAGER",
+        roleName: "マネージャー",
+        roleType: "FUNCTION",
+        kind: "INVALID_KIND",
+      })
+      expect(result.success).toBe(false)
+    })
+
+    it("should reject missing kind", () => {
+      const result = functionRoleSchema.safeParse({
+        roleCode: "MANAGER",
+        roleName: "マネージャー",
+        roleType: "FUNCTION",
+      })
+      expect(result.success).toBe(false)
     })
 
     it("should reject empty roleCode", () => {
@@ -240,6 +272,7 @@ describe("Zod Validation Schemas", () => {
         roleCode: "TEAM_LEADER",
         roleName: "チームリーダー",
         roleType: "FUNCTION",
+        kind: "OTHER",
       })
       expect(result.success).toBe(true)
     })
@@ -259,6 +292,7 @@ describe("Zod Validation Schemas", () => {
           roleCode: "MANAGER",
           roleName: "マネージャー",
           roleType,
+          kind: "OTHER",
         })
         expect(result.success).toBe(true)
       }
@@ -278,6 +312,7 @@ describe("Zod Validation Schemas", () => {
         roleCode: "MANAGER",
         roleName: "マネージャー",
         roleType: "FUNCTION",
+        kind: "OTHER",
       })
       expect(result.success).toBe(true)
       if (result.success) {

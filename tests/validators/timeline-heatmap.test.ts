@@ -201,6 +201,7 @@ function makeRow(overrides: {
   employeeId: string
   presence: boolean[]
   lunchBreak: boolean[]
+  /** 指定すると SUPERVISOR kind のロール 1 件を付与する。値は表示ラベルとして使用（意味論には未使用）。*/
   svRoleType?: string
   roleStartDate?: string | null
   roleEndDate?: string | null
@@ -208,10 +209,10 @@ function makeRow(overrides: {
   const functionRoles = overrides.svRoleType
     ? [{
         id: 1, employeeId: overrides.employeeId, functionRoleId: 1,
-        roleType: overrides.svRoleType, isPrimary: true,
+        roleType: overrides.svRoleType, kind: "SUPERVISOR" as const, isPrimary: true,
         startDate: overrides.roleStartDate ? new Date(overrides.roleStartDate) : null,
         endDate: overrides.roleEndDate ? new Date(overrides.roleEndDate) : null,
-        functionRole: { id: 1, roleCode: "SV", roleName: "SV", roleType: overrides.svRoleType, isActive: true },
+        functionRole: { id: 1, roleCode: "SV", roleName: "SV", roleType: overrides.svRoleType, kind: "SUPERVISOR" as const, isActive: true },
       }]
     : []
   return {

@@ -5,12 +5,14 @@ import { useSession } from "next-auth/react"
 import { DataTable } from "@/components/data-table"
 import { roleColumns } from "./role-columns"
 import { RoleForm } from "./role-form"
+import type { FunctionRoleKind } from "@/lib/validators"
 
 type FunctionRoleWithCount = {
   id: number
   roleCode: string
   roleName: string
   roleType: string
+  kind: FunctionRoleKind
   isActive: boolean | null
   _count: { employeeRoles: number }
 }

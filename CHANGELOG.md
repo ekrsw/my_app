@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.3.2.0] - 2026-04-25
+## [0.3.3.0] - 2026-04-25
 
 ### Changed
 - Prisma を v6.19.x から v7.8.0 にアップグレード。`PrismaClient` は driver adapter (`@prisma/adapter-pg`) 経由で PostgreSQL に接続する方式に移行。`schema.prisma` の `datasource.url` は v7 で廃止されたため `prisma.config.ts` 側に集約
@@ -15,6 +15,29 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 - `tests/setup-db.ts` の `prisma db push` から v7 で廃止された `--skip-generate` フラグを削除し、テスト DB セットアップを v7 に対応
+
+## [0.3.2.0] - 2026-04-25
+
+### Fixed
+- **業務管理（日次）とダッシュボードの「業務」「監督」フィルタが候補を一切出さない不具合を解消**。原因は `lib/constants/role-types.ts` で定数化した意味論ラベル (`"監督"`/`"業務"`) と、環境ごとに異なる DB の `function_roles.role_type` 値 (`"権限"`/`"職務"` 等) が一致しないこと。ハードコード文字列一致に依存したフィルタ・集計・SV 判定が全て 0 件ヒットになっていた
+
+### Added
+- `function_roles` に `kind` enum (`SUPERVISOR`/`BUSINESS`/`OTHER`) を導入。意味論（どのロールが SV か業務か）は kind で判定するようになり、表示ラベル用の `role_type` 文字列とは分離
+- 新マイグレーション `20260424000000_add_function_role_kind`: 3テーブル（`function_roles` / `employee_function_roles` / `employee_function_role_history`）に `kind` カラムを追加。既存データは `role_type` から back-fill（`監督`/`権限`/`SV`→`SUPERVISOR`、`業務`/`職務`→`BUSINESS`、残りは `OTHER`）。トリガー `set_efr_role_type` と `record_employee_role_change` を kind も同期するよう更新。新 unique index `(employee_id, kind) WHERE kind IN ('SUPERVISOR','BUSINESS') AND end_date IS NULL` を追加
+- ロール管理フォームに「カテゴリ」必須セレクト (監督/業務/その他) を追加。ロール一覧テーブルに「カテゴリ」列を表示
+- `functionRoleSchema` に `kind` フィールドを追加（Zod enum バリデーション）
+
+### Changed
+- `lib/db/dashboard.ts` の `buildEmployeeFilterWhere` / `getDailyFilterOptions` を `role_type` 文字列比較から `kind` enum 比較に置換。`getRoleTypes()` ヘルパーを削除（不要になったため）
+- `lib/db/shifts.ts` の `getShiftsForDaily` / `getDailyFilterOptions` / `getDailySortExpression` / `buildDailyFilterConditions` の生 SQL を `fr.kind = 'SUPERVISOR'::function_role_kind` ベースに置換。`roleTypes` 引数を全廃
+- `lib/capacity-utils.ts` の `ShiftWithDetails.roles[]` の形を `{ roleType }` → `{ kind: RoleKind }` に変更。`calculateFilteredCapacity` の SV 判定を `kind === "SUPERVISOR"` ベースに（`svRoleName` 引数は後方互換のため残置、未使用）。`extractFilterOptions` の戻り値キーを kind 値に変更
+- `lib/actions/role-actions.ts` の `importRoleAssignments`: 衝突判定キーを `employeeId + roleType` から `employeeId + kind` へ変更。同一 kind のロールは 1 人 1 つ
+- `components/dashboard/{daily-overview-client,timeline-heatmap,capacity-summary}.tsx`, `components/shifts/shift-daily-view.tsx`: 列ヘッダは固定 UI 文字列「監督」/「業務」に（`SUPERVISOR_LABEL`/`BUSINESS_LABEL`）、ロール抽出は `kind` ベースに
+- `lib/constants/role-types.ts`: `DISTINCT_ROLE_TYPES` は UI ラベルタプルとして後方互換維持。新たに `SUPERVISOR_LABEL` / `BUSINESS_LABEL` を export
+
+### 移行メモ
+- 既存環境の `role_type` 値が `"監督"/"権限"/"SV"/"業務"/"職務"` 以外の場合、該当ロールは自動的に `kind='OTHER'` になる。管理画面の「ロール」からカテゴリを再設定すること
+- 旧 unique index `(employee_id, role_type) WHERE end_date IS NULL` は並存。role_type 整合性を維持する限り従来通り機能する
 
 ## [0.3.1.0] - 2026-04-22
 
