@@ -177,7 +177,8 @@
       "Bash(nodebrew use *)",
       "Bash(npm -v)",
       "mcp__context7__resolve-library-id",
-      "mcp__context7__query-docs"
+      "mcp__context7__query-docs",
+      "Bash(npx prisma *)"
     ]
   }
 }
