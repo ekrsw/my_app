@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Download } from "lucide-react"
+import { Download, Info } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import {
@@ -23,12 +23,14 @@ export function ShiftCodeImportDialog() {
   const [step, setStep] = useState<Step>("select")
   const [parsedRows, setParsedRows] = useState<ParsedShiftCodeRow[]>([])
   const [headerError, setHeaderError] = useState<string>()
+  const [lunchBreakColumnsMissing, setLunchBreakColumnsMissing] = useState(false)
   const [result, setResult] = useState<{ created: number; updated: number; errors: Array<{ rowIndex: number; error: string }> }>()
 
   function resetState() {
     setStep("select")
     setParsedRows([])
     setHeaderError(undefined)
+    setLunchBreakColumnsMissing(false)
     setResult(undefined)
   }
 
@@ -42,10 +44,12 @@ export function ShiftCodeImportDialog() {
     if (!parsed.headerValid) {
       setHeaderError(parsed.headerError)
       setParsedRows([])
+      setLunchBreakColumnsMissing(false)
       return
     }
     setHeaderError(undefined)
     setParsedRows(parsed.rows)
+    setLunchBreakColumnsMissing(parsed.lunchBreakColumnsMissing)
     setStep("preview")
   }
 
@@ -67,9 +71,11 @@ export function ShiftCodeImportDialog() {
       defaultIsHoliday: r.data.defaultIsHoliday,
       isActive: r.data.isActive,
       sortOrder: r.data.sortOrder,
+      defaultLunchBreakStart: r.data.defaultLunchBreakStart,
+      defaultLunchBreakEnd: r.data.defaultLunchBreakEnd,
     }))
 
-    const res = await importShiftCodes(rows)
+    const res = await importShiftCodes(rows, lunchBreakColumnsMissing)
     setResult(res)
     setStep("result")
 
@@ -81,19 +87,20 @@ export function ShiftCodeImportDialog() {
   }
 
   const validCount = parsedRows.filter((r) => r.valid).length
-  const errorCount = parsedRows.filter((r) => !r.valid).length
 
-  const previewHeaders = ["シフトコード", "カラー", "開始時刻", "終了時刻", "休日", "有効", "表示順"]
+  const previewHeaders = ["シフトコード", "カラー", "開始時刻", "終了時刻", "休日", "有効", "表示順", "昼休憩開始", "昼休憩終了"]
   const previewRows = parsedRows.map((r) => ({
     rowIndex: r.rowIndex,
     cells: [
       r.data.code,
       r.data.color || "",
-      r.data.defaultStartTime || "",
-      r.data.defaultEndTime || "",
+      r.data.defaultStartTime || "—",
+      r.data.defaultEndTime || "—",
       r.data.defaultIsHoliday ? "○" : "×",
       r.data.isActive ? "○" : "×",
       String(r.data.sortOrder),
+      r.data.defaultLunchBreakStart || "—",
+      r.data.defaultLunchBreakEnd || "—",
     ],
     valid: r.valid,
     error: r.error,
@@ -107,7 +114,7 @@ export function ShiftCodeImportDialog() {
           CSV
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-3xl">
         <DialogHeader>
           <DialogTitle>シフトコードCSVインポート</DialogTitle>
         </DialogHeader>
@@ -115,9 +122,10 @@ export function ShiftCodeImportDialog() {
         {step === "select" && (
           <div className="space-y-4">
             <div className="text-sm text-muted-foreground">
-              <p>CSV形式: シフトコード, カラー, 開始時刻, 終了時刻, 休日, 有効, 表示順</p>
+              <p>CSV形式: シフトコード, カラー, 開始時刻, 終了時刻, 休日, 有効, 表示順, 昼休憩開始, 昼休憩終了</p>
               <p>シフトコードが既存の場合は上書き更新、未存在の場合は新規作成されます。</p>
               <p>時刻形式: HH:mm　休日・有効: true/false/○/×</p>
+              <p>昼休憩列を含まない旧フォーマットも読み込めます（既存値は保持されます）。</p>
             </div>
             <CsvFileInput onFileLoaded={handleFileLoaded} />
             {headerError && (
@@ -128,21 +136,23 @@ export function ShiftCodeImportDialog() {
 
         {step === "preview" && (
           <div className="space-y-4 min-w-0">
+            {lunchBreakColumnsMissing && (
+              <div
+                role="status"
+                className="flex items-start gap-2 rounded-md bg-muted p-3 text-sm text-muted-foreground"
+              >
+                <Info className="h-4 w-4 shrink-0 mt-0.5" aria-hidden="true" />
+                <p>昼休憩列が見つかりません。既存シフトコードの昼休憩は変更されません。</p>
+              </div>
+            )}
             <CsvPreviewTable headers={previewHeaders} rows={previewRows} />
             <div className="flex items-center justify-between">
               <Button variant="outline" onClick={resetState}>
                 ファイルを再選択
               </Button>
-              <div className="flex items-center gap-2">
-                {errorCount > 0 && (
-                  <p className="text-sm text-muted-foreground">
-                    有効な{validCount}件のみインポートします
-                  </p>
-                )}
-                <Button onClick={handleImport} disabled={validCount === 0}>
-                  インポート実行
-                </Button>
-              </div>
+              <Button onClick={handleImport} disabled={validCount === 0}>
+                インポート実行
+              </Button>
             </div>
           </div>
         )}
