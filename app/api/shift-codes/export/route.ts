@@ -11,7 +11,7 @@ function formatTime(date: Date | null): string {
 export async function GET() {
   const shiftCodes = await getShiftCodes()
 
-  const headers = ["シフトコード", "カラー", "開始時刻", "終了時刻", "休日", "有効", "表示順"]
+  const headers = ["シフトコード", "カラー", "開始時刻", "終了時刻", "休日", "有効", "表示順", "昼休憩開始", "昼休憩終了"]
 
   const rows = shiftCodes.map((sc) => [
     sc.code,
@@ -21,6 +21,8 @@ export async function GET() {
     sc.defaultIsHoliday ? "○" : "×",
     sc.isActive ? "○" : "×",
     sc.sortOrder,
+    formatTime(sc.defaultLunchBreakStart),
+    formatTime(sc.defaultLunchBreakEnd),
   ])
 
   const csv = [headers, ...rows]
