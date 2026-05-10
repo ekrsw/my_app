@@ -115,6 +115,8 @@ type ShiftCodeImportRow = {
   defaultIsHoliday: boolean
   isActive: boolean
   sortOrder: number
+  defaultLunchBreakStart: string | null
+  defaultLunchBreakEnd: string | null
 }
 
 type ShiftCodeImportResult = {
@@ -125,7 +127,8 @@ type ShiftCodeImportResult = {
 }
 
 export async function importShiftCodes(
-  rows: ShiftCodeImportRow[]
+  rows: ShiftCodeImportRow[],
+  lunchBreakColumnsMissing: boolean = false
 ): Promise<ShiftCodeImportResult> {
   await requireAuth()
   let created = 0
@@ -140,7 +143,7 @@ export async function importShiftCodes(
             where: { code: row.code },
           })
 
-          const data = {
+          const baseData = {
             color: row.color,
             defaultStartTime: toTimeOrNull(row.defaultStartTime),
             defaultEndTime: toTimeOrNull(row.defaultEndTime),
@@ -150,14 +153,26 @@ export async function importShiftCodes(
           }
 
           if (existing) {
+            const updateData = lunchBreakColumnsMissing
+              ? baseData
+              : {
+                  ...baseData,
+                  defaultLunchBreakStart: toTimeOrNull(row.defaultLunchBreakStart),
+                  defaultLunchBreakEnd: toTimeOrNull(row.defaultLunchBreakEnd),
+                }
             await tx.shiftCode.update({
               where: { id: existing.id },
-              data: { code: row.code, ...data },
+              data: { code: row.code, ...updateData },
             })
             updated++
           } else {
             await tx.shiftCode.create({
-              data: { code: row.code, ...data },
+              data: {
+                code: row.code,
+                ...baseData,
+                defaultLunchBreakStart: toTimeOrNull(row.defaultLunchBreakStart),
+                defaultLunchBreakEnd: toTimeOrNull(row.defaultLunchBreakEnd),
+              },
             })
             created++
           }
