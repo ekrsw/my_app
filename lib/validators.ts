@@ -197,6 +197,8 @@ export const shiftCodeCsvRowSchema = z.object({
   defaultIsHoliday: z.boolean(),
   isActive: z.boolean(),
   sortOrder: z.coerce.number().int().min(0, "0以上の数値を入力してください"),
+  defaultLunchBreakStart: z.string().nullable(),
+  defaultLunchBreakEnd: z.string().nullable(),
 })
 
 export const roleCsvRowSchema = z.object({

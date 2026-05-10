@@ -9,6 +9,8 @@ const HEADER_MAP: Record<string, keyof ShiftCodeCsvRow> = {
   "休日": "defaultIsHoliday",
   "有効": "isActive",
   "表示順": "sortOrder",
+  "昼休憩開始": "defaultLunchBreakStart",
+  "昼休憩終了": "defaultLunchBreakEnd",
 }
 
 const REQUIRED_HEADERS = ["シフトコード"]
@@ -24,6 +26,7 @@ export type ShiftCodeCsvParseResult = {
   rows: ParsedShiftCodeRow[]
   headerValid: boolean
   headerError?: string
+  lunchBreakColumnsMissing: boolean
 }
 
 function parseBoolean(value: string, defaultValue: boolean): boolean {
@@ -51,7 +54,7 @@ export function parseShiftCodeCsv(csvText: string): ShiftCodeCsvParseResult {
   })
 
   if (result.data.length === 0) {
-    return { rows: [], headerValid: false, headerError: "CSVが空です" }
+    return { rows: [], headerValid: false, headerError: "CSVが空です", lunchBreakColumnsMissing: false }
   }
 
   // Validate headers
@@ -62,6 +65,7 @@ export function parseShiftCodeCsv(csvText: string): ShiftCodeCsvParseResult {
       rows: [],
       headerValid: false,
       headerError: `必須ヘッダーがありません: ${missingHeaders.join(", ")}`,
+      lunchBreakColumnsMissing: false,
     }
   }
 
@@ -72,6 +76,10 @@ export function parseShiftCodeCsv(csvText: string): ShiftCodeCsvParseResult {
       headerIndexMap[HEADER_MAP[h]] = i
     }
   })
+
+  const lunchBreakColumnsMissing =
+    headerIndexMap.defaultLunchBreakStart === undefined &&
+    headerIndexMap.defaultLunchBreakEnd === undefined
 
   const rows: ParsedShiftCodeRow[] = []
 
@@ -86,6 +94,8 @@ export function parseShiftCodeCsv(csvText: string): ShiftCodeCsvParseResult {
     const rawIsHoliday = headerIndexMap.defaultIsHoliday !== undefined ? row[headerIndexMap.defaultIsHoliday]?.trim() || "" : ""
     const rawIsActive = headerIndexMap.isActive !== undefined ? row[headerIndexMap.isActive]?.trim() || "" : ""
     const rawSortOrder = headerIndexMap.sortOrder !== undefined ? row[headerIndexMap.sortOrder]?.trim() || "" : ""
+    const rawLunchBreakStart = headerIndexMap.defaultLunchBreakStart !== undefined ? row[headerIndexMap.defaultLunchBreakStart]?.trim() || "" : ""
+    const rawLunchBreakEnd = headerIndexMap.defaultLunchBreakEnd !== undefined ? row[headerIndexMap.defaultLunchBreakEnd]?.trim() || "" : ""
 
     // Time format validation
     let timeError = ""
@@ -96,6 +106,14 @@ export function parseShiftCodeCsv(csvText: string): ShiftCodeCsvParseResult {
       if (timeError) timeError += ", "
       timeError += "終了時刻の形式が不正です（HH:mm）"
     }
+    if (rawLunchBreakStart && !validateTime(rawLunchBreakStart)) {
+      if (timeError) timeError += ", "
+      timeError += "昼休憩開始の形式が不正です（HH:mm）"
+    }
+    if (rawLunchBreakEnd && !validateTime(rawLunchBreakEnd)) {
+      if (timeError) timeError += ", "
+      timeError += "昼休憩終了の形式が不正です（HH:mm）"
+    }
 
     const data = {
       code: rawCode,
@@ -105,6 +123,8 @@ export function parseShiftCodeCsv(csvText: string): ShiftCodeCsvParseResult {
       defaultIsHoliday: parseBoolean(rawIsHoliday, false),
       isActive: parseBoolean(rawIsActive, true),
       sortOrder: rawSortOrder === "" ? 0 : Number(rawSortOrder),
+      defaultLunchBreakStart: validateTime(rawLunchBreakStart),
+      defaultLunchBreakEnd: validateTime(rawLunchBreakEnd),
     }
 
     if (timeError) {
@@ -122,5 +142,5 @@ export function parseShiftCodeCsv(csvText: string): ShiftCodeCsvParseResult {
     }
   }
 
-  return { rows, headerValid: true }
+  return { rows, headerValid: true, lunchBreakColumnsMissing }
 }

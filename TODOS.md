@@ -306,3 +306,35 @@
 **Depends on:** v0.2.19.1（備考欄リリース）のマージ
 
 **Context:** v0.2.19.1 PR で scope を備考欄のみに絞って先行リリースした際の deferred item。UI は `components/dashboard/attendance-edit-form.tsx`、サーバ側は `lib/actions/shift-actions.ts` の `updateShiftFromAttendance` を修正。チェックボックスが ON のときは既存挙動（既存履歴レコードを直接更新）、OFF のときは通常の update（trigger で新しい history レコード生成）にする。
+
+## 全 CSV インポートダイアログに上書き確認 AlertDialog 追加
+
+**What:** シフトコード/従業員/グループ/業務種別など全 CSV インポートダイアログ（5箇所程度）に、「インポート実行」クリック時の AlertDialog 確認を追加する。文言例: 「{N}件のレコードをインポートします。同名のものは既存データを上書きします。続行しますか？」
+
+**Why:** すべての CSV インポートは `findUnique → update or create` の upsert 動作で、同名キーは**サイレント上書き**される。誤ったファイルや旧フォーマットをアップロードした場合、ユーザーが気づかないまま本番データが書き換わる。シフトコード CSV インポート/エクスポートのデザインレビュー (2026-05-10) で surfaced。共通の UX 改善として一括対応すべき
+
+**Pros:** 不可逆的な上書き事故の防止 / 主要 SaaS の標準 UX 準拠 / コードレビュー側の心理的安全性向上 / 件数明示によるユーザー認知強化
+
+**Cons:** クリック数が1回増える（業務オペレーション上は許容範囲） / 5ダイアログを横断するため変更ファイル数が多い
+
+**Depends on:** なし（独立タスク）
+
+**Context:** 対象ダイアログ: `components/shift-codes/shift-code-import-dialog.tsx`, `components/employees/*-import-dialog.tsx`, `components/groups/*-import-dialog.tsx`, `components/duty-types/*-import-dialog.tsx`, `components/duty-assignments/*-import-dialog.tsx`。実装は shadcn `AlertDialog` ラッパーを共通化し各ダイアログから呼び出す形が望ましい。サマリー: `docs/plans/shift-code-default-time-lunch-break-import-export.md` の Pass 3 で記録。
+
+**Effort:** S (human: ~半日) | XS (CC+gstack: ~20min) | **Priority:** P2 | **Risk:** Low
+
+## CsvPreviewTable のカラートークン化
+
+**What:** `components/csv-import/csv-preview-table.tsx` 内の `text-green-600` / `text-red-600` / `bg-red-50` 等の直接カラー指定を、shadcn セマンティックトークン（`text-primary` / `text-destructive` / `bg-destructive/10` 等）に置換する
+
+**Why:** `docs/style-guide.md` は「セマンティックカラートークンを優先し、Tailwind カラー直接指定はシフトコード配色など特定用途に限定」と明記しているが、共通 CSV プレビューコンポーネントが規約違反。ダークモードでのコントラスト不足、a11y コンプライアンス上のリスク
+
+**Pros:** スタイルガイド遵守 / ダークモード時の視認性改善 / 将来のテーマ変更への耐性 / 他の shadcn コンポーネントとの一貫性
+
+**Cons:** 視覚的に微妙に色味が変わるため目視リグレッション確認が必要 / `green` 相当のセマンティックトークン（成功色）が現状定義されていないため `--primary` か新規 `--success` トークン追加の判断が必要
+
+**Depends on:** なし（独立タスク）。`--success` トークン追加するなら style-guide.md 側の追記も必要
+
+**Context:** シフトコード CSV インポート/エクスポートのデザインレビュー (2026-05-10) Pass 5 で surfaced。対象ファイル: `components/csv-import/csv-preview-table.tsx`。影響範囲は全 CSV プレビュー表示（5 ダイアログ程度）。
+
+**Effort:** XS (human: ~30min) | XS (CC+gstack: ~10min) | **Priority:** P3 | **Risk:** Low
