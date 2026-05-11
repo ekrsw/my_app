@@ -91,6 +91,43 @@ npm run dev
 
 [http://localhost:3000](http://localhost:3000) をブラウザで開いて確認してください。
 
+## 本番デプロイ
+
+### サーバーで `npm install` ができない環境の場合
+
+オフライン環境や外部ネットワークへ接続できないサーバーへデプロイする場合、ローカルで依存関係のインストールとビルドを済ませた成果物をコピーする手順を取ります。
+
+#### 1. ローカルでビルド
+
+```bash
+npm install
+npx prisma generate
+npm run build
+```
+
+#### 2. サーバーへコピーするファイル/ディレクトリ
+
+以下をサーバーへ転送してください:
+
+- `node_modules`
+- `.next`
+- `package.json`
+- `package-lock.json`
+- `prisma`
+
+> **Note**: `.env` はサーバー側で別途用意してください（接続文字列やシークレットがローカルと異なるため）。
+
+#### 3. サーバーで実行
+
+```bash
+npx prisma generate
+npx prisma migrate deploy
+npm run build
+npm run start
+```
+
+> **Note**: `node_modules` はOS/アーキテクチャ依存のネイティブモジュール（`bcrypt` 等）を含むため、ローカルとサーバーで OS/Node.js バージョンを揃えてください。揃わない場合はサーバー側で `npm rebuild` の実行が必要になることがあります。
+
 ## 認証
 
 ### 概要

@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.5.1] - 2026-05-11
+
+### Added
+- README に「本番デプロイ」セクションを追加。サーバーで `npm install` ができないオフライン環境向けに、ローカルでビルド成果物（`node_modules` / `.next` / `package.json` / `package-lock.json` / `prisma`）をコピーし、サーバー側で `prisma migrate deploy` → `npm run start` を実行する手順を明示
+
 ## [0.3.5.0] - 2026-05-10
 
 ### Added
