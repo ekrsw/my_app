@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.5.2] - 2026-05-17
+
+### Changed
+- 業務管理メニューを開いた際の初期ビューを月次から日次（本日）に変更。サイドバーから業務管理を選択すると、まず本日の日次表示が出る運用に統一（ビュー切替トグルから月次に切り替える操作はこれまで通り）
+
+### Fixed
+- ESLint の error 6 件 / warning 17 件をすべて解消。set-state-in-effect エラーは React 公式推奨の「derive during render」パターン（prev props 比較 + render 中の setState）に置換し、挙動は同等のまま React Compiler 適合に
+- 未使用の import / 変数を削除（不要な `getFunctionRoles()` 呼び出しを 2 箇所削除し、ダッシュボードと業務管理（日次）の DB クエリ負荷を削減）
+
 ## [0.3.5.1] - 2026-05-11
 
 ### Added
