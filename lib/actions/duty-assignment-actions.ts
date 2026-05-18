@@ -4,7 +4,6 @@ import { prisma } from "@/lib/prisma"
 import { dutyAssignmentSchema } from "@/lib/validators"
 import { revalidatePath } from "next/cache"
 import { requireAuth } from "@/lib/auth-guard"
-import { getTimeHHMM } from "@/lib/capacity-utils"
 import { validateDutyWithinShift } from "@/lib/shift-validation"
 
 type DutyAssignmentInput = {

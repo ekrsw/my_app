@@ -13,7 +13,6 @@ import {
 import { getDailyDutyAssignments, getPreviousDayOvernightDutyAssignments } from "@/lib/db/duty-assignments"
 import { getActiveDutyTypes } from "@/lib/db/duty-types"
 import { getAllEmployees } from "@/lib/db/employees"
-import { getFunctionRoles } from "@/lib/db/roles"
 import { auth } from "@/auth"
 import { getActiveShiftCodes } from "@/lib/db/shift-codes"
 import { getShiftIdsWithHistory, getLatestShiftHistoryEntries } from "@/lib/db/shifts"
@@ -63,13 +62,12 @@ export default async function DashboardPage({ searchParams }: Props) {
   const todayMonth = todayJST.getUTCMonth() + 1
   const todayDateString = format(todayJST, "yyyy-MM-dd")
 
-  const [todayShifts, todayDuties, todayChanges, filterOptions, roles, session, activeShiftCodes, shiftIdsWithHistorySet, latestHistoryEntries, dutyTypes, allEmployees, overnightShifts, overnightDuties] =
+  const [todayShifts, todayDuties, todayChanges, filterOptions, session, activeShiftCodes, shiftIdsWithHistorySet, latestHistoryEntries, dutyTypes, allEmployees, overnightShifts, overnightDuties] =
     await Promise.all([
       getDailyOverview(todayJST, filter),
       getDailyDutyAssignments(todayJST),
       getTodayShiftChangeHistory(),
       getDailyFilterOptions(todayJST),
-      getFunctionRoles(),
       auth(),
       getActiveShiftCodes(),
       getShiftIdsWithHistory(todayYear, todayMonth),

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo, useEffect } from "react"
+import { useState, useMemo } from "react"
 import { Input } from "@/components/ui/input"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Button } from "@/components/ui/button"
@@ -28,14 +28,16 @@ export function EmployeeCheckboxFilter({
 }: EmployeeCheckboxFilterProps) {
   const [localSelectedIds, setLocalSelectedIds] = useState<string[]>(selectedIds)
   const [searchText, setSearchText] = useState("")
+  const [prevPopoverOpen, setPrevPopoverOpen] = useState(popoverOpen)
 
-  // ポップオーバー開時に外部stateを同期
-  useEffect(() => {
+  // ポップオーバーが閉→開に遷移した瞬間に外部 state を同期（render 中の derive で副作用を回避）
+  if (popoverOpen !== prevPopoverOpen) {
+    setPrevPopoverOpen(popoverOpen)
     if (popoverOpen) {
       setLocalSelectedIds(selectedIds)
       setSearchText("")
     }
-  }, [popoverOpen, selectedIds])
+  }
 
   const filteredEmployees = useMemo(() => {
     if (!searchText) return employees

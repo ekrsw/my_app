@@ -75,7 +75,6 @@ type ShiftDailyViewProps = {
   isRemoteFilter: boolean
   dailyShiftCodeOptions: string[]
   hasUnassigned: boolean
-  roles: { id: number; roleName: string; roleType: string }[]
   selectedSupervisorRoleNames: string[]
   selectedBusinessRoleNames: string[]
   supervisorRoleNameOptions: string[]
@@ -105,7 +104,6 @@ export function ShiftDailyView({
   isRemoteFilter,
   dailyShiftCodeOptions,
   hasUnassigned,
-  roles,
   selectedSupervisorRoleNames,
   selectedBusinessRoleNames,
   supervisorRoleNameOptions,
@@ -285,7 +283,7 @@ export function ShiftDailyView({
   }, [setParams])
 
   // UI 表示ラベル（意味論は kind enum で判定、ここは列見出し文字列のみ）
-  const distinctRoleTypes = [SUPERVISOR_LABEL, BUSINESS_LABEL] as const
+  const distinctRoleTypes = useMemo(() => [SUPERVISOR_LABEL, BUSINESS_LABEL] as const, [])
 
   // --- Filter tags ---
   const filterTags = useMemo<FilterTag[]>(() => {
@@ -568,7 +566,7 @@ export function ShiftDailyView({
     supervisorRoleOptions, businessRoleOptions,
     groupPopoverOpen, shiftCodePopoverOpen,
     supervisorPopoverOpen, businessPopoverOpen,
-    setParams, hasUnassigned, distinctRoleTypes,
+    hasUnassigned, distinctRoleTypes,
     handleEmployeeIdsConfirm, handleEmployeeIdsClear,
     handleGroupConfirm, handleGroupClear, handleShiftCodesConfirm, handleShiftCodesClear,
     handleSupervisorRoleConfirm, handleSupervisorRoleClear,
@@ -619,6 +617,8 @@ export function ShiftDailyView({
     [sorting, handleSortChange]
   )
 
+  // TanStack Table の useReactTable は React Compiler によるメモ化を意図的にスキップする（公式設計）。
+  // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
     data,
     columns,

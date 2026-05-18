@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import {
   Dialog,
   DialogContent,
@@ -67,18 +67,21 @@ export function PositionHistoryDetailDialog({
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
-  const [editPositionId, setEditPositionId] = useState("")
-  const [editStartDate, setEditStartDate] = useState("")
-  const [editEndDate, setEditEndDate] = useState("")
+  const [editPositionId, setEditPositionId] = useState(entry.positionId?.toString() ?? "")
+  const [editStartDate, setEditStartDate] = useState(formatDateForInput(entry.startDate))
+  const [editEndDate, setEditEndDate] = useState(formatDateForInput(entry.endDate))
+  const [prevEntry, setPrevEntry] = useState(entry)
 
   const positionName = allPositions.find((p) => p.id === entry.positionId)?.positionName ?? null
 
-  useEffect(() => {
+  // entry が切り替わったら編集状態をリセット（render 中の derive で副作用を回避）
+  if (entry !== prevEntry) {
+    setPrevEntry(entry)
     setEditing(false)
     setEditPositionId(entry.positionId?.toString() ?? "")
     setEditStartDate(formatDateForInput(entry.startDate))
     setEditEndDate(formatDateForInput(entry.endDate))
-  }, [entry])
+  }
 
   function handleStartEdit() {
     setEditPositionId(entry.positionId?.toString() ?? "")

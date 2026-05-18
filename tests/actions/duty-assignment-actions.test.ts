@@ -13,7 +13,6 @@ vi.mock("@/auth", () => ({
 const {
   createDutyAssignment,
   updateDutyAssignment,
-  deleteDutyAssignment,
 } = await import("@/lib/actions/duty-assignment-actions")
 
 describe("DutyAssignment Actions — シフト整合性バリデーション", () => {

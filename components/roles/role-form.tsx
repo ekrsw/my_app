@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -59,15 +59,20 @@ export function RoleForm({ role, open: controlledOpen, onOpenChange }: RoleFormP
   const [roleType, setRoleType] = useState(role?.roleType ?? "")
   const [kind, setKind] = useState<FunctionRoleKind>(role?.kind ?? "OTHER")
   const [isActive, setIsActive] = useState(role?.isActive ?? true)
+  const [prevOpen, setPrevOpen] = useState(open)
+  const [prevRoleId, setPrevRoleId] = useState(role?.id)
   const isEdit = !!role
 
-  useEffect(() => {
+  // ダイアログが開いた瞬間または対象 role が切り替わった瞬間にフォーム値を同期
+  if (open !== prevOpen || role?.id !== prevRoleId) {
+    setPrevOpen(open)
+    setPrevRoleId(role?.id)
     if (open) {
       setRoleType(role?.roleType ?? "")
       setKind(role?.kind ?? "OTHER")
       setIsActive(role?.isActive ?? true)
     }
-  }, [open, role?.id])
+  }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()

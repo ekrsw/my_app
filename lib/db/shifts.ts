@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma"
 import { Prisma } from "@/app/generated/prisma/client"
-import type { ShiftFilterParams, ShiftDailyFilterParams, ShiftDailyRow, PaginatedResult, ShiftDailySortField, SortOrder } from "@/types"
+import type { ShiftFilterParams, ShiftDailyFilterParams, ShiftDailyRow, ShiftDailySortField, SortOrder } from "@/types"
 import type { ShiftCalendarData, ShiftCalendarPaginatedResult, ShiftDailyPaginatedResult, DailyFilterOptions } from "@/types/shifts"
 import { toDateString, getTodayJST } from "@/lib/date-utils"
 
