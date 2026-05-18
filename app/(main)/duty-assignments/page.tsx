@@ -42,7 +42,7 @@ function parseStrings(value: string | string[] | undefined): string[] {
 
 export default async function DutyAssignmentsPage({ searchParams }: Props) {
   const params = await searchParams
-  const viewMode = params.view === "daily" ? "daily" : "monthly" as const
+  const viewMode = params.view === "monthly" ? "monthly" : "daily" as const
 
   const session = await auth()
   const isAuthenticated = !!session?.user
@@ -106,7 +106,6 @@ export default async function DutyAssignmentsPage({ searchParams }: Props) {
       dailyDuties,
       overnightShifts,
       filterOptions,
-      roles,
       activeShiftCodes,
       shiftIdsWithHistorySet,
       latestHistoryEntries,
@@ -115,7 +114,6 @@ export default async function DutyAssignmentsPage({ searchParams }: Props) {
       getDailyDutyAssignments(dailyDate),
       getPreviousDayOvernightShifts(dailyDate, filter),
       getDailyFilterOptions(dailyDate),
-      getFunctionRoles(),
       getActiveShiftCodes(),
       getShiftIdsWithHistory(dailyYear, dailyMonth),
       getLatestShiftHistoryEntries(dailyYear, dailyMonth),
