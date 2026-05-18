@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import {
   Dialog,
   DialogContent,
@@ -68,16 +68,19 @@ export function GroupHistoryDetailDialog({
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
-  const [editGroupId, setEditGroupId] = useState("")
-  const [editStartDate, setEditStartDate] = useState("")
-  const [editEndDate, setEditEndDate] = useState("")
+  const [editGroupId, setEditGroupId] = useState(entry.groupId?.toString() ?? "")
+  const [editStartDate, setEditStartDate] = useState(formatDateForInput(entry.startDate))
+  const [editEndDate, setEditEndDate] = useState(formatDateForInput(entry.endDate))
+  const [prevEntry, setPrevEntry] = useState(entry)
 
-  useEffect(() => {
+  // entry が切り替わったら編集状態をリセット（render 中の derive で副作用を回避）
+  if (entry !== prevEntry) {
+    setPrevEntry(entry)
     setEditing(false)
     setEditGroupId(entry.groupId?.toString() ?? "")
     setEditStartDate(formatDateForInput(entry.startDate))
     setEditEndDate(formatDateForInput(entry.endDate))
-  }, [entry])
+  }
 
   function handleStartEdit() {
     setEditGroupId(entry.groupId?.toString() ?? "")

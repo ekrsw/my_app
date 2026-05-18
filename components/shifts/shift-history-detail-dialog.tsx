@@ -57,15 +57,17 @@ export function ShiftHistoryDetailDialog({
   const [saving, setSaving] = useState(false)
   const [restoring, setRestoring] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [prevEntry, setPrevEntry] = useState(entry)
 
   const isDeleted = currentEntry.newShiftCode === null
 
-  // エントリが変更されたらリセット
-  useEffect(() => {
+  // entry が切り替わったらリセット（render 中の derive で副作用を回避）
+  if (entry !== prevEntry) {
+    setPrevEntry(entry)
     setCurrentEntry(entry)
     setNoteValue(entry.note ?? "")
     setEditingNote(false)
-  }, [entry])
+  }
 
   // ダイアログが開いたらバージョン一覧を取得
   useEffect(() => {

@@ -75,6 +75,8 @@ export function DataTable<TData, TValue>({
     [serverSort, sorting]
   )
 
+  // TanStack Table の useReactTable は React Compiler によるメモ化を意図的にスキップする（公式設計）。
+  // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
     data,
     columns,

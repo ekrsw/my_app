@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import {
   Dialog,
   DialogContent,
@@ -61,20 +61,23 @@ export function RoleHistoryDetailDialog({
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
-  const [editRoleType, setEditRoleType] = useState("")
-  const [editIsPrimary, setEditIsPrimary] = useState(false)
-  const [editStartDate, setEditStartDate] = useState("")
-  const [editEndDate, setEditEndDate] = useState("")
+  const [editRoleType, setEditRoleType] = useState(entry.roleType ?? "")
+  const [editIsPrimary, setEditIsPrimary] = useState(entry.isPrimary ?? false)
+  const [editStartDate, setEditStartDate] = useState(formatDateForInput(entry.startDate))
+  const [editEndDate, setEditEndDate] = useState(formatDateForInput(entry.endDate))
+  const [prevEntry, setPrevEntry] = useState(entry)
 
   const roleName = allRoles.find((r) => r.id === entry.functionRoleId)?.roleName ?? null
 
-  useEffect(() => {
+  // entry が切り替わったら編集状態をリセット（render 中の derive で副作用を回避）
+  if (entry !== prevEntry) {
+    setPrevEntry(entry)
     setEditing(false)
     setEditRoleType(entry.roleType ?? "")
     setEditIsPrimary(entry.isPrimary ?? false)
     setEditStartDate(formatDateForInput(entry.startDate))
     setEditEndDate(formatDateForInput(entry.endDate))
-  }, [entry])
+  }
 
   function handleStartEdit() {
     setEditRoleType(entry.roleType ?? "")

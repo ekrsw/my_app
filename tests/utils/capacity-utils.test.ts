@@ -801,8 +801,6 @@ describe("extractFilterOptions", () => {
 })
 
 describe("calculateFilteredCapacity - 昼休憩の整合性", () => {
-  const groupA = { id: 1, name: "グループA" }
-
   const makeShiftWithLunch = (
     employeeId: string, start: string, end: string,
     lunchStart: string | null, lunchEnd: string | null,

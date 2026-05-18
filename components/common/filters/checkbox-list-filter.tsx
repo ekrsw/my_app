@@ -1,6 +1,6 @@
 "use client"
 
-import { ReactNode, useState, useMemo, useEffect } from "react"
+import { ReactNode, useState, useMemo } from "react"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -42,15 +42,17 @@ export function CheckboxListFilter({
   const [localValues, setLocalValues] = useState<string[]>(selectedValues)
   const [localSpecialChecked, setLocalSpecialChecked] = useState(specialOption?.checked ?? false)
   const [searchText, setSearchText] = useState("")
+  const [prevPopoverOpen, setPrevPopoverOpen] = useState(popoverOpen)
 
-  // ポップオーバー開時に外部stateを同期
-  useEffect(() => {
+  // ポップオーバーが閉→開に遷移した瞬間に外部 state を同期（render 中の derive で副作用を回避）
+  if (popoverOpen !== prevPopoverOpen) {
+    setPrevPopoverOpen(popoverOpen)
     if (popoverOpen) {
       setLocalValues(selectedValues)
       setLocalSpecialChecked(specialOption?.checked ?? false)
       setSearchText("")
     }
-  }, [popoverOpen, selectedValues, specialOption?.checked])
+  }
 
   const filteredOptions = useMemo(() => {
     if (!searchText) return options

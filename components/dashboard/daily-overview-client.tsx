@@ -319,7 +319,7 @@ export function DailyOverviewClient({ date, isToday, shifts, overnightShifts, fi
       const cmp = va.localeCompare(vb, "ja")
       return sort.dir === "asc" ? cmp : -cmp
     })
-  }, [shifts, sort, distinctRoleTypes])
+  }, [shifts, sort])
 
   // --- Night shift filter (名前検索とは別に適用) ---
   const nightShiftFiltered = useMemo(() => {

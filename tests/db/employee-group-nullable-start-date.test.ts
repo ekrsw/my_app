@@ -103,13 +103,13 @@ describe("Employee Group - nullable startDate (DB queries)", () => {
       const group = await prisma.group.create({ data: { name: "開発部" } })
 
       const emp1 = await prisma.employee.create({ data: { name: "田中太郎" } })
-      const emp2 = await prisma.employee.create({ data: { name: "佐藤花子" } })
+      await prisma.employee.create({ data: { name: "佐藤花子" } })
 
       // startDate=null で所属
       await prisma.employeeGroup.create({
         data: { employeeId: emp1.id, groupId: group.id, startDate: null },
       })
-      // emp2 はグループ未所属
+      // 佐藤花子 はグループ未所属
 
       const result = await getEmployees({ noGroup: true })
 

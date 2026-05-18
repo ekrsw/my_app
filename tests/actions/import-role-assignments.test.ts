@@ -165,7 +165,7 @@ describe("importRoleAssignments", () => {
     it("既存アクティブ割当と同じroleTypeはエラー", async () => {
       const emp = await createEmployee("山田太郎")
       const role1 = await createRole("LEADER")
-      const role2 = await createRole("SUB_LEADER")
+      await createRole("SUB_LEADER")
 
       // 既存のアクティブ割当を作成
       await prisma.employeeFunctionRole.create({

@@ -385,7 +385,6 @@ export function ShiftPageClient({
         isRemoteFilter={dailyIsRemote}
         dailyShiftCodeOptions={dailyShiftCodeOptions}
         hasUnassigned={dailyHasUnassigned}
-        roles={roles}
         selectedSupervisorRoleNames={dailySupervisorRoleNames}
         selectedBusinessRoleNames={dailyBusinessRoleNames}
         supervisorRoleNameOptions={dailySupervisorRoleOptions}
