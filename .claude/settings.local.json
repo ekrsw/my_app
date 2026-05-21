@@ -178,7 +178,12 @@
       "Bash(npm -v)",
       "mcp__context7__resolve-library-id",
       "mcp__context7__query-docs",
-      "Bash(npx prisma *)"
+      "Bash(npx prisma *)",
+      "mcp__playwright__browser_console_messages",
+      "Bash(kill %1)",
+      "Bash(pkill -f \"next dev\")",
+      "Bash(~/.claude/skills/gstack/bin/gstack-learnings-log *)",
+      "Bash('~/.claude/skills/gstack/bin/gstack-review-log' '{\"skill\":\"plan-design-review\",\"timestamp\":\"__TRACKED_VAR__\",\"status\":\"clean\",\"initial_score\":3,\"overall_score\":9,\"unresolved\":0,\"decisions_made\":7,\"commit\":\"__TRACKED_VAR__\"}')"
     ]
   }
 }
