@@ -338,3 +338,35 @@
 **Context:** シフトコード CSV インポート/エクスポートのデザインレビュー (2026-05-10) Pass 5 で surfaced。対象ファイル: `components/csv-import/csv-preview-table.tsx`。影響範囲は全 CSV プレビュー表示（5 ダイアログ程度）。
 
 **Effort:** XS (human: ~30min) | XS (CC+gstack: ~10min) | **Priority:** P3 | **Risk:** Low
+
+## 業務管理（月次）に役職（Position）フィルター UI を追加
+
+**What:** 業務管理（月次）画面のフィルター UI に「役職」マルチセレクトを追加する。現状はグループ・ロールのみ実装済み。`EmployeePosition` テーブルは既に `startDate`/`endDate` を持ち、`employee_positions_no_overlap` exclude 制約も既存のため、データモデル側は対応不要。UI と server-side クエリ（`lib/db/duty-assignments.ts` の `getDutyAssignmentsForCalendar()`）に `positionIds` / `positionUnassigned` を追加する。
+
+**Why:** 業務管理（月次）所属フィルター仕様書（`docs/plans/duty-assignment-monthly-filter-spec.md`）で「役職フィルターも同じ規約（期間オーバーラップ・OR・月末ソート）で実装する」方針を確定したが、UI 追加は同設計書のスコープ外とし別タスクに切り出した経緯あり。設計書に書かれているだけだと「次に業務管理を触る人」が気付かないリスクがあり、TODO として残す必要がある。
+
+**Pros:** 役職別の業務分析が可能になる（例: 係長以上だけで月次業務状況を確認）。グループ・ロールと同じ UX 規約のため、新規ユーザー教育コストゼロ。既存スキーマ流用のため DB マイグレーション不要
+
+**Cons:** フィルター UI の幅が増える（タブレットで折り返しが発生する可能性）。月次クエリの WHERE 句が長くなり可読性低下
+
+**Depends on:** `docs/plans/duty-assignment-monthly-filter-spec.md` の実装完了（期間オーバーラップ判定・Badge 表示・i アイコン Popover などの基盤）
+
+**Context:** 設計規約は `docs/plans/duty-assignment-monthly-filter-spec.md` の「役職 (Position) フィルター方針」セクション参照。UI コンポーネント: `components/shifts/group-multi-select.tsx` と同パターンで `position-multi-select.tsx` を新規作成。サーバー側: `lib/db/duty-assignments.ts` の `getDutyAssignmentsForCalendar()` に `positionIds` / `positionUnassigned` を追加し、グループ・ロールと同じ期間オーバーラップ判定（`startDate <= monthEnd AND (endDate IS NULL OR endDate >= monthStart)`）を適用。フィルター UI の横に i アイコン + Popover も同様に配置（「この月に 1 日でも所属していた人を表示します」）
+
+**Effort:** S (human: ~3h) | S (CC+gstack: ~30min) | **Priority:** P3 | **Risk:** Low
+
+## 業務管理 CSV エクスポートのフィルター・グループ名対応
+
+**What:** `app/api/duty-assignments/export/route.ts` を改修し、(1) 月次ビューの所属フィルター（groupIds, roleIds, dutyTypeIds 等）をクエリパラメータとして受け取り反映、(2) グループ名列を CSV に追加（複数所属は「 / 」区切り）、(3) ルート冒頭に `auth()` ガードを追加。`getDutyAssignmentsForCalendar()` 経由に統一するか、同等のクエリを再実装するかは実装時判断。
+
+**Why:** 業務管理（月次）所属フィルター仕様書（`docs/plans/duty-assignment-monthly-filter-spec.md`）の eng review (2026-05-21) で現状 CSV エクスポートが (a) 独自 Prisma クエリ、(b) グループ名列なし、(c) `dutyTypeIds` 以外のフィルター無反映、(d) `auth()` ガード未設定であることが判明。設計書が想定していた「画面と CSV の一貫性」が成立していないため、別タスクに切り出した。ユーザーが「画面と CSV が不一致」と今後気付くリスクがあり、メインプラン完了後に速やかに着手する必要がある。
+
+**Pros:** 画面のフィルター結果と CSV が一致し、月次の経理・人事レポート出力で混乱が消える。グループ名列追加により業務責任の所在が CSV からも追える。auth() ガード追加でセキュリティ regression を解消
+
+**Cons:** route.ts の改修ボリュームが想定より大きい。`getDutyAssignmentsForCalendar()` 経由にする場合、ページネーション挙動を CSV にどう適用するか別途判断要（CSV は全件ダンプ前提か、ページ単位エクスポートか）
+
+**Depends on:** `docs/plans/duty-assignment-monthly-filter-spec.md` の実装完了（`groupNames` 型変更・期間オーバーラップヘルパー関数）
+
+**Context:** 設計規約は `docs/plans/duty-assignment-monthly-filter-spec.md` 参照。対象ファイル: `app/api/duty-assignments/export/route.ts`。現状クエリ: `prisma.dutyAssignment.findMany({ where: { dutyDate: {gte/lte}, dutyTypeId: { in } } })` 行ベース出力。CSV ヘッダー現状: 日付/従業員名/業務種別/開始/終了/タイトル/メモ/キャパシティ。追加候補: 所属グループ列・ロール列。仕様策定時に「行ベース vs 社員ベース」も再判断必要
+
+**Effort:** M (human: ~6h) | S (CC+gstack: ~1h) | **Priority:** P3 | **Risk:** Med（既存 CSV を使うユーザーがいる場合、列増加で運用影響あり）
