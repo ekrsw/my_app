@@ -3,14 +3,13 @@ import { PageContainer } from "@/components/layout/page-container"
 import { DailyOverviewClient } from "@/components/dashboard/daily-overview-client"
 import { TodayDuties } from "@/components/dashboard/today-duties"
 import { TodayAttendance } from "@/components/dashboard/today-attendance"
-import { CapacitySummary } from "@/components/dashboard/capacity-summary"
 import {
   getDailyOverview,
   getDailyFilterOptions,
   getTodayShiftChangeHistory,
   getPreviousDayOvernightShifts,
 } from "@/lib/db/dashboard"
-import { getDailyDutyAssignments, getPreviousDayOvernightDutyAssignments } from "@/lib/db/duty-assignments"
+import { getDailyDutyAssignments } from "@/lib/db/duty-assignments"
 import { getActiveDutyTypes } from "@/lib/db/duty-types"
 import { getAllEmployees } from "@/lib/db/employees"
 import { auth } from "@/auth"
@@ -62,7 +61,7 @@ export default async function DashboardPage({ searchParams }: Props) {
   const todayMonth = todayJST.getUTCMonth() + 1
   const todayDateString = format(todayJST, "yyyy-MM-dd")
 
-  const [todayShifts, todayDuties, todayChanges, filterOptions, session, activeShiftCodes, shiftIdsWithHistorySet, latestHistoryEntries, dutyTypes, allEmployees, overnightShifts, overnightDuties] =
+  const [todayShifts, todayDuties, todayChanges, filterOptions, session, activeShiftCodes, shiftIdsWithHistorySet, latestHistoryEntries, dutyTypes, allEmployees, overnightShifts] =
     await Promise.all([
       getDailyOverview(todayJST, filter),
       getDailyDutyAssignments(todayJST),
@@ -75,7 +74,6 @@ export default async function DashboardPage({ searchParams }: Props) {
       getActiveDutyTypes(),
       getAllEmployees(),
       getPreviousDayOvernightShifts(todayJST, filter),
-      getPreviousDayOvernightDutyAssignments(todayJST),
     ])
 
   // roleTypes[0] = SV (監督系)、roleTypes[1] = 業務系で固定 (lib/constants/role-types.ts)
@@ -90,43 +88,6 @@ export default async function DashboardPage({ searchParams }: Props) {
       <PageContainer>
         <div className="grid gap-6 lg:grid-cols-[2fr_3fr]">
           <div className="flex flex-col gap-6">
-            <CapacitySummary
-              shifts={[
-                ...todayShifts.map((s) => ({
-                  employeeId: s.employeeId,
-                  startTime: s.startTime,
-                  endTime: s.endTime,
-                  lunchBreakStart: s.lunchBreakStart,
-                  lunchBreakEnd: s.lunchBreakEnd,
-                  groups: s.employee?.groups.map((eg) => ({ id: eg.group.id, name: eg.group.name })) ?? [],
-                  roles: s.employee?.functionRoles.filter((efr) => efr.functionRole).map((efr) => ({ kind: efr.functionRole!.kind, roleName: efr.functionRole!.roleName, startDate: efr.startDate, endDate: efr.endDate })) ?? [],
-                })),
-                ...overnightShifts.map((s) => ({
-                  employeeId: s.employeeId,
-                  startTime: s.startTime,
-                  endTime: s.endTime,
-                  lunchBreakStart: s.lunchBreakStart,
-                  lunchBreakEnd: s.lunchBreakEnd,
-                  groups: s.employee?.groups.map((eg) => ({ id: eg.group.id, name: eg.group.name })) ?? [],
-                  roles: s.employee?.functionRoles.filter((efr) => efr.functionRole).map((efr) => ({ kind: efr.functionRole!.kind, roleName: efr.functionRole!.roleName, startDate: efr.startDate, endDate: efr.endDate })) ?? [],
-                  isYesterdayOvernight: true,
-                })),
-              ]}
-              duties={[
-                ...todayDuties.map((d) => ({
-                  employeeId: d.employeeId,
-                  startTime: d.startTime,
-                  endTime: d.endTime,
-                  reducesCapacity: d.reducesCapacity,
-                })),
-                ...overnightDuties.map((d) => ({
-                  employeeId: d.employeeId,
-                  startTime: d.startTime,
-                  endTime: d.endTime,
-                  reducesCapacity: d.reducesCapacity,
-                })),
-              ]}
-            />
             <TodayDuties
               duties={todayDuties}
               employees={allEmployees.map((e) => ({ id: e.id, name: e.name }))}
