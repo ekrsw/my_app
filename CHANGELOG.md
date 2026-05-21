@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.6.0] - 2026-05-21
+
+### Fixed
+- 業務管理（月次）の所属グループ／機能ロールフィルターが「今日」基準で動いており、過去月や未来月を見たときに当時の所属ではなく現在の所属で絞り込まれていた問題を修正。選択月に 1 日でも所属していた人を表示する「期間オーバーラップ」判定に変更（例: 2026年2月分を見ると 2/1〜2/28 のいずれかの日に所属していた人を表示）
+
+### Added
+- 月次カレンダーの行ヘッダーに、選択月内に有効だった所属グループを Badge チップとして全件併記表示。月中異動者は異動前後どちらのグループも視認できる
+- 月中に退職した従業員に「退職」Badge を併記し、現在在籍者と視覚的に区別。`employees.terminationDate` を source of truth として、所属期間の `end_date` が未更新でも正しく退職表示される
+- グループ／ロールフィルター UI 横に i アイコン Popover を配置し、「この月に 1 日でも所属していた人を表示します」「並び順は月末時点の所属グループ順、月中退職者は末尾」とユーザー向けに動作を明示
+- `employee_groups` / `employee_function_roles` テーブルに `(employee_id, start_date, end_date)` 複合インデックスを追加し、期間オーバーラップ判定とソート JOIN の性能を改善
+
+### Changed
+- 月次ビューの並び順は「選択月月末時点」の所属グループ ID 順を採用し、退職者は末尾に集まる挙動に統一
+- DB クエリの期間判定を 4 つのヘルパー関数（`monthOverlapGroupWhere` / `monthOverlapRoleWhere` / `monthOverlapGroupSql` / `monthEndSnapshotGroupSql`）に DRY 化。Raw SQL alias 引数は `GroupSqlAlias` / `RoleSqlAlias` の literal union 型で縛り、`Prisma.raw()` 経由の SQL インジェクションリスクを型レベルで排除
+- `DutyCalendarData` の `groupName: string | null` を `groupNames: string[]` に拡張、`isTerminated` / `terminationDate` フィールドを追加
+
 ## [0.3.5.3] - 2026-05-21
 
 ### Removed

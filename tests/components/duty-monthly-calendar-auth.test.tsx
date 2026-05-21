@@ -101,7 +101,9 @@ const BASE_PROPS = {
     {
       employeeId: "emp-1",
       employeeName: "テスト太郎",
-      groupName: null,
+      groupNames: [],
+      isTerminated: false,
+      terminationDate: null,
       duties: {},
     },
   ],
@@ -166,6 +168,129 @@ describe("月次カレンダー セルクリック認証ガード", () => {
 
     // フォームダイアログが表示されること
     expect(screen.getByTestId("duty-form-dialog")).toBeInTheDocument()
+  })
+})
+
+describe("月次カレンダー 行ヘッダー Badge 表示", () => {
+  function withCalendarData(data: typeof BASE_PROPS.calendarData) {
+    return { ...BASE_PROPS, calendarData: data, calendarTotal: data.length }
+  }
+
+  it("groupNames が空のとき『未割当』テキストが表示される", () => {
+    render(
+      <DutyAssignmentPageClient
+        {...withCalendarData([
+          {
+            employeeId: "emp-1",
+            employeeName: "未所属太郎",
+            groupNames: [],
+            isTerminated: false,
+            terminationDate: null,
+            duties: {},
+          },
+        ])}
+        isAuthenticated={true}
+      />
+    )
+    const node = screen.getByLabelText("所属グループなし")
+    expect(node).toBeInTheDocument()
+    expect(node).toHaveTextContent("未割当")
+  })
+
+  it("groupNames 1 件のとき Badge が 1 つ表示される", () => {
+    render(
+      <DutyAssignmentPageClient
+        {...withCalendarData([
+          {
+            employeeId: "emp-1",
+            employeeName: "単一所属",
+            groupNames: ["人事企画"],
+            isTerminated: false,
+            terminationDate: null,
+            duties: {},
+          },
+        ])}
+        isAuthenticated={true}
+      />
+    )
+    expect(screen.getByText("人事企画")).toBeInTheDocument()
+  })
+
+  it("groupNames 複数のとき全件 Badge が表示される", () => {
+    render(
+      <DutyAssignmentPageClient
+        {...withCalendarData([
+          {
+            employeeId: "emp-1",
+            employeeName: "兼務者",
+            groupNames: ["A班", "B班", "C班"],
+            isTerminated: false,
+            terminationDate: null,
+            duties: {},
+          },
+        ])}
+        isAuthenticated={true}
+      />
+    )
+    expect(screen.getByText("A班")).toBeInTheDocument()
+    expect(screen.getByText("B班")).toBeInTheDocument()
+    expect(screen.getByText("C班")).toBeInTheDocument()
+  })
+
+  it("isTerminated=true で『退職』Badge が表示され、title 属性に退職日が含まれる", () => {
+    render(
+      <DutyAssignmentPageClient
+        {...withCalendarData([
+          {
+            employeeId: "emp-1",
+            employeeName: "退職者",
+            groupNames: [],
+            isTerminated: true,
+            terminationDate: "2026-04-15",
+            duties: {},
+          },
+        ])}
+        isAuthenticated={true}
+      />
+    )
+    const badge = screen.getByLabelText("退職")
+    expect(badge).toBeInTheDocument()
+    expect(badge).toHaveAttribute("title", "2026-04-15 退職")
+  })
+
+  it("isTerminated=false で退職 Badge は表示されない", () => {
+    render(
+      <DutyAssignmentPageClient
+        {...withCalendarData([
+          {
+            employeeId: "emp-1",
+            employeeName: "在籍者",
+            groupNames: [],
+            isTerminated: false,
+            terminationDate: null,
+            duties: {},
+          },
+        ])}
+        isAuthenticated={true}
+      />
+    )
+    expect(screen.queryByLabelText("退職")).not.toBeInTheDocument()
+  })
+})
+
+describe("月次カレンダー フィルター仕様説明 Popover", () => {
+  it("グループフィルター仕様の i アイコンボタンが表示される", () => {
+    render(<DutyAssignmentPageClient {...BASE_PROPS} isAuthenticated={true} />)
+    expect(
+      screen.getByLabelText("グループフィルター仕様の説明")
+    ).toBeInTheDocument()
+  })
+
+  it("ロールフィルター仕様の i アイコンボタンが表示される", () => {
+    render(<DutyAssignmentPageClient {...BASE_PROPS} isAuthenticated={true} />)
+    expect(
+      screen.getByLabelText("ロールフィルター仕様の説明")
+    ).toBeInTheDocument()
   })
 })
 

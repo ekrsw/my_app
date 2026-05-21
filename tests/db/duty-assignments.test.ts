@@ -151,6 +151,151 @@ describe("getDutyAssignmentsForCalendar", () => {
   })
 })
 
+// 期間オーバーラップ判定 / 月末スナップショットソート / Badge 表示用フィールド
+// 設計書: docs/plans/duty-assignment-monthly-filter-spec.md
+describe("getDutyAssignmentsForCalendar - 月次フィルター", () => {
+  beforeEach(async () => {
+    await prisma.$executeRawUnsafe(
+      `TRUNCATE TABLE duty_assignments, duty_types, employee_groups, employee_function_roles CASCADE`
+    )
+    await cleanupDatabase()
+  })
+
+  it("月初に退職した従業員はその月に表示される", async () => {
+    await prisma.employee.create({
+      data: { name: "月初退職", terminationDate: utcDate("2025-06-01") },
+    })
+    const result = await getDutyAssignmentsForCalendar({ year: 2025, month: 6 })
+    expect(result.data).toHaveLength(1)
+    expect(result.data[0].isTerminated).toBe(true)
+    expect(result.data[0].terminationDate).toBe("2025-06-01")
+  })
+
+  it("月末に退職した従業員はその月に表示される", async () => {
+    await prisma.employee.create({
+      data: { name: "月末退職", terminationDate: utcDate("2025-06-30") },
+    })
+    const result = await getDutyAssignmentsForCalendar({ year: 2025, month: 6 })
+    expect(result.data).toHaveLength(1)
+    expect(result.data[0].isTerminated).toBe(true)
+  })
+
+  it("翌月に退職する従業員もその月に表示される（在籍中扱い）", async () => {
+    await prisma.employee.create({
+      data: { name: "翌月退職予定", terminationDate: utcDate("2025-07-15") },
+    })
+    const result = await getDutyAssignmentsForCalendar({ year: 2025, month: 6 })
+    expect(result.data).toHaveLength(1)
+    expect(result.data[0].isTerminated).toBe(false)
+    expect(result.data[0].terminationDate).toBe("2025-07-15")
+  })
+
+  it("前月退職済みはその月には表示されない", async () => {
+    await prisma.employee.create({
+      data: { name: "前月退職", terminationDate: utcDate("2025-05-30") },
+    })
+    const result = await getDutyAssignmentsForCalendar({ year: 2025, month: 6 })
+    expect(result.data).toHaveLength(0)
+  })
+
+  it("月中異動 A→B: A・B どちらのグループフィルターでも表示される", async () => {
+    const emp = await prisma.employee.create({ data: { name: "異動者" } })
+    const groupA = await prisma.group.create({ data: { name: "A班" } })
+    const groupB = await prisma.group.create({ data: { name: "B班" } })
+    await prisma.employeeGroup.create({
+      data: { employeeId: emp.id, groupId: groupA.id, startDate: null, endDate: utcDate("2025-06-15") },
+    })
+    await prisma.employeeGroup.create({
+      data: { employeeId: emp.id, groupId: groupB.id, startDate: utcDate("2025-06-16"), endDate: null },
+    })
+
+    const byA = await getDutyAssignmentsForCalendar({ year: 2025, month: 6, groupIds: [groupA.id] })
+    expect(byA.data).toHaveLength(1)
+    const byB = await getDutyAssignmentsForCalendar({ year: 2025, month: 6, groupIds: [groupB.id] })
+    expect(byB.data).toHaveLength(1)
+  })
+
+  it("月中異動者の groupNames は A と B 両方を含む（groupId 昇順）", async () => {
+    const emp = await prisma.employee.create({ data: { name: "異動者" } })
+    const groupA = await prisma.group.create({ data: { name: "A班" } })
+    const groupB = await prisma.group.create({ data: { name: "B班" } })
+    await prisma.employeeGroup.create({
+      data: { employeeId: emp.id, groupId: groupA.id, startDate: null, endDate: utcDate("2025-06-15") },
+    })
+    await prisma.employeeGroup.create({
+      data: { employeeId: emp.id, groupId: groupB.id, startDate: utcDate("2025-06-16"), endDate: null },
+    })
+
+    const result = await getDutyAssignmentsForCalendar({ year: 2025, month: 6 })
+    expect(result.data).toHaveLength(1)
+    expect(result.data[0].groupNames).toEqual(["A班", "B班"])
+  })
+
+  it("複数グループ同時所属者はいずれかのフィルターで表示される", async () => {
+    const emp = await prisma.employee.create({ data: { name: "兼務者" } })
+    const groupX = await prisma.group.create({ data: { name: "X班" } })
+    const groupY = await prisma.group.create({ data: { name: "Y班" } })
+    await prisma.employeeGroup.create({
+      data: { employeeId: emp.id, groupId: groupX.id, startDate: null, endDate: null },
+    })
+    await prisma.employeeGroup.create({
+      data: { employeeId: emp.id, groupId: groupY.id, startDate: null, endDate: null },
+    })
+
+    const byX = await getDutyAssignmentsForCalendar({ year: 2025, month: 6, groupIds: [groupX.id] })
+    expect(byX.data).toHaveLength(1)
+    const byBoth = await getDutyAssignmentsForCalendar({
+      year: 2025, month: 6, groupIds: [groupX.id, groupY.id],
+    })
+    expect(byBoth.data).toHaveLength(1)
+  })
+
+  it("未割当フィルターは月内有効所属が一つもない人だけを返す", async () => {
+    const empAssigned = await prisma.employee.create({ data: { name: "所属あり" } })
+    const empUnassigned = await prisma.employee.create({ data: { name: "未割当" } })
+    const group = await prisma.group.create({ data: { name: "G班" } })
+    await prisma.employeeGroup.create({
+      data: { employeeId: empAssigned.id, groupId: group.id, startDate: null, endDate: null },
+    })
+
+    const result = await getDutyAssignmentsForCalendar({ year: 2025, month: 6, unassigned: true })
+    expect(result.data).toHaveLength(1)
+    expect(result.data[0].employeeId).toBe(empUnassigned.id)
+  })
+
+  it("月末非所属者（月中退職者）はソート末尾に並ぶ", async () => {
+    const empA = await prisma.employee.create({ data: { name: "在籍中A" } })
+    const empTerm = await prisma.employee.create({
+      data: { name: "月中退職", terminationDate: utcDate("2025-06-15") },
+    })
+    const empB = await prisma.employee.create({ data: { name: "在籍中B" } })
+    const groupSmall = await prisma.group.create({ data: { name: "小ID" } })
+    const groupLarge = await prisma.group.create({ data: { name: "大ID" } })
+    await prisma.employeeGroup.create({
+      data: { employeeId: empA.id, groupId: groupSmall.id, startDate: null, endDate: null },
+    })
+    await prisma.employeeGroup.create({
+      data: { employeeId: empB.id, groupId: groupLarge.id, startDate: null, endDate: null },
+    })
+    await prisma.employeeGroup.create({
+      data: {
+        employeeId: empTerm.id,
+        groupId: groupSmall.id,
+        startDate: null,
+        endDate: utcDate("2025-06-15"),
+      },
+    })
+
+    const result = await getDutyAssignmentsForCalendar({ year: 2025, month: 6 })
+    // 月末時点グループID順: empA (小) → empB (大) → empTerm (月末非所属で末尾)
+    expect(result.data.map((d) => d.employeeName)).toEqual([
+      "在籍中A",
+      "在籍中B",
+      "月中退職",
+    ])
+  })
+})
+
 describe("getDailyDutyAssignments", () => {
   beforeEach(async () => {
     await prisma.$executeRawUnsafe(

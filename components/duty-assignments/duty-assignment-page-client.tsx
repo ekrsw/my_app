@@ -7,7 +7,7 @@ import { Calendar } from "@/components/ui/calendar"
 import { Input } from "@/components/ui/input"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { CalendarIcon, ChevronLeft, ChevronRight, Plus, Search } from "lucide-react"
+import { CalendarIcon, ChevronLeft, ChevronRight, Info, Plus, Search } from "lucide-react"
 import { DutyViewModeSelect } from "@/components/duty-assignments/duty-view-mode-select"
 import { DutyAssignmentForm } from "@/components/duty-assignments/duty-assignment-form"
 import { DutyMonthlyCalendar } from "@/components/duty-assignments/duty-monthly-calendar"
@@ -594,28 +594,70 @@ export function DutyAssignmentPageClient({
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
-        <GroupMultiSelect
-          groups={groups}
-          selectedIds={monthlyGroupIds}
-          unassigned={monthlyUnassigned}
-          onChange={(ids, unassigned) => {
-            setParams({
-              monthlyGroupIds: ids.length > 0 ? ids.join(",") : null,
-              monthlyUnassigned: unassigned ? "true" : null,
-            })
-          }}
-        />
-        <RoleMultiSelect
-          roles={roles}
-          selectedIds={monthlyRoleIds}
-          unassigned={monthlyRoleUnassigned}
-          onChange={(ids, roleUnassigned) => {
-            setParams({
-              monthlyRoleIds: ids.length > 0 ? ids.join(",") : null,
-              monthlyRoleUnassigned: roleUnassigned ? "true" : null,
-            })
-          }}
-        />
+        <div className="flex items-center gap-1">
+          <GroupMultiSelect
+            groups={groups}
+            selectedIds={monthlyGroupIds}
+            unassigned={monthlyUnassigned}
+            onChange={(ids, unassigned) => {
+              setParams({
+                monthlyGroupIds: ids.length > 0 ? ids.join(",") : null,
+                monthlyUnassigned: unassigned ? "true" : null,
+              })
+            }}
+          />
+          <Popover>
+            <PopoverTrigger asChild>
+              <button
+                type="button"
+                className="rounded p-0.5 text-muted-foreground hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring"
+                aria-label="グループフィルター仕様の説明"
+              >
+                <Info className="size-4" />
+              </button>
+            </PopoverTrigger>
+            <PopoverContent className="w-72 text-sm">
+              <p>
+                この月に <strong>1 日でも所属していた人</strong> を表示します。
+              </p>
+              <p className="mt-2 text-xs text-muted-foreground">
+                並び順は月末時点の所属グループ順。月中退職者は末尾に並びます。
+              </p>
+            </PopoverContent>
+          </Popover>
+        </div>
+        <div className="flex items-center gap-1">
+          <RoleMultiSelect
+            roles={roles}
+            selectedIds={monthlyRoleIds}
+            unassigned={monthlyRoleUnassigned}
+            onChange={(ids, roleUnassigned) => {
+              setParams({
+                monthlyRoleIds: ids.length > 0 ? ids.join(",") : null,
+                monthlyRoleUnassigned: roleUnassigned ? "true" : null,
+              })
+            }}
+          />
+          <Popover>
+            <PopoverTrigger asChild>
+              <button
+                type="button"
+                className="rounded p-0.5 text-muted-foreground hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring"
+                aria-label="ロールフィルター仕様の説明"
+              >
+                <Info className="size-4" />
+              </button>
+            </PopoverTrigger>
+            <PopoverContent className="w-72 text-sm">
+              <p>
+                この月に <strong>1 日でも該当ロールだった人</strong> を表示します。
+              </p>
+              <p className="mt-2 text-xs text-muted-foreground">
+                並び順は月末時点の所属グループ順。月中退職者は末尾に並びます。
+              </p>
+            </PopoverContent>
+          </Popover>
+        </div>
         <DutyTypeMultiSelect
           dutyTypes={dutyTypeOptions}
           selectedIds={monthlyDutyTypeIds}

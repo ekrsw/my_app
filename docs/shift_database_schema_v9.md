@@ -288,6 +288,9 @@ WHERE hire_date <= :対象日
 - FK(employee_id → employees.id) ON DELETE CASCADE
 - FK(group_id → groups.id) ON DELETE RESTRICT
 
+**インデックス**:
+- `employee_groups_employee_dates_idx` ON `(employee_id, start_date, end_date)` — 業務管理（月次）の期間オーバーラップ判定とソート LEFT JOIN の性能改善
+
 **従業員の現行グループ取得クエリ例**:
 ```sql
 SELECT e.id, e.name, g.name AS group_name
@@ -391,6 +394,9 @@ ORDER BY g.id, e.id;
 - FK(function_role_id → function_roles.id) ON DELETE SET NULL
 - **部分ユニークインデックス①**: `(employee_id, function_role_id) WHERE end_date IS NULL` — 同一従業員で同一ロールの現行レコードは1件のみ
 - **部分ユニークインデックス②（カテゴリ重複防止）**: `(employee_id, role_type) WHERE end_date IS NULL` — 同一従業員で同一カテゴリ（role_type）の現行レコードは1件のみ
+
+**インデックス**:
+- `employee_function_roles_employee_dates_idx` ON `(employee_id, start_date, end_date)` — 業務管理（月次）の期間オーバーラップ判定の性能改善
 
 **カテゴリ重複防止制約の効果**:
 

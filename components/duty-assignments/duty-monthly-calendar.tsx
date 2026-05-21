@@ -16,6 +16,7 @@ import { ColumnFilterPopover } from "@/components/common/filters/column-filter-p
 import { EmployeeCheckboxFilter } from "@/components/common/filters/employee-checkbox-filter"
 import { useQueryParams } from "@/hooks/use-query-params"
 import { StickyHorizontalScrollbar } from "@/components/ui/sticky-horizontal-scrollbar"
+import { Badge } from "@/components/ui/badge"
 import { DutyCellDialog } from "@/components/duty-assignments/duty-cell-dialog"
 import { DutyAssignmentDetailDialog } from "@/components/duty-assignments/duty-assignment-detail-dialog"
 import { getDutyAssignmentById, deleteDutyAssignment } from "@/lib/actions/duty-assignment-actions"
@@ -395,8 +396,42 @@ export function DutyMonthlyCalendar({
         {/* Body rows */}
         {filteredData.map((emp) => (
           <div key={emp.employeeId} className="flex border-b hover:bg-muted/20">
-            <div className="sticky left-0 z-10 flex w-52 min-w-52 items-center border-r bg-background px-3 py-1 text-sm">
-              <span className="truncate font-medium">{emp.employeeName}</span>
+            <div className="sticky left-0 z-10 flex w-52 min-w-52 flex-col justify-center gap-1 border-r bg-background px-3 py-1 text-sm">
+              <div className="flex items-center gap-1.5">
+                <span className="truncate font-medium">{emp.employeeName}</span>
+                {emp.isTerminated && (
+                  <Badge
+                    variant="destructive"
+                    className="h-4 shrink-0 px-1 text-[10px]"
+                    aria-label="退職"
+                    title={emp.terminationDate ? `${emp.terminationDate} 退職` : "退職"}
+                  >
+                    退職
+                  </Badge>
+                )}
+              </div>
+              {emp.groupNames.length > 0 ? (
+                <ul role="list" className="flex list-none flex-wrap gap-0.5">
+                  {emp.groupNames.map((name) => (
+                    <li key={name}>
+                      <Badge
+                        variant="secondary"
+                        className="block h-4 max-w-[120px] truncate px-1.5 text-[10px]"
+                        title={name}
+                      >
+                        {name}
+                      </Badge>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <span
+                  className="text-xs italic text-muted-foreground"
+                  aria-label="所属グループなし"
+                >
+                  未割当
+                </span>
+              )}
             </div>
             {days.map((day) => {
               const dateStr = toDateString(day)
