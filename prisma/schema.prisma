@@ -91,6 +91,7 @@ model EmployeeFunctionRole {
   employee     Employee?     @relation(fields: [employeeId], references: [id], onDelete: Cascade)
   functionRole FunctionRole? @relation(fields: [functionRoleId], references: [id])
 
+  @@index([employeeId, startDate, endDate], map: "employee_function_roles_employee_dates_idx")
   @@map("employee_function_roles")
 }
 
@@ -238,6 +239,7 @@ model EmployeeGroup {
   employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
   group    Group    @relation(fields: [groupId], references: [id], onDelete: Restrict)
 
+  @@index([employeeId, startDate, endDate], map: "employee_groups_employee_dates_idx")
   @@map("employee_groups")
 }
 
