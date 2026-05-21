@@ -1,5 +1,4 @@
 import { prisma } from "@/lib/prisma"
-import { getTodayJST } from "@/lib/date-utils"
 import { getTimeHHMM } from "@/lib/capacity-utils"
 
 export async function getDailyDutyAssignments(date: Date) {
@@ -101,24 +100,61 @@ import { Prisma } from "@/app/generated/prisma/client"
 
 const DEFAULT_CALENDAR_PAGE_SIZE = 50
 
-/** EmployeeGroup 用 Prisma where 条件（startDate nullable） */
-function currentGroupDateWhere(today: Date) {
+// --- 月次ビュー用ヘルパー（期間オーバーラップ判定 + 月末スナップショット） ---
+// 設計書: docs/plans/duty-assignment-monthly-filter-spec.md
+//
+// 用途別の判定基準:
+//   - フィルター判定: 選択月との期間オーバーラップ
+//   - グループ Badge 表示: 選択月内に有効だった所属を全件併記
+//   - 並び順（ソート）: 選択月の月末時点の所属グループ ID
+
+/** EmployeeGroup 用: 選択月との期間オーバーラップ判定 (Prisma where) */
+function monthOverlapGroupWhere(monthStart: Date, monthEnd: Date) {
   return {
     AND: [
-      { OR: [{ startDate: null }, { startDate: { lte: today } }] },
-      { OR: [{ endDate: null }, { endDate: { gte: today } }] },
+      { OR: [{ startDate: null }, { startDate: { lte: monthEnd } }] },
+      { OR: [{ endDate: null }, { endDate: { gte: monthStart } }] },
     ],
   }
 }
 
-/** EmployeeFunctionRole 用 Prisma where 条件（startDate nullable） */
-function currentRoleDateWhere(today: Date) {
+/** EmployeeFunctionRole 用: 選択月との期間オーバーラップ判定 (Prisma where) */
+function monthOverlapRoleWhere(monthStart: Date, monthEnd: Date) {
   return {
     AND: [
-      { OR: [{ startDate: null }, { startDate: { lte: today } }] },
-      { OR: [{ endDate: null }, { endDate: { gte: today } }] },
+      { OR: [{ startDate: null }, { startDate: { lte: monthEnd } }] },
+      { OR: [{ endDate: null }, { endDate: { gte: monthStart } }] },
     ],
   }
+}
+
+// Raw SQL alias は literal union で型レベル制限（任意文字列の注入を防ぐ）
+type GroupSqlAlias = "eg2" | "eg_sort"
+type RoleSqlAlias = "efr" | "efr_sort"
+
+/** Raw SQL 用: 選択月との期間オーバーラップ判定 (EXISTS 句で使用) */
+function monthOverlapGroupSql(
+  monthStartStr: string,
+  monthEndStr: string,
+  alias: GroupSqlAlias
+) {
+  return Prisma.sql`(${Prisma.raw(alias)}.start_date IS NULL OR ${Prisma.raw(alias)}.start_date <= ${monthEndStr}::date)
+    AND (${Prisma.raw(alias)}.end_date IS NULL OR ${Prisma.raw(alias)}.end_date >= ${monthStartStr}::date)`
+}
+
+function monthOverlapRoleSql(
+  monthStartStr: string,
+  monthEndStr: string,
+  alias: RoleSqlAlias
+) {
+  return Prisma.sql`(${Prisma.raw(alias)}.start_date IS NULL OR ${Prisma.raw(alias)}.start_date <= ${monthEndStr}::date)
+    AND (${Prisma.raw(alias)}.end_date IS NULL OR ${Prisma.raw(alias)}.end_date >= ${monthStartStr}::date)`
+}
+
+/** Raw SQL 用: 月末スナップショット判定 (ORDER BY 用 LEFT JOIN で使用) */
+function monthEndSnapshotGroupSql(monthEndStr: string, alias: GroupSqlAlias) {
+  return Prisma.sql`(${Prisma.raw(alias)}.start_date IS NULL OR ${Prisma.raw(alias)}.start_date <= ${monthEndStr}::date)
+    AND (${Prisma.raw(alias)}.end_date IS NULL OR ${Prisma.raw(alias)}.end_date >= ${monthEndStr}::date)`
 }
 
 /** 月次ビュー用: カレンダーデータ取得（全従業員ベース + フィルター + ページネーション） */
@@ -128,32 +164,33 @@ export async function getDutyAssignmentsForCalendar(
 ): Promise<DutyCalendarPaginatedResult> {
   const cursor = options.cursor ?? 0
   const pageSize = options.pageSize ?? DEFAULT_CALENDAR_PAGE_SIZE
-  const startDate = new Date(Date.UTC(filter.year, filter.month - 1, 1))
-  const endDate = new Date(Date.UTC(filter.year, filter.month, 0))
-  const startDateStr = `${startDate.getUTCFullYear()}-${String(startDate.getUTCMonth() + 1).padStart(2, "0")}-${String(startDate.getUTCDate()).padStart(2, "0")}`
-  const endDateStr = `${endDate.getUTCFullYear()}-${String(endDate.getUTCMonth() + 1).padStart(2, "0")}-${String(endDate.getUTCDate()).padStart(2, "0")}`
-  const today = getTodayJST()
-  const todayStr = `${today.getUTCFullYear()}-${String(today.getUTCMonth() + 1).padStart(2, "0")}-${String(today.getUTCDate()).padStart(2, "0")}`
-  const groupDateFilter = currentGroupDateWhere(today)
-  const roleDateFilter = currentRoleDateWhere(today)
+  // 選択月の範囲 [monthStart, monthEnd] (両端含む)
+  const monthStart = new Date(Date.UTC(filter.year, filter.month - 1, 1))
+  const monthEnd = new Date(Date.UTC(filter.year, filter.month, 0))
+  const monthStartStr = `${monthStart.getUTCFullYear()}-${String(monthStart.getUTCMonth() + 1).padStart(2, "0")}-${String(monthStart.getUTCDate()).padStart(2, "0")}`
+  const monthEndStr = `${monthEnd.getUTCFullYear()}-${String(monthEnd.getUTCMonth() + 1).padStart(2, "0")}-${String(monthEnd.getUTCDate()).padStart(2, "0")}`
+  // 期間オーバーラップ判定: 選択月内に 1 日でも所属/有効だった人を表示
+  const groupDateFilter = monthOverlapGroupWhere(monthStart, monthEnd)
+  const roleDateFilter = monthOverlapRoleWhere(monthStart, monthEnd)
 
   // --- Step 1: Raw SQL で従業員IDリストを取得（グループ名→従業員名順） ---
+  // terminationDate は source of truth（設計書「データ不整合シナリオ」参照）
   const conditions: Prisma.Sql[] = [
-    Prisma.sql`(e.termination_date IS NULL OR e.termination_date >= ${startDateStr}::date)`,
+    Prisma.sql`(e.termination_date IS NULL OR e.termination_date >= ${monthStartStr}::date)`,
   ]
 
-  // グループフィルター
+  // グループフィルター: 期間オーバーラップ判定
   const sqlGroupConditions: Prisma.Sql[] = []
   if (filter.groupIds && filter.groupIds.length > 0) {
     sqlGroupConditions.push(Prisma.sql`EXISTS (
       SELECT 1 FROM employee_groups eg2
-      WHERE eg2.employee_id = e.id AND (eg2.start_date IS NULL OR eg2.start_date <= ${todayStr}::date) AND (eg2.end_date IS NULL OR eg2.end_date >= ${todayStr}::date) AND eg2.group_id = ANY(${filter.groupIds})
+      WHERE eg2.employee_id = e.id AND ${monthOverlapGroupSql(monthStartStr, monthEndStr, "eg2")} AND eg2.group_id = ANY(${filter.groupIds})
     )`)
   }
   if (filter.unassigned) {
     sqlGroupConditions.push(Prisma.sql`NOT EXISTS (
       SELECT 1 FROM employee_groups eg2
-      WHERE eg2.employee_id = e.id AND (eg2.start_date IS NULL OR eg2.start_date <= ${todayStr}::date) AND (eg2.end_date IS NULL OR eg2.end_date >= ${todayStr}::date)
+      WHERE eg2.employee_id = e.id AND ${monthOverlapGroupSql(monthStartStr, monthEndStr, "eg2")}
     )`)
   }
   if (sqlGroupConditions.length > 0) {
@@ -164,18 +201,18 @@ export async function getDutyAssignmentsForCalendar(
     )
   }
 
-  // ロールフィルター
+  // ロールフィルター: 期間オーバーラップ判定
   const sqlRoleConditions: Prisma.Sql[] = []
   if (filter.roleIds && filter.roleIds.length > 0) {
     sqlRoleConditions.push(Prisma.sql`EXISTS (
       SELECT 1 FROM employee_function_roles efr
-      WHERE efr.employee_id = e.id AND (efr.start_date IS NULL OR efr.start_date <= ${todayStr}::date) AND (efr.end_date IS NULL OR efr.end_date >= ${todayStr}::date) AND efr.function_role_id = ANY(${filter.roleIds})
+      WHERE efr.employee_id = e.id AND ${monthOverlapRoleSql(monthStartStr, monthEndStr, "efr")} AND efr.function_role_id = ANY(${filter.roleIds})
     )`)
   }
   if (filter.roleUnassigned) {
     sqlRoleConditions.push(Prisma.sql`NOT EXISTS (
       SELECT 1 FROM employee_function_roles efr
-      WHERE efr.employee_id = e.id AND (efr.start_date IS NULL OR efr.start_date <= ${todayStr}::date) AND (efr.end_date IS NULL OR efr.end_date >= ${todayStr}::date)
+      WHERE efr.employee_id = e.id AND ${monthOverlapRoleSql(monthStartStr, monthEndStr, "efr")}
     )`)
   }
   if (sqlRoleConditions.length > 0) {
@@ -191,13 +228,13 @@ export async function getDutyAssignmentsForCalendar(
   if (filter.dutyTypeIds && filter.dutyTypeIds.length > 0) {
     sqlDutyConditions.push(Prisma.sql`EXISTS (
       SELECT 1 FROM duty_assignments da
-      WHERE da.employee_id = e.id AND da.duty_date >= ${startDateStr}::date AND da.duty_date <= ${endDateStr}::date AND da.duty_type_id = ANY(${filter.dutyTypeIds})
+      WHERE da.employee_id = e.id AND da.duty_date >= ${monthStartStr}::date AND da.duty_date <= ${monthEndStr}::date AND da.duty_type_id = ANY(${filter.dutyTypeIds})
     )`)
   }
   if (filter.dutyUnassigned) {
     sqlDutyConditions.push(Prisma.sql`NOT EXISTS (
       SELECT 1 FROM duty_assignments da
-      WHERE da.employee_id = e.id AND da.duty_date >= ${startDateStr}::date AND da.duty_date <= ${endDateStr}::date
+      WHERE da.employee_id = e.id AND da.duty_date >= ${monthStartStr}::date AND da.duty_date <= ${monthEndStr}::date
     )`)
   }
   if (sqlDutyConditions.length > 0) {
@@ -223,14 +260,16 @@ export async function getDutyAssignmentsForCalendar(
 
   const whereClause = Prisma.sql`WHERE ${Prisma.join(conditions, " AND ")}`
 
+  // ORDER BY 用 LEFT JOIN: 月末スナップショット基準（フィルター JOIN とエイリアス分離）
+  // 退職者など月末非所属者は NULLS LAST で末尾に集まる
   const orderedIds = await prisma.$queryRaw<{ id: string }[]>(Prisma.sql`
     SELECT e.id
     FROM employees e
-    LEFT JOIN employee_groups eg ON e.id = eg.employee_id AND (eg.start_date IS NULL OR eg.start_date <= ${todayStr}::date) AND (eg.end_date IS NULL OR eg.end_date >= ${todayStr}::date)
-    LEFT JOIN groups g ON eg.group_id = g.id
+    LEFT JOIN employee_groups eg_sort ON e.id = eg_sort.employee_id AND ${monthEndSnapshotGroupSql(monthEndStr, "eg_sort")}
+    LEFT JOIN groups g_sort ON eg_sort.group_id = g_sort.id
     ${whereClause}
     GROUP BY e.id, e.name
-    ORDER BY MIN(g.id) ASC NULLS LAST, e.name ASC
+    ORDER BY MIN(g_sort.id) ASC NULLS LAST, e.name ASC
     OFFSET ${cursor} LIMIT ${pageSize + 1}
   `)
 
@@ -242,7 +281,7 @@ export async function getDutyAssignmentsForCalendar(
   const employeeWhere: any = {
     OR: [
       { terminationDate: null },
-      { terminationDate: { gte: startDate } },
+      { terminationDate: { gte: monthStart } },
     ],
   }
 
@@ -293,7 +332,7 @@ export async function getDutyAssignmentsForCalendar(
     dutyConditions2.push({
       dutyAssignments: {
         some: {
-          dutyDate: { gte: startDate, lte: endDate },
+          dutyDate: { gte: monthStart, lte: monthEnd },
           dutyTypeId: { in: filter.dutyTypeIds },
         },
       },
@@ -303,7 +342,7 @@ export async function getDutyAssignmentsForCalendar(
     dutyConditions2.push({
       dutyAssignments: {
         none: {
-          dutyDate: { gte: startDate, lte: endDate },
+          dutyDate: { gte: monthStart, lte: monthEnd },
         },
       },
     })
@@ -321,10 +360,11 @@ export async function getDutyAssignmentsForCalendar(
             groups: {
               include: { group: true },
               where: groupDateFilter,
+              orderBy: { groupId: "asc" },
             },
             dutyAssignments: {
               where: {
-                dutyDate: { gte: startDate, lte: endDate },
+                dutyDate: { gte: monthStart, lte: monthEnd },
               },
               include: { dutyType: true },
               orderBy: [{ dutyDate: "asc" }, { startTime: "asc" }],
@@ -343,7 +383,16 @@ export async function getDutyAssignmentsForCalendar(
   const dutyTypeCountMap = new Map<number, { name: string; color: string | null; count: number; sortOrder: number }>()
 
   const data: DutyCalendarData[] = employees.map((emp) => {
-    const groupName = emp.groups[0]?.group.name ?? null
+    // 期間オーバーラップでヒットしたグループを全件併記（Prisma orderBy で groupId 昇順済み）
+    const groupNames = emp.groups.map((eg) => eg.group.name)
+    // terminationDate を source of truth とした退職判定（設計書「データ不整合シナリオ」参照）
+    const terminationDateStr = emp.terminationDate
+      ? (typeof emp.terminationDate === "string"
+          ? emp.terminationDate
+          : emp.terminationDate.toISOString()
+        ).substring(0, 10)
+      : null
+    const isTerminated = terminationDateStr !== null && terminationDateStr <= monthEndStr
     const duties: Record<string, DutyCalendarCell[]> = {}
 
     for (const a of emp.dutyAssignments) {
@@ -380,7 +429,9 @@ export async function getDutyAssignmentsForCalendar(
     return {
       employeeId: emp.id,
       employeeName: emp.name,
-      groupName,
+      groupNames,
+      isTerminated,
+      terminationDate: terminationDateStr,
       duties,
     }
   })

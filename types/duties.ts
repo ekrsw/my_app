@@ -16,7 +16,9 @@ export type DutyAssignmentWithDetails = DutyAssignment & {
 export type DutyCalendarData = {
   employeeId: string
   employeeName: string
-  groupName: string | null
+  groupNames: string[]
+  isTerminated: boolean
+  terminationDate: string | null
   duties: Record<string, DutyCalendarCell[]> // key: "yyyy-MM-dd"
 }
 
