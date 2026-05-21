@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.5.3] - 2026-05-21
+
+### Removed
+- ダッシュボード左カラムの「現在の対応可能状況」カードを廃止。出勤・昼休憩・他業務・対応可能・(内SV) の現在時刻スナップショットはタイムラインヒートマップのフッター行から読み取れるため重複していた。タイムラインは時刻ごとの推移と対応可能者ポップオーバーまで提供しており、情報量は後退しない
+- `lib/capacity-utils.ts` から未使用となった `calculateCapacity` / `calculateFilteredCapacity` / `extractFilterOptions` と関連型 (`ShiftWithDetails`, `DutyInput`, `CapacityFilter`, `RoleKind`) を削除。`getTimeHHMM` / `getCurrentJSTTimeHHMM` / `isLunchBreak` / `getCapacityColor` / `isRoleActiveOnDate` 等はタイムライン・シフト判定で引き続き使用
+- ダッシュボードページから不要になった `getPreviousDayOvernightDutyAssignments` 呼び出しを除去（関数自体は DB 層に温存）
+
 ## [0.3.5.2] - 2026-05-17
 
 ### Changed
