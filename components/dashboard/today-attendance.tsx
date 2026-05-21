@@ -122,7 +122,7 @@ export function TodayAttendance({ changes, employees, shiftCodes, isAuthenticate
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle>本日の勤怠 ({changes.length}件)</CardTitle>
+            <CardTitle>本日のシフト変更等 ({changes.length}件)</CardTitle>
             {isAuthenticated && (
               <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => setShiftFormOpen(true)}>
                 <Plus className="h-4 w-4" />
