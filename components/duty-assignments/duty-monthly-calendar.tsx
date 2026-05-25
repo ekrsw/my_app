@@ -21,6 +21,7 @@ import { DutyCellDialog } from "@/components/duty-assignments/duty-cell-dialog"
 import { DutyAssignmentDetailDialog } from "@/components/duty-assignments/duty-assignment-detail-dialog"
 import { getDutyAssignmentById, deleteDutyAssignment } from "@/lib/actions/duty-assignment-actions"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
 import { toast } from "sonner"
 import { Home, Loader2 } from "lucide-react"
 
@@ -398,7 +399,12 @@ export function DutyMonthlyCalendar({
           <div key={emp.employeeId} className="flex border-b hover:bg-muted/20">
             <div className="sticky left-0 z-10 flex w-52 min-w-52 flex-col justify-center gap-1 border-r bg-background px-3 py-1 text-sm">
               <div className="flex items-center gap-1.5">
-                <span className="truncate font-medium">{emp.employeeName}</span>
+                <Link
+                  href={`/employees/${emp.employeeId}`}
+                  className="truncate font-medium hover:underline hover:text-primary"
+                >
+                  {emp.employeeName}
+                </Link>
                 {emp.isTerminated && (
                   <Badge
                     variant="destructive"

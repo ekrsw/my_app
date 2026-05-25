@@ -370,3 +370,17 @@
 **Context:** 設計規約は `docs/plans/duty-assignment-monthly-filter-spec.md` 参照。対象ファイル: `app/api/duty-assignments/export/route.ts`。現状クエリ: `prisma.dutyAssignment.findMany({ where: { dutyDate: {gte/lte}, dutyTypeId: { in } } })` 行ベース出力。CSV ヘッダー現状: 日付/従業員名/業務種別/開始/終了/タイトル/メモ/キャパシティ。追加候補: 所属グループ列・ロール列。仕様策定時に「行ベース vs 社員ベース」も再判断必要
 
 **Effort:** M (human: ~6h) | S (CC+gstack: ~1h) | **Priority:** P3 | **Risk:** Med（既存 CSV を使うユーザーがいる場合、列増加で運用影響あり）
+
+## 従業員名リンクのタッチ可視性改善（4箇所横断）
+
+**What:** 従業員名 → `/employees/{id}` のリンクが現在 `hover:underline hover:text-primary` のみで、タッチデバイス（タブレット運用）ではタップしない限りリンクと判別できない。永続的なアフォーダンス（例: `underline decoration-dotted underline-offset-4 decoration-muted-foreground/30`、または常時 `text-primary`）を 4 箇所に統一付与する
+
+**Why:** UX 原則「Affordances must be VISIBLE: no cursor means no hover-to-discover」（Krug）。月次/日次画面はタブレット閲覧が想定される業務管理現場で、リンクと気付かれず詳細画面の存在自体が認知されないリスクがある
+
+**Pros:** タッチ環境で従業員詳細導線の発見率向上 / 4 箇所統一でデザインシステムの一貫性 / アクセシビリティ向上（リンクのアフォーダンスは認知負荷軽減に直結）
+
+**Cons:** 常時アンダーラインだとカレンダー左列が視覚的にうるさくなる可能性。デザイン検討（dotted/dashed/solid、色濃度、offset 値）が必要 / 4 箇所同時改修のためレビュー工数増
+
+**Context:** 対象 4 箇所: `components/duty-assignments/duty-monthly-calendar.tsx`（v0.3.7 で追加予定）、`components/shifts/shift-calendar.tsx:182-184`、`components/dashboard/daily-overview-client.tsx:705-711`、`components/dashboard/timeline-heatmap.tsx:714-717`。plan-design-review (2026-05-25「業務管理月次の従業員名 Link 化」) Pass 6 で発見。同レビューで「既存パターン整合のため当該タスクのスコープ外」として TODO 化
+
+**Effort:** S (human: ~1h) | XS (CC+gstack: ~15min) | **Priority:** P3 | **Risk:** Low

@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { render, screen } from "@testing-library/react"
+import { render, screen, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { describe, it, expect, vi, beforeEach } from "vitest"
 
@@ -275,6 +275,88 @@ describe("月次カレンダー 行ヘッダー Badge 表示", () => {
       />
     )
     expect(screen.queryByLabelText("退職")).not.toBeInTheDocument()
+  })
+})
+
+describe("月次カレンダー 行ヘッダー 従業員名 Link", () => {
+  function withCalendarData(data: typeof BASE_PROPS.calendarData) {
+    return { ...BASE_PROPS, calendarData: data, calendarTotal: data.length }
+  }
+
+  it("在籍者の従業員名は /employees/{id} への Link としてレンダリングされる", () => {
+    render(
+      <DutyAssignmentPageClient
+        {...withCalendarData([
+          {
+            employeeId: "emp-42",
+            employeeName: "在籍太郎",
+            groupNames: [],
+            isTerminated: false,
+            terminationDate: null,
+            duties: {},
+          },
+        ])}
+        isAuthenticated={true}
+      />
+    )
+    const link = screen.getByRole("link", { name: "在籍太郎" })
+    expect(link).toHaveAttribute("href", "/employees/emp-42")
+  })
+
+  it("退職者の従業員名も Link としてレンダリングされ、退職 Badge は Link の外側にある", () => {
+    render(
+      <DutyAssignmentPageClient
+        {...withCalendarData([
+          {
+            employeeId: "emp-99",
+            employeeName: "退職花子",
+            groupNames: [],
+            isTerminated: true,
+            terminationDate: "2026-04-15",
+            duties: {},
+          },
+        ])}
+        isAuthenticated={true}
+      />
+    )
+    const link = screen.getByRole("link", { name: "退職花子" })
+    expect(link).toHaveAttribute("href", "/employees/emp-99")
+    expect(within(link).queryByText("退職")).not.toBeInTheDocument()
+    expect(screen.getByLabelText("退職")).toBeInTheDocument()
+  })
+
+  it("複数行で各従業員名 Link が独立した href を持つ", () => {
+    render(
+      <DutyAssignmentPageClient
+        {...withCalendarData([
+          {
+            employeeId: "emp-1",
+            employeeName: "山田一郎",
+            groupNames: [],
+            isTerminated: false,
+            terminationDate: null,
+            duties: {},
+          },
+          {
+            employeeId: "emp-2",
+            employeeName: "佐藤二郎",
+            groupNames: [],
+            isTerminated: false,
+            terminationDate: null,
+            duties: {},
+          },
+        ])}
+        isAuthenticated={true}
+      />
+    )
+    expect(screen.getByRole("link", { name: "山田一郎" })).toHaveAttribute(
+      "href",
+      "/employees/emp-1"
+    )
+    expect(screen.getByRole("link", { name: "佐藤二郎" })).toHaveAttribute(
+      "href",
+      "/employees/emp-2"
+    )
   })
 })
 
