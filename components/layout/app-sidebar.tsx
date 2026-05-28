@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation"
 import { useSession, signOut } from "next-auth/react"
 import {
   LayoutDashboard,
-  Calendar,
+  History,
   Headset,
   User,
   UsersRound,
@@ -52,7 +52,7 @@ import {
 
 const navItems = [
   { label: "ダッシュボード", href: "/", icon: LayoutDashboard },
-  { label: "シフト管理", href: "/shifts", icon: Calendar },
+  { label: "シフト変更履歴", href: "/shifts/history", icon: History },
   { label: "業務管理", href: "/duty-assignments", icon: ClipboardList },
   { label: "従業員", href: "/employees", icon: User },
 ]

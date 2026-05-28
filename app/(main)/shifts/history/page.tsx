@@ -1,4 +1,8 @@
-import { redirect } from "next/navigation"
+import { PageHeader } from "@/components/layout/page-header"
+import { PageContainer } from "@/components/layout/page-container"
+import { ShiftHistoryTable } from "@/components/shifts/shift-history-table"
+import { ShiftHistoryFilters } from "@/components/shifts/shift-history-filters"
+import { getShiftHistory } from "@/lib/db/history"
 import type { SearchParams } from "@/types"
 
 export default async function ShiftHistoryPage({
@@ -7,14 +11,39 @@ export default async function ShiftHistoryPage({
   searchParams: SearchParams
 }) {
   const params = await searchParams
-  const query = new URLSearchParams()
-  query.set("tab", "history")
+  const page = Number(params.page) || 1
+  const historyDate = params.historyDate as string | undefined
+  const historyEmployee = params.historyEmployee as string | undefined
 
-  for (const [key, value] of Object.entries(params)) {
-    if (key !== "tab" && typeof value === "string") {
-      query.set(key, value)
+  const historyResult = await getShiftHistory(
+    { page, pageSize: 20 },
+    {
+      ...(historyDate && { shiftDate: historyDate }),
+      ...(historyEmployee && { employeeName: historyEmployee }),
     }
-  }
+  )
 
-  redirect(`/shifts?${query.toString()}`)
+  return (
+    <>
+      <PageHeader
+        title="シフト変更履歴"
+        breadcrumbs={[
+          { label: "ダッシュボード", href: "/" },
+          { label: "シフト変更履歴" },
+        ]}
+      />
+      <PageContainer>
+        <h1 className="text-2xl font-bold mb-4">シフト変更履歴</h1>
+        <ShiftHistoryFilters />
+        <p className="text-sm text-muted-foreground mb-4">
+          {historyResult.total}件の変更履歴
+        </p>
+        <ShiftHistoryTable
+          data={historyResult.data}
+          pageCount={historyResult.totalPages}
+          page={page}
+        />
+      </PageContainer>
+    </>
+  )
 }

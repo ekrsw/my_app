@@ -118,7 +118,7 @@ test.describe("Sidebar — mobile (md 未満)", () => {
     const brandLink = page.getByRole("link", { name: /CSC管理ツール/ })
     await expect(brandLink).toBeVisible()
 
-    await page.getByRole("link", { name: "シフト管理" }).click()
-    await expect(page).toHaveURL(/\/shifts/)
+    await page.getByRole("link", { name: "シフト変更履歴" }).click()
+    await expect(page).toHaveURL(/\/shifts\/history/)
   })
 })
