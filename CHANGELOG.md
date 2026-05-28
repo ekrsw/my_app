@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.8.0] - 2026-05-28
+
+### Changed
+- サイドバーの「シフト管理」メニューを「シフト変更履歴」に改称し、リンク先を `/shifts/history` に統一。アイコンは `Calendar` から `History` に変更。業務管理画面（`/duty-assignments`）がシフト編集の主画面として確立されたため、シフト管理画面はシフト変更履歴の閲覧・備考編集・削除・バージョン復元の専用画面として整理
+- `/shifts` および旧 `/shifts?tab=history` URL は `/shifts/history` への互換リダイレクトに転換。配列クエリ (`groupIds` 等) も取りこぼさずに引き継ぐため、旧ブックマークやリンクはそのまま利用可能
+- 変更履歴詳細画面 (`/shifts/history/[id]`) のパンくずを「ダッシュボード > シフト変更履歴 > 履歴 #N」の 2 階層に整理
+- `lib/actions/shift-actions.ts` の `revalidatePath` を整理。シフト編集系関数 (`createShift` / `updateShift` / `deleteShift` / `bulkUpdateShifts` / `restoreShiftVersion` / `importShifts` 等) のキャッシュ無効化対象を `/shifts/history` と `/duty-assignments` に統一し、業務管理画面側の表示も即時反映されるよう補正
+
+### Removed
+- シフト管理画面の「シフト管理」タブ (`ShiftPageClient` 配下の月次／日次カレンダー、フィルタ、編集ダイアログ起点、CSV エクスポート起点) を廃止。これらの機能は業務管理画面 (`/duty-assignments`) および `/data` 配下の CSV エクスポートで完全に代替可能なため、二重メンテナンスを解消
+- 専用コンポーネント 8 ファイルを削除: `shift-tabs.tsx` / `shift-page-client.tsx` / `shift-calendar.tsx` / `shift-calendar-cell.tsx` / `shift-daily-view.tsx` / `shift-filters.tsx` / `view-mode-select.tsx` / `hooks/use-shift-calendar.ts`
+- `lib/constants.ts` から未参照の `NAV_ITEMS` 旧定義をブロック全体削除。サイドバー定義の真実の唯一の出所は `components/layout/app-sidebar.tsx` に一本化
+
 ## [0.3.7.0] - 2026-05-25
 
 ### Added
