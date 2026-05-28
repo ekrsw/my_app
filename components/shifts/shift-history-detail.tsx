@@ -65,7 +65,7 @@ export function ShiftHistoryDetail({ entry, versions, isAuthenticated }: ShiftHi
       toast.error(result.error)
     } else {
       toast.success(`バージョン${entry.version}に復元しました`)
-      router.push("/shifts?tab=history")
+      router.push("/shifts/history")
     }
   }
 
@@ -77,7 +77,7 @@ export function ShiftHistoryDetail({ entry, versions, isAuthenticated }: ShiftHi
       toast.error(result.error)
     } else {
       toast.success("変更履歴を削除しました")
-      router.push("/shifts?tab=history")
+      router.push("/shifts/history")
     }
   }
 
@@ -85,7 +85,7 @@ export function ShiftHistoryDetail({ entry, versions, isAuthenticated }: ShiftHi
     <div className="space-y-6">
       {/* Action buttons */}
       <div className="flex items-center gap-2">
-        <Button variant="outline" size="sm" onClick={() => router.push("/shifts?tab=history")}>
+        <Button variant="outline" size="sm" onClick={() => router.push("/shifts/history")}>
           <ArrowLeft className="h-4 w-4 mr-1" />
           一覧に戻る
         </Button>

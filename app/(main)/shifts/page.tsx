@@ -1,18 +1,5 @@
-import { PageHeader } from "@/components/layout/page-header"
-import { PageContainer } from "@/components/layout/page-container"
-import { ShiftPageClient } from "@/components/shifts/shift-page-client"
-import { ShiftTabs } from "@/components/shifts/shift-tabs"
-import { ShiftHistoryTable } from "@/components/shifts/shift-history-table"
-import { ShiftHistoryFilters } from "@/components/shifts/shift-history-filters"
-import { TabsContent } from "@/components/ui/tabs"
-import { getShiftsForCalendarPaginated, getShiftIdsWithHistory, getLatestShiftHistoryEntries, getShiftsForDaily, getDailyFilterOptions, getCalendarEmployeeOptions } from "@/lib/db/shifts"
-import { getShiftHistory } from "@/lib/db/history"
-import { getGroups } from "@/lib/db/groups"
-import { getFunctionRoles } from "@/lib/db/roles"
-import { getActiveShiftCodes } from "@/lib/db/shift-codes"
-import { toDateString, getTodayJST } from "@/lib/date-utils"
-import type { SearchParams, ShiftDailySortField } from "@/types"
-import { auth } from "@/auth"
+import { redirect } from "next/navigation"
+import type { SearchParams } from "@/types"
 
 export default async function ShiftsPage({
   searchParams,
@@ -20,172 +7,16 @@ export default async function ShiftsPage({
   searchParams: SearchParams
 }) {
   const params = await searchParams
-  const now = new Date()
-  const year = Number(params.year) || now.getFullYear()
-  const month = Number(params.month) || now.getMonth() + 1
-  const groupIds = params.groupIds
-    ? String(params.groupIds).split(",").map(Number).filter((n) => !isNaN(n) && n > 0)
-    : params.groupId
-      ? [Number(params.groupId)].filter((n) => !isNaN(n) && n > 0)
-      : undefined
-  const unassigned = params.unassigned === "true"
-  const roleIds = params.roleIds
-    ? String(params.roleIds).split(",").map(Number).filter((n) => !isNaN(n) && n > 0)
-    : undefined
-  const roleUnassigned = params.roleUnassigned === "true"
-  const search = params.search as string | undefined
-  const page = Number(params.page) || 1
-  const activeTab = (params.tab as string) ?? "management"
-
-  const historyDate = params.historyDate as string | undefined
-  const historyEmployee = params.historyEmployee as string | undefined
-  const isHistory = activeTab === "history"
-
-  // 日次/月次ビュー
-  const viewMode = params.view === "daily" ? "daily" : "monthly"
-  const isDaily = viewMode === "daily" && !isHistory
-  const dailyDate = (params.dailyDate as string) || toDateString(getTodayJST())
-  const shiftCodesFilter = params.shiftCodes
-    ? String(params.shiftCodes).split(",").filter(Boolean)
-    : undefined
-  const dailySortBy = (params.dailySortBy as string) || undefined
-  const dailySortOrder = (params.dailySortOrder as string) === "desc" ? "desc" as const : "asc" as const
-  const dailyIsRemote = params.dailyIsRemote === "true" ? true : undefined
-  const employeeIds = params.employeeIds
-    ? String(params.employeeIds).split(",").filter(Boolean)
-    : undefined
-  const supervisorRoleNames = params.supervisorRoleNames
-    ? String(params.supervisorRoleNames).split(",").filter(Boolean)
-    : undefined
-  const businessRoleNames = params.businessRoleNames
-    ? String(params.businessRoleNames).split(",").filter(Boolean)
-    : undefined
-
-  const session = await auth()
-  const isAuthenticated = !!session?.user
-
-  const calendarEmployeeIds = params.calendarEmployeeIds
-    ? String(params.calendarEmployeeIds).split(",").filter(Boolean)
-    : undefined
-
-  const filter = { year, month, groupIds: groupIds && groupIds.length > 0 ? groupIds : undefined, unassigned, roleIds: roleIds && roleIds.length > 0 ? roleIds : undefined, roleUnassigned, employeeSearch: search, employeeIds: calendarEmployeeIds }
-
-  const validSortFields: ShiftDailySortField[] = ["employeeName", "groupName", "supervisorRoleName", "businessRoleName", "shiftCode", "isRemote"]
-  const dailySortByValidated = validSortFields.includes(dailySortBy as ShiftDailySortField)
-    ? (dailySortBy as ShiftDailySortField)
-    : undefined
-
-  const dailyFilter = {
-    date: dailyDate,
-    groupIds: groupIds && groupIds.length > 0 ? groupIds : undefined,
-    unassigned: unassigned || undefined,
-    shiftCodes: shiftCodesFilter,
-    employeeIds,
-    isRemote: dailyIsRemote,
-    supervisorRoleNames,
-    businessRoleNames,
-    sortBy: dailySortByValidated,
-    sortOrder: dailySortByValidated ? dailySortOrder : undefined,
+  const query = new URLSearchParams()
+  for (const [key, value] of Object.entries(params)) {
+    if (key === "tab") continue
+    if (value == null) continue
+    if (Array.isArray(value)) {
+      for (const v of value) query.append(key, v)
+    } else {
+      query.set(key, value)
+    }
   }
-
-  const [calendarResult, groups, roles, shiftCodes, historyResult, shiftIdsWithHistorySet, latestNotes, dailyResult, dailyFilterOptions, calendarEmployees] =
-    await Promise.all([
-      isHistory || isDaily
-        ? Promise.resolve({ data: [], total: 0, hasMore: false, nextCursor: null })
-        : getShiftsForCalendarPaginated(filter, { cursor: 0, pageSize: 50 }),
-      getGroups(),
-      getFunctionRoles(),
-      isHistory
-        ? Promise.resolve([])
-        : getActiveShiftCodes(),
-      isHistory
-        ? getShiftHistory({ page, pageSize: 20 }, {
-            ...(historyDate && { shiftDate: historyDate }),
-            ...(historyEmployee && { employeeName: historyEmployee }),
-          })
-        : Promise.resolve({ data: [], total: 0, page: 1, pageSize: 20, totalPages: 0 }),
-      isHistory || isDaily
-        ? Promise.resolve(new Set<number>())
-        : getShiftIdsWithHistory(year, month),
-      isHistory || isDaily
-        ? Promise.resolve({})
-        : getLatestShiftHistoryEntries(year, month),
-      isDaily
-        ? getShiftsForDaily(dailyFilter, { cursor: 0 })
-        : Promise.resolve({ data: [], total: 0, hasMore: false, nextCursor: null }),
-      isDaily
-        ? getDailyFilterOptions(dailyFilter)
-        : Promise.resolve({ employees: [], groups: [], shiftCodes: [], hasUnassigned: false, supervisorRoleNames: [], businessRoleNames: [] }),
-      isHistory || isDaily
-        ? Promise.resolve([])
-        : getCalendarEmployeeOptions({ ...filter, employeeIds: undefined }),
-    ])
-
-  return (
-    <>
-      <PageHeader
-        title="シフト管理"
-        breadcrumbs={[
-          { label: "ダッシュボード", href: "/" },
-          { label: "シフト管理" },
-        ]}
-      />
-      <PageContainer>
-        <h1 className="text-2xl font-bold mb-4">シフト管理</h1>
-        <ShiftTabs activeTab={activeTab}>
-          <TabsContent value="management" className="mt-4">
-            <ShiftPageClient
-              isAuthenticated={isAuthenticated}
-              viewMode={viewMode}
-              initialCalendarData={calendarResult.data}
-              calendarTotal={calendarResult.total}
-              calendarHasMore={calendarResult.hasMore}
-              calendarNextCursor={calendarResult.nextCursor}
-              calendarFilter={filter}
-              groups={groups}
-              roles={roles}
-              year={year}
-              month={month}
-              shiftCodes={shiftCodes}
-              shiftIdsWithHistory={[...shiftIdsWithHistorySet]}
-              shiftLatestHistory={latestNotes}
-              calendarEmployeeIds={calendarEmployeeIds ?? []}
-              calendarEmployees={calendarEmployees}
-              dailyData={dailyResult.data}
-              dailyTotal={dailyResult.total}
-              dailyHasMore={dailyResult.hasMore}
-              dailyNextCursor={dailyResult.nextCursor}
-              dailyDate={dailyDate}
-              dailyGroupIds={groupIds ?? []}
-              dailyUnassigned={unassigned}
-              dailySelectedShiftCodes={shiftCodesFilter ?? []}
-              dailyEmployeeIds={employeeIds ?? []}
-              dailyEmployees={dailyFilterOptions.employees}
-              dailySortBy={dailySortByValidated ?? "employeeName"}
-              dailySortOrder={dailySortByValidated ? dailySortOrder : "asc"}
-              dailyIsRemote={dailyIsRemote ?? false}
-              dailyShiftCodeOptions={dailyFilterOptions.shiftCodes}
-              dailyGroupOptions={dailyFilterOptions.groups}
-              dailyHasUnassigned={dailyFilterOptions.hasUnassigned}
-              dailySupervisorRoleNames={supervisorRoleNames ?? []}
-              dailyBusinessRoleNames={businessRoleNames ?? []}
-              dailySupervisorRoleOptions={dailyFilterOptions.supervisorRoleNames}
-              dailyBusinessRoleOptions={dailyFilterOptions.businessRoleNames}
-            />
-          </TabsContent>
-          <TabsContent value="history" className="mt-4">
-            <ShiftHistoryFilters />
-            <p className="text-sm text-muted-foreground mb-4">
-              {historyResult.total}件の変更履歴
-            </p>
-            <ShiftHistoryTable
-              data={historyResult.data}
-              pageCount={historyResult.totalPages}
-              page={page}
-            />
-          </TabsContent>
-        </ShiftTabs>
-      </PageContainer>
-    </>
-  )
+  const qs = query.toString()
+  redirect(`/shifts/history${qs ? `?${qs}` : ""}`)
 }

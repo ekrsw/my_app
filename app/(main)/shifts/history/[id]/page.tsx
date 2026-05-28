@@ -35,8 +35,7 @@ export default async function ShiftHistoryDetailPage({
         title="変更履歴詳細"
         breadcrumbs={[
           { label: "ダッシュボード", href: "/" },
-          { label: "シフト管理", href: "/shifts" },
-          { label: "変更履歴", href: "/shifts?tab=history" },
+          { label: "シフト変更履歴", href: "/shifts/history" },
           { label: `履歴 #${entry.id}` },
         ]}
       />

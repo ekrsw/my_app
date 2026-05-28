@@ -50,7 +50,7 @@ export async function createShift(data: {
       },
     })
     revalidatePath("/")
-    revalidatePath("/shifts")
+    revalidatePath("/shifts/history")
     revalidatePath("/duty-assignments")
     return { success: true }
   } catch (e: unknown) {
@@ -110,7 +110,6 @@ export async function revertShiftFromAttendance(
       })
     })
     revalidatePath("/")
-    revalidatePath("/shifts")
     revalidatePath("/shifts/history")
     revalidatePath("/duty-assignments")
     return { success: true }
@@ -185,7 +184,7 @@ export async function updateShiftFromAttendance(
       })
     })
     revalidatePath("/")
-    revalidatePath("/shifts")
+    revalidatePath("/shifts/history")
     revalidatePath("/duty-assignments")
     return { success: true }
   } catch {
@@ -238,7 +237,7 @@ export async function updateShift(
       })
     })
     revalidatePath("/")
-    revalidatePath("/shifts")
+    revalidatePath("/shifts/history")
     revalidatePath("/duty-assignments")
     return { success: true }
   } catch {
@@ -260,7 +259,6 @@ export async function deleteShift(id: number) {
   try {
     await prisma.shift.delete({ where: { id } })
     revalidatePath("/")
-    revalidatePath("/shifts")
     revalidatePath("/shifts/history")
     revalidatePath("/duty-assignments")
     return { success: true }
@@ -313,7 +311,8 @@ export async function bulkUpdateShifts(data: {
         data: updateData,
       })
     })
-    revalidatePath("/shifts")
+    revalidatePath("/shifts/history")
+    revalidatePath("/duty-assignments")
     return { success: true, count: parsed.data.shiftIds.length }
   } catch {
     return { error: "一括更新に失敗しました" }
@@ -332,7 +331,7 @@ export async function updateShiftHistory(id: number, data: { note: string }) {
       where: { id },
       data: { note: parsed.data.note || null },
     })
-    revalidatePath("/shifts")
+    revalidatePath("/shifts/history")
     revalidatePath(`/shifts/history/${id}`)
     return { success: true }
   } catch {
@@ -344,7 +343,7 @@ export async function deleteShiftHistory(id: number) {
   await requireAuth()
   try {
     await prisma.shiftChangeHistory.delete({ where: { id } })
-    revalidatePath("/shifts")
+    revalidatePath("/shifts/history")
     return { success: true }
   } catch {
     return { error: "変更履歴の削除に失敗しました" }
@@ -375,8 +374,8 @@ export async function restoreShiftVersion(shiftId: number, version: number) {
       },
     })
 
-    revalidatePath("/shifts")
     revalidatePath("/shifts/history")
+    revalidatePath("/duty-assignments")
     return { success: true }
   } catch {
     return { error: "バージョンの復元に失敗しました" }
@@ -576,7 +575,8 @@ export async function importShifts(
       }
     }
 
-    revalidatePath("/shifts")
+    revalidatePath("/shifts/history")
+    revalidatePath("/duty-assignments")
     return { success: errors.length === 0, created, updated, errors }
   } catch {
     return {
