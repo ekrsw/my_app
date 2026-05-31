@@ -3,6 +3,7 @@ import { PageContainer } from "@/components/layout/page-container"
 import { DutyTypeTable } from "@/components/duty-types/duty-type-table"
 import { DutyTypeForm } from "@/components/duty-types/duty-type-form"
 import { getDutyTypes } from "@/lib/db/duty-types"
+import { HelpLink } from "@/components/help/help-link"
 import { auth } from "@/auth"
 
 export default async function DutyTypesPage() {
@@ -18,6 +19,7 @@ export default async function DutyTypesPage() {
           { label: "ダッシュボード", href: "/" },
           { label: "業務種別管理" },
         ]}
+        actions={<HelpLink anchor="duty-types" />}
       />
       <PageContainer>
         <div className="flex items-center justify-between mb-4">

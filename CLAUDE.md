@@ -49,6 +49,7 @@ npx prisma migrate deploy   # Apply migrations
 - **Auth.js v5** (next-auth@beta) + **bcrypt** for authentication
 - **Tailwind CSS 4** + **shadcn/ui** (new-york style) + **Radix UI**
 - **Vitest** for testing, **Zod** for validation, **React Hook Form** for forms, **TanStack React Table** for data tables
+- **react-markdown** + **remark-gfm** for rendering help content (`content/help/*.md`)
 
 ### Data Flow Pattern
 Server Components fetch data via `lib/db/*.ts` query functions. Mutations go through Server Actions in `lib/actions/*.ts` which validate with Zod schemas from `lib/validators.ts`, perform Prisma transactions, then call `revalidatePath()`.
@@ -71,6 +72,10 @@ Form (Client Component) → lib/actions/ (Server Actions) → requireAuth() → 
 - `components/ui/` — shadcn/ui base components (do not edit manually, use `npx shadcn add`)
 - `app/generated/prisma/` — Prisma generated client (do not edit)
 - `app/api/` — Route Handler (export CSV エンドポイント、Excel→CSV 変換 POST エンドポイント等)。mutation 系 Server Action と同様に先頭で `auth()` による認証ガードを実施
+- `content/help/*.md` — ヘルプページ本文（人手で編集する Markdown）。本文の更新は .md を編集・コミット・再デプロイで反映
+- `lib/help/` — ヘルプのマニフェスト（`sections.ts`: 目次・anchor・読み込む .md の唯一のソース）と loader（`load-help.ts`）
+- `app/(main)/help/` — ヘルプページ（`/help`）。Server Component で `content/help/*.md` を読み込み描画
+- `components/help/` — ヘルプ描画コンポーネント（`HelpSection`: react-markdown 描画、`HelpLink`: 各画面の PageHeader から `/help#<anchor>` への「?」深リンク）
 
 ### Authentication
 - Auth.js v5 with Credentials Provider + JWT sessions

@@ -29,8 +29,8 @@ export default defineConfig({
     {
       name: "chromium-desktop",
       use: { ...devices["Desktop Chrome"] },
-      testMatch: /desktop\.spec\.ts|sidebar\.spec\.ts/,
-      grep: /Sidebar — desktop/,
+      testMatch: /desktop\.spec\.ts|sidebar\.spec\.ts|help\.spec\.ts/,
+      grep: /Sidebar — desktop|ヘルプページと各画面からの導線/,
     },
     {
       name: "chromium-mobile",

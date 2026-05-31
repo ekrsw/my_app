@@ -1,6 +1,7 @@
 import { PageHeader } from "@/components/layout/page-header"
 import { PageContainer } from "@/components/layout/page-container"
 import { DutyAssignmentPageClient } from "@/components/duty-assignments/duty-assignment-page-client"
+import { HelpLink } from "@/components/help/help-link"
 import {
   getDutyAssignmentsForCalendar,
   getDailyDutyAssignments,
@@ -130,6 +131,7 @@ export default async function DutyAssignmentsPage({ searchParams }: Props) {
             { label: "ダッシュボード", href: "/" },
             { label: "業務管理" },
           ]}
+          actions={<HelpLink anchor="duty-assign" />}
         />
         <PageContainer>
           <DutyAssignmentPageClient
