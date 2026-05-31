@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.9.0] - 2026-05-31
+
+### Added
+- ヘルプページ (`/help`) を新設。4トピック（業務種別の追加・業務割当ての追加・シフトの変更・変更履歴の操作）の操作手順を1ページにまとめ、目次から各セクションへ移動できる。本文は `content/help/*.md` の Markdown で管理し、非エンジニアでも編集可能。`react-markdown` + `remark-gfm` で描画
+- サイドバーの設定グループに「ヘルプ」項目を追加
+- 業務管理 (`/duty-assignments`)・業務種別 (`/duty-types`)・シフト変更履歴 (`/shifts/history`) の各画面ヘッダー右上に「?」アイコンを追加し、該当するヘルプセクションへ直接移動できるようにした
+
 ## [0.3.8.0] - 2026-05-28
 
 ### Changed
