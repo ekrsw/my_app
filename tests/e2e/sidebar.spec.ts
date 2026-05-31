@@ -50,7 +50,7 @@ test.describe("Sidebar — desktop (md 以上)", () => {
     await expect(panelLeft).toBeVisible()
   })
 
-  test("4. 設定メニュー expanded — Collapsible 展開 → 6 項目 → /groups 遷移", async ({ page }) => {
+  test("4. 設定メニュー expanded — Collapsible 展開 → 7 項目 → /groups 遷移", async ({ page }) => {
     await page.goto("/")
 
     await page.getByRole("button", { name: "設定" }).click()
@@ -61,12 +61,13 @@ test.describe("Sidebar — desktop (md 以上)", () => {
     await expect(page.getByRole("link", { name: "シフトコード" })).toBeVisible()
     await expect(page.getByRole("link", { name: "業務種別" })).toBeVisible()
     await expect(page.getByRole("link", { name: "データ" })).toBeVisible()
+    await expect(page.getByRole("link", { name: "ヘルプ" })).toBeVisible()
 
     await page.getByRole("link", { name: "グループ" }).click()
     await expect(page).toHaveURL(/\/groups/)
   })
 
-  test("5. CRITICAL REGRESSION — 設定メニュー collapsed は DropdownMenu で 6 項目が見え遷移できる", async ({ page }) => {
+  test("5. CRITICAL REGRESSION — 設定メニュー collapsed は DropdownMenu で 7 項目が見え遷移できる", async ({ page }) => {
     await page.goto("/")
 
     await page.getByRole("button", { name: "サイドバーを閉じる" }).click()
@@ -82,6 +83,7 @@ test.describe("Sidebar — desktop (md 以上)", () => {
     await expect(menu.getByRole("menuitem", { name: /シフトコード/ })).toBeVisible()
     await expect(menu.getByRole("menuitem", { name: /業務種別/ })).toBeVisible()
     await expect(menu.getByRole("menuitem", { name: /データ/ })).toBeVisible()
+    await expect(menu.getByRole("menuitem", { name: /ヘルプ/ })).toBeVisible()
 
     await menu.getByRole("menuitem", { name: /ロール/ }).click()
     await expect(page).toHaveURL(/\/roles/)

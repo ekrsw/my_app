@@ -20,6 +20,7 @@ import {
   ListChecks,
   Database,
   PanelLeftIcon,
+  CircleHelp,
 } from "lucide-react"
 import {
   Sidebar,
@@ -64,6 +65,7 @@ const settingsSubItems = [
   { label: "シフトコード", href: "/shift-codes", icon: Tag },
   { label: "業務種別", href: "/duty-types", icon: ListChecks },
   { label: "データ", href: "/data", icon: Database },
+  { label: "ヘルプ", href: "/help", icon: CircleHelp },
 ]
 
 function useIsDesktopCollapsed() {
