@@ -43,7 +43,7 @@ function parseStrings(value: string | string[] | undefined): string[] {
 
 export default async function DutyAssignmentsPage({ searchParams }: Props) {
   const params = await searchParams
-  const viewMode = params.view === "monthly" ? "monthly" : "daily" as const
+  const viewMode = params.view === "daily" ? "daily" : "monthly" as const
 
   const session = await auth()
   const isAuthenticated = !!session?.user
@@ -161,6 +161,7 @@ export default async function DutyAssignmentsPage({ searchParams }: Props) {
             monthlyRoleUnassigned={false}
             monthlyDutyTypeIds={[]}
             monthlyDutyUnassigned={false}
+            monthlyEmployeeRoster={[]}
             groups={[]}
             roles={[]}
             shiftCodeMap={{}}
@@ -287,6 +288,7 @@ export default async function DutyAssignmentsPage({ searchParams }: Props) {
           monthlyRoleUnassigned={monthlyRoleUnassigned}
           monthlyDutyTypeIds={monthlyDutyTypeIds}
           monthlyDutyUnassigned={monthlyDutyUnassigned}
+          monthlyEmployeeRoster={calendarResult.employeeRoster}
           shiftCodeMap={shiftCodeMap}
           shiftCodeInfoMap={shiftCodeInfoMap}
           shiftDataMap={shiftDataMap}

@@ -120,6 +120,7 @@ const BASE_PROPS = {
   monthlyRoleUnassigned: false,
   monthlyDutyTypeIds: [],
   monthlyDutyUnassigned: false,
+  monthlyEmployeeRoster: [{ id: "emp-1", name: "テスト太郎" }],
   shiftCodeMap: {},
   shiftCodeInfoMap: {},
   shiftDataMap: {},
@@ -168,6 +169,50 @@ describe("月次カレンダー セルクリック認証ガード", () => {
 
     // フォームダイアログが表示されること
     expect(screen.getByTestId("duty-form-dialog")).toBeInTheDocument()
+  })
+})
+
+describe("月次カレンダー 従業員名フィルター 選択肢の母集合", () => {
+  it("遅延読み込み済み data に居ない従業員も、roster 経由でフィルター選択肢に出る", async () => {
+    const user = userEvent.setup()
+    render(
+      <DutyAssignmentPageClient
+        {...BASE_PROPS}
+        // data には emp-1 だけ（1ページ目しか読み込まれていない状況を再現）
+        calendarData={[
+          {
+            employeeId: "emp-1",
+            employeeName: "テスト太郎",
+            groupNames: [],
+            isTerminated: false,
+            terminationDate: null,
+            duties: {},
+          },
+        ]}
+        calendarTotal={2}
+        calendarHasMore={true}
+        // roster には未読み込みの emp-2 も含まれる
+        monthlyEmployeeRoster={[
+          { id: "emp-1", name: "テスト太郎" },
+          { id: "emp-2", name: "未読み込み花子" },
+        ]}
+      />
+    )
+
+    // 未読み込みの emp-2 はカレンダー本体（data 由来の行）には出ない
+    const links = screen.queryAllByRole("link", { name: "未読み込み花子" })
+    expect(links).toHaveLength(0)
+
+    // 「従業員名」列フィルターを開く
+    const headerLabel = screen.getByText("従業員名")
+    const trigger = within(headerLabel.parentElement as HTMLElement).getByRole("button")
+    await user.click(trigger)
+
+    // フィルター選択肢には未読み込みの emp-2 が出る（roster 由来）。
+    // emp-2 は body（data 由来）に居ないので、ここに出るのは roster 経由であることの証左。
+    expect(screen.getByText("未読み込み花子")).toBeInTheDocument()
+    // テスト太郎は body の Link とフィルター選択肢の両方に出る（2 箇所以上）
+    expect(screen.getAllByText("テスト太郎").length).toBeGreaterThan(1)
   })
 })
 
