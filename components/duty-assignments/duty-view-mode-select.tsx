@@ -19,9 +19,9 @@ export function DutyViewModeSelect({ value }: DutyViewModeSelectProps) {
 
   const handleChange = (newValue: string) => {
     if (newValue === "monthly") {
-      // 月次に切り替え: daily 固有パラメータをクリア
+      // 月次に戻す（デフォルト）: daily 固有パラメータをクリア
       setParams({
-        view: "monthly",
+        view: null,
         dailyDate: null,
         employeeIds: null,
         groupIds: null,
@@ -31,9 +31,9 @@ export function DutyViewModeSelect({ value }: DutyViewModeSelectProps) {
         sortOrder: null,
       })
     } else {
-      // 日次に戻す（デフォルト）: 月次固有パラメータをクリア
+      // 日次に切り替え: 月次固有パラメータをクリア
       setParams({
-        view: null,
+        view: "daily",
         dailyDate: toDateString(getTodayJST()),
         year: null,
         month: null,

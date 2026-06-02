@@ -52,6 +52,8 @@ type DutyMonthlyCalendarProps = {
   isLoadingMore: boolean
   onLoadMore: () => void
   employees: { id: string; name: string }[]
+  /** フィルター選択肢用の全対象者名簿（遅延読み込みの data ではなく、当月コンテキスト全体）。 */
+  employeeRoster: { id: string; name: string }[]
   dutyTypes: DutyTypeOption[]
 }
 
@@ -178,6 +180,7 @@ export function DutyMonthlyCalendar({
   isLoadingMore,
   onLoadMore,
   employees,
+  employeeRoster,
   dutyTypes,
 }: DutyMonthlyCalendarProps) {
   const days = useMemo(() => getDaysInMonth(year, month), [year, month])
@@ -296,9 +299,11 @@ export function DutyMonthlyCalendar({
     return () => observer.disconnect()
   }, [hasMore])
 
+  // フィルター選択肢は遅延読み込みの data ではなく、当月コンテキスト全体の名簿から作る。
+  // これにより未読み込みの従業員も選択でき、選択時はサーバー再クエリで表示される。
   const filterEmployees = useMemo(
-    () => data.map((emp) => ({ id: emp.employeeId, name: emp.employeeName })),
-    [data]
+    () => employeeRoster.map((emp) => ({ id: emp.id, name: emp.name })),
+    [employeeRoster]
   )
 
   const handleEmployeeConfirm = useCallback(

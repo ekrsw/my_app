@@ -175,7 +175,9 @@ export async function getDutyAssignmentsForCalendar(
 
   // --- Step 1: Raw SQL で従業員IDリストを取得（グループ名→従業員名順） ---
   // terminationDate は source of truth（設計書「データ不整合シナリオ」参照）
-  const conditions: Prisma.Sql[] = [
+  // contextConditions: 月＋グループ/ロール/業務種別の「コンテキスト」条件。
+  // ページ用 WHERE と名簿(roster)用 WHERE の共通土台。employeeIds/employeeSearch は含めない。
+  const contextConditions: Prisma.Sql[] = [
     Prisma.sql`(e.termination_date IS NULL OR e.termination_date >= ${monthStartStr}::date)`,
   ]
 
@@ -194,7 +196,7 @@ export async function getDutyAssignmentsForCalendar(
     )`)
   }
   if (sqlGroupConditions.length > 0) {
-    conditions.push(
+    contextConditions.push(
       sqlGroupConditions.length === 1
         ? sqlGroupConditions[0]
         : Prisma.sql`(${Prisma.join(sqlGroupConditions, " OR ")})`
@@ -216,7 +218,7 @@ export async function getDutyAssignmentsForCalendar(
     )`)
   }
   if (sqlRoleConditions.length > 0) {
-    conditions.push(
+    contextConditions.push(
       sqlRoleConditions.length === 1
         ? sqlRoleConditions[0]
         : Prisma.sql`(${Prisma.join(sqlRoleConditions, " OR ")})`
@@ -238,12 +240,16 @@ export async function getDutyAssignmentsForCalendar(
     )`)
   }
   if (sqlDutyConditions.length > 0) {
-    conditions.push(
+    contextConditions.push(
       sqlDutyConditions.length === 1
         ? sqlDutyConditions[0]
         : Prisma.sql`(${Prisma.join(sqlDutyConditions, " OR ")})`
     )
   }
+
+  // ページ用 WHERE: contextConditions に従業員絞り込み（検索・ID指定）を追加した版。
+  // 名簿(roster)はこれらを含めない（contextConditions のみ）ので別管理する。
+  const conditions: Prisma.Sql[] = [...contextConditions]
 
   // 従業員検索
   if (filter.employeeSearch) {
@@ -259,6 +265,8 @@ export async function getDutyAssignmentsForCalendar(
   }
 
   const whereClause = Prisma.sql`WHERE ${Prisma.join(conditions, " AND ")}`
+  // 名簿用 WHERE: コンテキスト条件のみ（全選択肢の母集合）
+  const rosterWhereClause = Prisma.sql`WHERE ${Prisma.join(contextConditions, " AND ")}`
 
   // ORDER BY 用 LEFT JOIN: 月末スナップショット基準（フィルター JOIN とエイリアス分離）
   // 退職者など月末非所属者は NULLS LAST で末尾に集まる
@@ -351,8 +359,11 @@ export async function getDutyAssignmentsForCalendar(
     employeeWhere.AND = [...(employeeWhere.AND ?? []), dutyConditions2.length === 1 ? dutyConditions2[0] : { OR: dutyConditions2 }]
   }
 
-  // --- Step 2: Prisma でフルデータ取得 ---
-  const [employees, total] = await Promise.all([
+  // --- Step 2: Prisma でフルデータ取得（＋名簿は1ページ目のみ同梱） ---
+  // employeeRoster: フィルター選択肢用の母集合。orderedIds と同じソート（月末スナップショット
+  // グループ順→名前順）を使うが OFFSET/LIMIT なし・rosterWhereClause（contextConditions のみ）。
+  // cursor>0（loadMore）では再計算せず空配列を返す。
+  const [employees, total, employeeRoster] = await Promise.all([
     slicedIds.length > 0
       ? prisma.employee.findMany({
           where: { id: { in: slicedIds } },
@@ -373,6 +384,17 @@ export async function getDutyAssignmentsForCalendar(
         })
       : Promise.resolve([]),
     prisma.employee.count({ where: employeeWhere }),
+    cursor === 0
+      ? prisma.$queryRaw<{ id: string; name: string }[]>(Prisma.sql`
+          SELECT e.id, e.name
+          FROM employees e
+          LEFT JOIN employee_groups eg_sort ON e.id = eg_sort.employee_id AND ${monthEndSnapshotGroupSql(monthEndStr, "eg_sort")}
+          LEFT JOIN groups g_sort ON eg_sort.group_id = g_sort.id
+          ${rosterWhereClause}
+          GROUP BY e.id, e.name
+          ORDER BY MIN(g_sort.id) ASC NULLS LAST, e.name ASC
+        `)
+      : Promise.resolve([] as { id: string; name: string }[]),
   ])
 
   // --- Step 3: Raw SQLの順序に合わせて並べ替え ---
@@ -438,6 +460,6 @@ export async function getDutyAssignmentsForCalendar(
 
   const dutyTypeSummary = Array.from(dutyTypeCountMap.values()).sort((a, b) => a.sortOrder - b.sortOrder)
 
-  return { data, dutyTypeSummary, total, hasMore, nextCursor: hasMore ? cursor + pageSize : null }
+  return { data, dutyTypeSummary, total, hasMore, nextCursor: hasMore ? cursor + pageSize : null, employeeRoster }
 }
 

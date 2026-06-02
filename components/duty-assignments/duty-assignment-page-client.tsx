@@ -117,6 +117,7 @@ type DutyAssignmentPageClientProps = {
   monthlyRoleUnassigned: boolean
   monthlyDutyTypeIds: number[]
   monthlyDutyUnassigned: boolean
+  monthlyEmployeeRoster: { id: string; name: string }[]
   shiftCodeMap: ShiftCodeMap
   shiftCodeInfoMap: Record<string, ShiftCodeInfo>
   shiftDataMap: Record<string, Record<string, Shift>>
@@ -157,6 +158,7 @@ export function DutyAssignmentPageClient({
   monthlyRoleUnassigned,
   monthlyDutyTypeIds,
   monthlyDutyUnassigned,
+  monthlyEmployeeRoster,
   shiftCodeMap,
   shiftCodeInfoMap,
   shiftDataMap,
@@ -690,6 +692,7 @@ export function DutyAssignmentPageClient({
         isLoadingMore={calendarIsLoadingMore}
         onLoadMore={handleCalendarLoadMore}
         employees={employeeOptions}
+        employeeRoster={monthlyEmployeeRoster}
         dutyTypes={dutyTypeOptions}
       />
 
