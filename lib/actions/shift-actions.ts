@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache"
 import { requireAuth } from "@/lib/auth-guard"
 import { getShiftsForCalendarPaginated, getShiftsForDaily } from "@/lib/db/shifts"
 import { getShiftVersions } from "@/lib/db/history"
+import { resolveImportShiftRows } from "@/lib/import/resolve-shift-import"
 import type { ShiftFilterParams, ShiftDailyFilterParams } from "@/types"
 import type { ShiftCalendarPaginatedResult, ShiftDailyPaginatedResult } from "@/types/shifts"
 
@@ -429,76 +430,9 @@ export async function importShifts(
   const errors: Array<{ rowIndex: number; error: string }> = []
 
   try {
-    // 従業員名→ID解決
-    const nameOnlyRows = rows.filter((r) => r.employeeId === "" && r.employeeName)
-    const uniqueNames = [...new Set(nameOnlyRows.map((r) => r.employeeName!))]
-    const nameToIdMap = new Map<string, string>()
-    const duplicateNames = new Set<string>()
-
-    if (uniqueNames.length > 0) {
-      const employeesByName = await prisma.employee.findMany({
-        where: { name: { in: uniqueNames } },
-        select: { id: true, name: true },
-      })
-
-      const nameCountMap = new Map<string, Array<{ id: string }>>()
-      for (const emp of employeesByName) {
-        const list = nameCountMap.get(emp.name) || []
-        list.push({ id: emp.id })
-        nameCountMap.set(emp.name, list)
-      }
-
-      for (const [name, emps] of nameCountMap) {
-        if (emps.length === 1) {
-          nameToIdMap.set(name, emps[0].id)
-        } else {
-          duplicateNames.add(name)
-        }
-      }
-    }
-
-    // 従業員名でID解決し、解決済み行を構築
-    const resolvedRows: typeof rows = []
-    for (const row of rows) {
-      if (row.employeeId === "" && row.employeeName) {
-        if (duplicateNames.has(row.employeeName)) {
-          errors.push({
-            rowIndex: row.rowIndex,
-            error: `従業員名 '${row.employeeName}' に該当する従業員が複数存在します。従業員IDを指定してください`,
-          })
-          continue
-        }
-        const resolvedId = nameToIdMap.get(row.employeeName)
-        if (!resolvedId) {
-          errors.push({
-            rowIndex: row.rowIndex,
-            error: `従業員名 '${row.employeeName}' に該当する従業員が見つかりません`,
-          })
-          continue
-        }
-        resolvedRows.push({ ...row, employeeId: resolvedId })
-      } else {
-        resolvedRows.push(row)
-      }
-    }
-
-    // 従業員IDの存在チェック用
-    const employeeIds = [...new Set(resolvedRows.map((r) => r.employeeId))]
-    const existingEmployees = await prisma.employee.findMany({
-      where: { id: { in: employeeIds } },
-      select: { id: true },
-    })
-    const existingEmployeeIds = new Set(existingEmployees.map((e) => e.id))
-
-    // 従業員ID不正の行を除外
-    const validRows: typeof rows = []
-    for (const row of resolvedRows) {
-      if (!existingEmployeeIds.has(row.employeeId)) {
-        errors.push({ rowIndex: row.rowIndex, error: `従業員ID ${row.employeeId} が存在しません` })
-      } else {
-        validRows.push(row)
-      }
-    }
+    // 従業員の名前解決・存在チェック（プレビューの validateShiftImport と同一ロジック）
+    const { validRows, errors: resolveErrors } = await resolveImportShiftRows(rows)
+    errors.push(...resolveErrors)
 
     // バッチに分割して処理
     for (let i = 0; i < validRows.length; i += IMPORT_BATCH_SIZE) {
@@ -592,6 +526,24 @@ export async function importShifts(
         ? errors
         : [{ rowIndex: 0, error: "インポート処理に失敗しました" }],
     }
+  }
+}
+
+/**
+ * インポート前のプレビュー検証。従業員名/IDの存在を確認し、行ごとのエラーを返す。
+ * importShifts と同じ resolveImportShiftRows を使うため、ここで出るエラーと
+ * 実行後に出るエラーは一致する。インフラ障害時は failed=true を返し、呼び出し側は
+ * ブロックせず警告に留める（実行時に importShifts が再検証する）。
+ */
+export async function validateShiftImport(
+  rows: Array<ShiftImportRow & { rowIndex: number }>
+): Promise<{ errors: Array<{ rowIndex: number; error: string }>; failed: boolean }> {
+  await requireAuth()
+  try {
+    const { errors } = await resolveImportShiftRows(rows)
+    return { errors, failed: false }
+  } catch {
+    return { errors: [], failed: true }
   }
 }
 

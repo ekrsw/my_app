@@ -416,3 +416,19 @@
 **Depends on:** 事前調査クエリの結果
 
 **Effort:** M (CC+gstack: ~45min) | **Priority:** P3 | **Risk:** Med
+
+## 他インポートにもプレビュー時の従業員存在検証を横展開
+
+**What:** 役割割当・業務割当など、server 側で従業員名を解決する他のCSVインポートにも、シフトインポートと同様の「プレビュー時の存在検証」を追加する。
+
+**Why:** シフトインポートで確立する resolveImportShiftRows + validateShiftImport パターンを波及させ、全インポートで「実行前に未一致が分かる」UXを統一する。現状、他インポートも実行後にしか未一致が分からない。
+
+**Pros:** 全インポートで一貫した事前検証UX / 既存パターンの再利用で各系統は同型実装
+
+**Cons:** 各インポートの解決ロジックを抽出し検証アクションを追加する必要（系統ごとに小規模）
+
+**Context:** 「CSVインポートのプレビューで従業員名/ID存在を事前検証」PR で、shift の `resolveImportShiftRows`（importShifts から抽出）+ `validateShiftImport` パターンが確立。役割/業務割当の各 import-actions と use-*-import フックに同型展開する。
+
+**Depends on:** 上記シフトの事前検証 PR のマージ
+
+**Effort:** M (CC+gstack: ~40min) | **Priority:** P3 | **Risk:** Low
