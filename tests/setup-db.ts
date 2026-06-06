@@ -97,6 +97,9 @@ async function main() {
     "20260227100000_remove_shift_change_history_change_type/migration.sql",
     "20260301100000_remove_is_paid_leave/migration.sql",
     "20260302100000_employee_id_uuid_v7/migration.sql",
+    "20260303100000_add_note_to_shift_trigger/migration.sql",
+    "20260327000000_add_skip_history_option/migration.sql",
+    "20260412000000_add_lunch_break_to_shifts/migration.sql",
   ]
 
   for (const file of migrationFiles) {
@@ -108,7 +111,9 @@ async function main() {
         await testClient.query(stmt)
       } catch (err: unknown) {
         const pgErr = err as { code?: string }
-        if (pgErr.code !== "42710") {
+        // 42710: trigger already exists / 42701: column already exists
+        // (db push がスキーマ列を作成済みのため、後発マイグレーションの ADD COLUMN は重複となる)
+        if (pgErr.code !== "42710" && pgErr.code !== "42701") {
           console.error(`Error applying trigger SQL from ${file}:`, err)
         }
       }

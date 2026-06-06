@@ -226,6 +226,7 @@ erDiagram
 | shift_codes | シフトコードマスタ | マスタ |
 | duty_types | 業務種別マスタ | マスタ |
 | duty_assignments | 業務割当データ | データ |
+| import_log | インポート実施ログ | ログ |
 
 ---
 
@@ -936,6 +937,29 @@ EXECUTE FUNCTION record_employee_position_change();
 - FK(employee_id → employees.id) ON DELETE CASCADE
 - FK(duty_type_id → duty_types.id) ON DELETE RESTRICT
 - UNIQUE(employee_id, duty_type_id, duty_date, start_time)
+
+---
+
+### 18. import_log（インポート実施ログ）
+
+CSVインポート等の実施記録を保持する（1インポート=1行のサマリ）。変更履歴（`shift_change_history` 等）とは別物で、「いつ・誰が・何件取り込んだか」の事実記録。履歴トリガーは付与しない（追記専用）。`target_type` でデータ種別を区別し、将来の他インポート（従業員・役割等）も同一テーブルに相乗りできる汎用設計。
+
+| カラム名 | データ型 | NULL | デフォルト | 説明 |
+|---------|---------|------|-----------|------|
+| id | SERIAL | NO | auto_increment | 主キー |
+| target_type | VARCHAR(30) | NO | - | データ種別（'shifts' / 'employees' / 'roles' / 'dutyTypes' / 'dutyAssignments' / 'shiftCodes'） |
+| file_name | VARCHAR(255) | YES | - | 取り込んだファイル名 |
+| created_count | INTEGER | NO | 0 | 新規作成件数 |
+| updated_count | INTEGER | NO | 0 | 更新件数 |
+| error_count | INTEGER | NO | 0 | エラー件数 |
+| imported_by | VARCHAR(100) | YES | - | 実行者名（認証セッションのユーザー名） |
+| imported_at | TIMESTAMP(3) | NO | CURRENT_TIMESTAMP | 実施日時 |
+
+**制約**:
+- PK(id)
+- INDEX(target_type, imported_at)
+
+**備考**: CSVインポート（`importShifts()`）はトランザクション内で `set_config('app.skip_shift_history','true', true)` を設定し、`shift_change_history` を残さない。インポートの実施記録はこの `import_log` に集約する。クライアントが2000行ごとにインポートを分割実行するため、ログはチャンクループ完了後（finally）に1回だけ記録する。
 
 ---
 

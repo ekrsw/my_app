@@ -18,6 +18,23 @@ model Group {
   @@map("groups")
 }
 
+// CSVインポート等の実施記録（1インポート=1行のサマリ）。
+// 変更履歴(shift_change_history)とは別物: こちらは「いつ・誰が・何件取り込んだか」の事実記録。
+// 履歴トリガーは付与しない（追記専用）。targetType でデータ種別を区別し、将来の他インポートも相乗り可能。
+model ImportLog {
+  id           Int      @id @default(autoincrement())
+  targetType   String   @map("target_type") @db.VarChar(30) // 'shifts' | 'employees' | 'roles' | 'dutyTypes' | 'dutyAssignments' | 'shiftCodes'
+  fileName     String?  @map("file_name") @db.VarChar(255)
+  createdCount Int      @default(0) @map("created_count")
+  updatedCount Int      @default(0) @map("updated_count")
+  errorCount   Int      @default(0) @map("error_count")
+  importedBy   String?  @map("imported_by") @db.VarChar(100)
+  importedAt   DateTime @default(now()) @map("imported_at")
+
+  @@index([targetType, importedAt])
+  @@map("import_log")
+}
+
 model Employee {
   id              String    @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
   name            String    @db.VarChar(100)

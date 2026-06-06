@@ -262,3 +262,23 @@ export const positionHistoryEditSchema = z.object({
   endDate: z.string().nullable().optional(),
 })
 export type PositionHistoryEditFormData = z.infer<typeof positionHistoryEditSchema>
+
+// インポート実施ログ（import_log）。targetType はデータ頁の dataType と揃える。
+export const IMPORT_TARGET_TYPES = [
+  "shifts",
+  "employees",
+  "roles",
+  "dutyTypes",
+  "dutyAssignments",
+  "shiftCodes",
+] as const
+export type ImportTargetType = (typeof IMPORT_TARGET_TYPES)[number]
+
+export const importLogSchema = z.object({
+  targetType: z.enum(IMPORT_TARGET_TYPES),
+  fileName: z.string().max(255).nullable().optional(),
+  createdCount: z.number().int().min(0).default(0),
+  updatedCount: z.number().int().min(0).default(0),
+  errorCount: z.number().int().min(0).default(0),
+})
+export type ImportLogInput = z.infer<typeof importLogSchema>
