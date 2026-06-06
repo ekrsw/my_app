@@ -21,6 +21,7 @@ export function ShiftImportSection() {
     errorCount,
     previewHeaders,
     previewRows,
+    validating,
     resetState,
     handleFileLoaded,
     handleImport,
@@ -63,12 +64,15 @@ export function ShiftImportSection() {
               ファイルを再選択
             </Button>
             <div className="flex items-center gap-2">
-              {errorCount > 0 && (
+              {validating && (
+                <p className="text-sm text-muted-foreground">従業員を検証中...</p>
+              )}
+              {!validating && errorCount > 0 && (
                 <p className="text-sm text-muted-foreground">
                   有効な{validCount}件のみインポートします
                 </p>
               )}
-              <Button onClick={handleImport} disabled={validCount === 0}>
+              <Button onClick={handleImport} disabled={validCount === 0 || validating}>
                 インポート実行
               </Button>
             </div>

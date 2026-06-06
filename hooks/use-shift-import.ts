@@ -3,7 +3,25 @@
 import { useState } from "react"
 import { toast } from "sonner"
 import { parseShiftCsv, type ParsedShiftRow } from "@/lib/csv/parse-shift-csv"
-import { importShifts } from "@/lib/actions/shift-actions"
+import { importShifts, validateShiftImport } from "@/lib/actions/shift-actions"
+import { recordImportLog } from "@/lib/actions/import-log-actions"
+
+// ParsedShiftRow をサーバアクション用の行形式へ変換（検証・本実行で共用）
+function toImportRows(parsedRows: ParsedShiftRow[]) {
+  return parsedRows.map((r) => ({
+    rowIndex: r.rowIndex,
+    shiftDate: r.data.shiftDate,
+    employeeId: r.data.employeeId,
+    employeeName: r.data._employeeName || undefined,
+    shiftCode: r.data.shiftCode,
+    startTime: r.data.startTime,
+    endTime: r.data.endTime,
+    lunchBreakStart: r.data.lunchBreakStart ?? null,
+    lunchBreakEnd: r.data.lunchBreakEnd ?? null,
+    isHoliday: r.data.isHoliday,
+    isRemote: r.data.isRemote,
+  }))
+}
 
 type Step = "select" | "preview" | "importing" | "result"
 
@@ -21,6 +39,8 @@ export function useShiftImport() {
   const [headerError, setHeaderError] = useState<string>()
   const [result, setResult] = useState<ImportResult>()
   const [progress, setProgress] = useState<{ current: number; total: number } | null>(null)
+  const [fileName, setFileName] = useState<string | null>(null)
+  const [validating, setValidating] = useState(false)
 
   function resetState() {
     setStep("select")
@@ -28,9 +48,11 @@ export function useShiftImport() {
     setHeaderError(undefined)
     setResult(undefined)
     setProgress(null)
+    setFileName(null)
+    setValidating(false)
   }
 
-  function handleFileLoaded(csvText: string) {
+  async function handleFileLoaded(csvText: string, name?: string) {
     const parsed = parseShiftCsv(csvText)
     if (!parsed.headerValid) {
       setHeaderError(parsed.headerError)
@@ -39,7 +61,38 @@ export function useShiftImport() {
     }
     setHeaderError(undefined)
     setParsedRows(parsed.rows)
+    setFileName(name ?? null)
     setStep("preview")
+
+    // インポート前に従業員名/IDの存在をプレビュー時点で検証する。
+    // 形式が有効な行のみ対象。失敗してもブロックせず、実行時に importShifts が再検証する。
+    const formatValidRows = parsed.rows.filter((r) => r.valid)
+    if (formatValidRows.length === 0) return
+
+    setValidating(true)
+    try {
+      const res = await validateShiftImport(toImportRows(formatValidRows))
+      if (res.failed) {
+        toast.warning("従業員の存在チェックができませんでした。インポート実行時に再確認されます。")
+      } else if (res.errors.length > 0) {
+        const errMap = new Map(res.errors.map((e) => [e.rowIndex, e.error]))
+        setParsedRows((prev) =>
+          prev.map((r) => {
+            const existErr = errMap.get(r.rowIndex)
+            if (!existErr) return r
+            return {
+              ...r,
+              valid: false,
+              error: r.error ? `${r.error}, ${existErr}` : existErr,
+            }
+          })
+        )
+      }
+    } catch {
+      toast.warning("従業員の存在チェックに失敗しました。インポート実行時に再確認されます。")
+    } finally {
+      setValidating(false)
+    }
   }
 
   async function handleImport() {
@@ -51,23 +104,13 @@ export function useShiftImport() {
 
     setStep("importing")
 
-    const rows = validRows.map((r) => ({
-      rowIndex: r.rowIndex,
-      shiftDate: r.data.shiftDate,
-      employeeId: r.data.employeeId,
-      employeeName: r.data._employeeName || undefined,
-      shiftCode: r.data.shiftCode,
-      startTime: r.data.startTime,
-      endTime: r.data.endTime,
-      lunchBreakStart: r.data.lunchBreakStart ?? null,
-      lunchBreakEnd: r.data.lunchBreakEnd ?? null,
-      isHoliday: r.data.isHoliday,
-      isRemote: r.data.isRemote,
-    }))
+    const rows = toImportRows(validRows)
 
     let totalCreated = 0
     let totalUpdated = 0
     const allErrors: Array<{ rowIndex: number; error: string }> = []
+    // 通信失敗などチャンク途中の throw 分を errorCount に含めるためのフラグ
+    let aborted = false
 
     try {
       for (let i = 0; i < rows.length; i += CLIENT_CHUNK_SIZE) {
@@ -90,6 +133,7 @@ export function useShiftImport() {
         toast.error("一部のインポートに失敗しました")
       }
     } catch {
+      aborted = true
       setProgress(null)
       setResult({
         created: totalCreated,
@@ -98,6 +142,21 @@ export function useShiftImport() {
       })
       setStep("result")
       toast.error("インポートに失敗しました")
+    } finally {
+      // インポート実施ログを1回だけ記録（成功でも途中失敗でも）。
+      // ログ書き込み失敗はインポート結果に影響させず握りつぶす（事実記録のため重要度は低い）。
+      // タブ強制終了でここに到達できない場合のログ欠落は許容リスク。
+      try {
+        await recordImportLog({
+          targetType: "shifts",
+          fileName,
+          createdCount: totalCreated,
+          updatedCount: totalUpdated,
+          errorCount: allErrors.length + (aborted ? 1 : 0),
+        })
+      } catch (e) {
+        console.warn("インポートログの記録に失敗しました", e)
+      }
     }
   }
 
@@ -133,6 +192,7 @@ export function useShiftImport() {
     errorCount,
     previewHeaders,
     previewRows,
+    validating,
     resetState,
     handleFileLoaded,
     handleImport,

@@ -234,3 +234,74 @@ describe("importShifts - 従業員名による紐づけ", () => {
     expect(result.errors[0].error).toContain("存在しません")
   })
 })
+
+describe("importShifts - 変更履歴を残さない", () => {
+  let employeeId: string
+
+  beforeEach(async () => {
+    await cleanupDatabase()
+    const emp = await prisma.employee.create({ data: { name: "履歴テスト太郎" } })
+    employeeId = emp.id
+  })
+
+  // 対照: トリガーが有効であることを保証する。
+  // これが無いと「インポートで履歴が増えない」テストはトリガー未適用時に自明にパスしてしまう。
+  it("対照: 通常のシフト更新では変更履歴が記録される（トリガーが有効）", async () => {
+    const shift = await prisma.shift.create({
+      data: { employeeId, shiftDate: new Date("2026-01-15"), shiftCode: "A" },
+    })
+
+    // skip_shift_history を立てない素の UPDATE → トリガーが履歴を記録するはず
+    await prisma.shift.update({ where: { id: shift.id }, data: { shiftCode: "B" } })
+
+    const count = await prisma.shiftChangeHistory.count({ where: { shiftId: shift.id } })
+    expect(count).toBe(1)
+  })
+
+  it("既存シフトを上書きインポートしても変更履歴が増えない（回帰）", async () => {
+    const shift = await prisma.shift.create({
+      data: { employeeId, shiftDate: new Date("2026-01-15"), shiftCode: "A" },
+    })
+
+    // 追跡対象カラム(shiftCode)を実際に変える上書きインポート
+    const result = await importShifts([
+      {
+        rowIndex: 2,
+        shiftDate: "2026-01-15",
+        employeeId,
+        shiftCode: "B",
+        startTime: "09:00",
+        endTime: "18:00",
+        isHoliday: false,
+        isRemote: false,
+      },
+    ])
+
+    expect(result.updated).toBe(1)
+    const count = await prisma.shiftChangeHistory.count({ where: { shiftId: shift.id } })
+    expect(count).toBe(0)
+
+    // 値自体は更新されていること（スキップは履歴のみ、データ更新は通常どおり）
+    const updated = await prisma.shift.findUnique({ where: { id: shift.id } })
+    expect(updated?.shiftCode).toBe("B")
+  })
+
+  it("新規作成のみのインポートは履歴を作らない（従来挙動）", async () => {
+    const result = await importShifts([
+      {
+        rowIndex: 2,
+        shiftDate: "2026-02-01",
+        employeeId,
+        shiftCode: "A",
+        startTime: "09:00",
+        endTime: "18:00",
+        isHoliday: false,
+        isRemote: false,
+      },
+    ])
+
+    expect(result.created).toBe(1)
+    const count = await prisma.shiftChangeHistory.count()
+    expect(count).toBe(0)
+  })
+})

@@ -384,3 +384,51 @@
 **Context:** 対象 4 箇所: `components/duty-assignments/duty-monthly-calendar.tsx`（v0.3.7 で追加予定）、`components/shifts/shift-calendar.tsx:182-184`、`components/dashboard/daily-overview-client.tsx:705-711`、`components/dashboard/timeline-heatmap.tsx:714-717`。plan-design-review (2026-05-25「業務管理月次の従業員名 Link 化」) Pass 6 で発見。同レビューで「既存パターン整合のため当該タスクのスコープ外」として TODO 化
 
 **Effort:** S (human: ~1h) | XS (CC+gstack: ~15min) | **Priority:** P3 | **Risk:** Low
+
+## 他インポートを取り込み履歴（import_log）に相乗りさせる
+
+**What:** 従業員 / 役割 / 勤務種別 / 業務割当 / シフトコードの各インポートからも `recordImportLog` を呼び、取り込み履歴を全データ型に統一する。
+
+**Why:** CSVインポート履歴抑制 PR で `import_log` を汎用設計（`targetType`）にした意図の回収。データ頁の「履歴」モードが全データ型で機能するようになる。
+
+**Pros:** 取り込み実施記録が全面的に揃う / 基盤（テーブル・action・UI・targetType union）は完成済みなので各箇所1行追加で済む
+
+**Cons:** 各 `*-import-section` / 対応フックの修正＋テスト（5系統）。本体PRに含めるとスコープ拡大
+
+**Context:** 基盤は「CSVインポート時はシフト変更履歴を残さず import_log にサマリ記録」PR で完成。残りは各インポートフックの finally で `recordImportLog({ targetType, ... })` を呼ぶだけ。対象: `employee-import-section` / `role-import-section` / `duty-type-import-section` / `duty-assignment-import-section` / `shift-code-import-dialog`。設計: `~/.gstack/projects/ekrsw-my_app/eisuke_koresawa-feature-duty-assignment-bulk-delete-design-20260606-220454.md`
+
+**Depends on:** 上記 import_log 基盤 PR のマージ
+
+**Effort:** S (CC+gstack: ~30min) | **Priority:** P3 | **Risk:** Low
+
+## 再インポート時の実績上書き保護（Accepted Risk の恒久対応）
+
+**What:** 勤怠実績/手修正済みシフトへの CSV 再インポートで、実績値が予定値で痕跡なく上書きされる問題への保護を実装する。
+
+**Why:** 「CSVインポート時はシフト変更履歴を残さない」設計で明示的に許容したリスク。運用で顕在化した場合に必要な恒久対応。
+
+**Pros:** データ消失（記録済み実績の喪失）の恒久対策
+
+**Cons:** 実装コスト中。Approach C（`shift_change_history` に `source` 列を足しインポート由来を振り分け・保全）か、「実績記録済みシフトはインポートでスキップ/警告」のいずれか。トリガー改修またはインポート側の判定追加を伴う
+
+**Context:** 設計ドキュメントの「Accepted Risk」「The Assignment」参照。まず本番データで「実績記録済みシフトへの再インポート」実例件数を調査（import_log 導入前のため importedAt では判定不可、手修正痕跡＋shift 更新痕跡で代替）してから着手判断する流れ。設計: `~/.gstack/projects/ekrsw-my_app/eisuke_koresawa-feature-duty-assignment-bulk-delete-design-20260606-220454.md`
+
+**Depends on:** 事前調査クエリの結果
+
+**Effort:** M (CC+gstack: ~45min) | **Priority:** P3 | **Risk:** Med
+
+## 他インポートにもプレビュー時の従業員存在検証を横展開
+
+**What:** 役割割当・業務割当など、server 側で従業員名を解決する他のCSVインポートにも、シフトインポートと同様の「プレビュー時の存在検証」を追加する。
+
+**Why:** シフトインポートで確立する resolveImportShiftRows + validateShiftImport パターンを波及させ、全インポートで「実行前に未一致が分かる」UXを統一する。現状、他インポートも実行後にしか未一致が分からない。
+
+**Pros:** 全インポートで一貫した事前検証UX / 既存パターンの再利用で各系統は同型実装
+
+**Cons:** 各インポートの解決ロジックを抽出し検証アクションを追加する必要（系統ごとに小規模）
+
+**Context:** 「CSVインポートのプレビューで従業員名/ID存在を事前検証」PR で、shift の `resolveImportShiftRows`（importShifts から抽出）+ `validateShiftImport` パターンが確立。役割/業務割当の各 import-actions と use-*-import フックに同型展開する。
+
+**Depends on:** 上記シフトの事前検証 PR のマージ
+
+**Effort:** M (CC+gstack: ~40min) | **Priority:** P3 | **Risk:** Low

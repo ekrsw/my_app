@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Download } from "lucide-react"
 
 type CsvFileInputProps = {
-  onFileLoaded: (csvText: string) => void
+  onFileLoaded: (csvText: string, fileName?: string) => void
   disabled?: boolean
 }
 
@@ -23,7 +23,7 @@ export function CsvFileInput({ onFileLoaded, disabled }: CsvFileInputProps) {
       if (text.charCodeAt(0) === 0xfeff) {
         text = text.slice(1)
       }
-      onFileLoaded(text)
+      onFileLoaded(text, file.name)
     }
     reader.readAsText(file, "UTF-8")
 
