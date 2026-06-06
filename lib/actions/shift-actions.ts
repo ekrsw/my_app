@@ -521,6 +521,11 @@ export async function importShifts(
 
         await prisma.$transaction(
           async (tx) => {
+            // CSVインポートはシフト変更履歴(shift_change_history)を残さない。
+            // 履歴の本来用途は「予定 vs 勤怠実績」の突合であり、インポートによる
+            // 予定の上書きはノイズになるため。set_config(...,true) はトランザクション
+            // ローカルなので、バッチごとの各トランザクション内で都度設定する必要がある。
+            await tx.$executeRaw`SELECT set_config('app.skip_shift_history', 'true', true)`
             for (const row of batch) {
               const shiftData = {
                 shiftCode: row.shiftCode,

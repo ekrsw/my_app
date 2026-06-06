@@ -4,6 +4,7 @@ import { useState } from "react"
 import { toast } from "sonner"
 import { parseShiftCsv, type ParsedShiftRow } from "@/lib/csv/parse-shift-csv"
 import { importShifts } from "@/lib/actions/shift-actions"
+import { recordImportLog } from "@/lib/actions/import-log-actions"
 
 type Step = "select" | "preview" | "importing" | "result"
 
@@ -21,6 +22,7 @@ export function useShiftImport() {
   const [headerError, setHeaderError] = useState<string>()
   const [result, setResult] = useState<ImportResult>()
   const [progress, setProgress] = useState<{ current: number; total: number } | null>(null)
+  const [fileName, setFileName] = useState<string | null>(null)
 
   function resetState() {
     setStep("select")
@@ -28,9 +30,10 @@ export function useShiftImport() {
     setHeaderError(undefined)
     setResult(undefined)
     setProgress(null)
+    setFileName(null)
   }
 
-  function handleFileLoaded(csvText: string) {
+  function handleFileLoaded(csvText: string, name?: string) {
     const parsed = parseShiftCsv(csvText)
     if (!parsed.headerValid) {
       setHeaderError(parsed.headerError)
@@ -39,6 +42,7 @@ export function useShiftImport() {
     }
     setHeaderError(undefined)
     setParsedRows(parsed.rows)
+    setFileName(name ?? null)
     setStep("preview")
   }
 
@@ -68,6 +72,8 @@ export function useShiftImport() {
     let totalCreated = 0
     let totalUpdated = 0
     const allErrors: Array<{ rowIndex: number; error: string }> = []
+    // 通信失敗などチャンク途中の throw 分を errorCount に含めるためのフラグ
+    let aborted = false
 
     try {
       for (let i = 0; i < rows.length; i += CLIENT_CHUNK_SIZE) {
@@ -90,6 +96,7 @@ export function useShiftImport() {
         toast.error("一部のインポートに失敗しました")
       }
     } catch {
+      aborted = true
       setProgress(null)
       setResult({
         created: totalCreated,
@@ -98,6 +105,21 @@ export function useShiftImport() {
       })
       setStep("result")
       toast.error("インポートに失敗しました")
+    } finally {
+      // インポート実施ログを1回だけ記録（成功でも途中失敗でも）。
+      // ログ書き込み失敗はインポート結果に影響させず握りつぶす（事実記録のため重要度は低い）。
+      // タブ強制終了でここに到達できない場合のログ欠落は許容リスク。
+      try {
+        await recordImportLog({
+          targetType: "shifts",
+          fileName,
+          createdCount: totalCreated,
+          updatedCount: totalUpdated,
+          errorCount: allErrors.length + (aborted ? 1 : 0),
+        })
+      } catch (e) {
+        console.warn("インポートログの記録に失敗しました", e)
+      }
     }
   }
 

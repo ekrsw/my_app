@@ -21,7 +21,8 @@ export async function cleanupDatabase() {
       function_roles,
       external_tools,
       positions,
-      shift_codes
+      shift_codes,
+      import_log
     CASCADE
   `)
 }
