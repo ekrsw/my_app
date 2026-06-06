@@ -447,3 +447,113 @@ describe("getPreviousDayOvernightDutyAssignments", () => {
   })
 })
 
+
+// employeeRoster: フィルター選択肢用の母集合（ページング・employeeIds・employeeSearch を反映しない）
+// 設計書: ~/.gstack/projects/ekrsw-my_app/...-feature-duty-assignment-bulk-delete-design-*.md
+describe("getDutyAssignmentsForCalendar - employeeRoster", () => {
+  beforeEach(async () => {
+    await prisma.$executeRawUnsafe(
+      `TRUNCATE TABLE duty_assignments, duty_types, employee_groups, employee_function_roles CASCADE`
+    )
+    await cleanupDatabase()
+  })
+
+  it("(a) employeeIds/search なし: roster.length === total、1ページ目は data 50件で hasMore", async () => {
+    // ページサイズ(50)を超える 51 人を作成
+    for (let i = 0; i < 51; i++) {
+      await prisma.employee.create({
+        data: { name: `従業員${String(i).padStart(2, "0")}` },
+      })
+    }
+
+    const result = await getDutyAssignmentsForCalendar({ year: 2025, month: 6 })
+    expect(result.data).toHaveLength(50)
+    expect(result.hasMore).toBe(true)
+    expect(result.total).toBe(51)
+    // roster はページングを跨いで全員を含む
+    expect(result.employeeRoster).toHaveLength(51)
+    expect(result.employeeRoster.length).toBe(result.total)
+  })
+
+  it("loadMore (cursor>0) では roster を再計算せず空配列を返す", async () => {
+    for (let i = 0; i < 51; i++) {
+      await prisma.employee.create({
+        data: { name: `従業員${String(i).padStart(2, "0")}` },
+      })
+    }
+
+    const page2 = await getDutyAssignmentsForCalendar(
+      { year: 2025, month: 6 },
+      { cursor: 50 }
+    )
+    expect(page2.data).toHaveLength(1)
+    expect(page2.employeeRoster).toEqual([])
+  })
+
+  it("(b) employeeIds 指定: total/data は縮むが roster は縮まない", async () => {
+    const created: string[] = []
+    for (let i = 0; i < 5; i++) {
+      const emp = await prisma.employee.create({
+        data: { name: `従業員${String(i).padStart(2, "0")}` },
+      })
+      created.push(emp.id)
+    }
+
+    const result = await getDutyAssignmentsForCalendar({
+      year: 2025,
+      month: 6,
+      employeeIds: [created[0], created[1]],
+    })
+    // 選択した 2 人だけが data/total に反映される
+    expect(result.data).toHaveLength(2)
+    expect(result.total).toBe(2)
+    // roster は employeeIds を無視して全員を返す（選択しても候補が縮まない）
+    expect(result.employeeRoster).toHaveLength(5)
+  })
+
+  it("employeeSearch を指定しても roster は縮まない", async () => {
+    await prisma.employee.create({ data: { name: "田中一郎" } })
+    await prisma.employee.create({ data: { name: "鈴木花子" } })
+
+    const result = await getDutyAssignmentsForCalendar({
+      year: 2025,
+      month: 6,
+      employeeSearch: "田中",
+    })
+    // data は検索で絞られる
+    expect(result.data).toHaveLength(1)
+    expect(result.data[0].employeeName).toBe("田中一郎")
+    // roster は検索を無視して全員
+    expect(result.employeeRoster).toHaveLength(2)
+  })
+
+  it("group フィルター適用時、roster は圏外の従業員を含まない", async () => {
+    const groupA = await prisma.group.create({ data: { name: "A班" } })
+    const empA = await prisma.employee.create({ data: { name: "Aさん" } })
+    await prisma.employeeGroup.create({
+      data: { employeeId: empA.id, groupId: groupA.id, startDate: null, endDate: null },
+    })
+    // 圏外（グループ未所属）
+    await prisma.employee.create({ data: { name: "Bさん" } })
+
+    const result = await getDutyAssignmentsForCalendar({
+      year: 2025,
+      month: 6,
+      groupIds: [groupA.id],
+    })
+    expect(result.employeeRoster).toHaveLength(1)
+    expect(result.employeeRoster[0].name).toBe("Aさん")
+  })
+
+  it("前月退職済みは roster に含まれず、月内在籍者は含まれる", async () => {
+    await prisma.employee.create({ data: { name: "在籍者" } })
+    await prisma.employee.create({
+      data: { name: "前月退職者", terminationDate: utcDate("2025-05-31") },
+    })
+
+    const result = await getDutyAssignmentsForCalendar({ year: 2025, month: 6 })
+    const names = result.employeeRoster.map((e) => e.name)
+    expect(names).toContain("在籍者")
+    expect(names).not.toContain("前月退職者")
+  })
+})

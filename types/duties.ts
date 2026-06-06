@@ -60,4 +60,10 @@ export type DutyCalendarPaginatedResult = {
   total: number
   hasMore: boolean
   nextCursor: number | null
+  /**
+   * 現在のコンテキストフィルター（月＋グループ/ロール/業務種別）に一致する全従業員の名簿。
+   * ページング・employeeIds・employeeSearch は反映しない（フィルター選択肢用の母集合）。
+   * 1ページ目（cursor===0）でのみ計算し、loadMore（cursor>0）では空配列。
+   */
+  employeeRoster: { id: string; name: string }[]
 }
