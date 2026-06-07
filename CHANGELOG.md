@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.11.3] - 2026-06-07
+
+### Added
+- データベースの日次バックアップ運用一式を追加（`scripts/backup/`）。`pg_dump` による論理バックアップ取得・`.env` / `.env.test` の退避・14日世代管理を行う PowerShell スクリプト（`backup-db.ps1`）、Windows タスクスケジューラへの日次登録スクリプト（`register-task.ps1`）、セットアップ／リストア手順をまとめた README を同梱。Windows Server セルフホスト環境での運用を想定（アプリのユーザー向け機能の変更はなし）。
+
 ## [0.3.11.2] - 2026-06-07
 
 ### Fixed
