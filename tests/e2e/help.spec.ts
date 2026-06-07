@@ -7,13 +7,14 @@ test.describe("ヘルプページと各画面からの導線", () => {
     await context.clearCookies()
   })
 
-  test("1. /help がロードされ 4 セクションが表示される", async ({ page }) => {
+  test("1. /help がロードされ 5 セクションが表示される", async ({ page }) => {
     await page.goto("/help")
     await expect(page.getByRole("heading", { name: "ヘルプ", level: 1 })).toBeVisible()
     await expect(page.getByRole("heading", { name: "業務種別の追加" })).toBeVisible()
     await expect(page.getByRole("heading", { name: "業務割当ての追加" })).toBeVisible()
     await expect(page.getByRole("heading", { name: "シフトの変更" })).toBeVisible()
     await expect(page.getByRole("heading", { name: "変更履歴の操作" })).toBeVisible()
+    await expect(page.getByRole("heading", { name: "バックアップとリストア" })).toBeVisible()
   })
 
   test("2. 目次リンクで同一ページ内の該当セクションへ移動する", async ({ page }) => {

@@ -13,6 +13,7 @@ export const HELP_SECTIONS = [
   { anchor: "duty-assign", title: "業務割当ての追加", file: "duty-assign.md" },
   { anchor: "shift-edit", title: "シフトの変更", file: "shift-edit.md" },
   { anchor: "history", title: "変更履歴の操作", file: "history.md" },
+  { anchor: "backup", title: "バックアップとリストア", file: "backup-restore.md" },
 ] as const
 
 export type HelpAnchor = (typeof HELP_SECTIONS)[number]["anchor"]
