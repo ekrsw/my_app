@@ -76,6 +76,7 @@ Form (Client Component) → lib/actions/ (Server Actions) → requireAuth() → 
 - `lib/help/` — ヘルプのマニフェスト（`sections.ts`: 目次・anchor・読み込む .md の唯一のソース）と loader（`load-help.ts`）
 - `app/(main)/help/` — ヘルプページ（`/help`）。Server Component で `content/help/*.md` を読み込み描画
 - `components/help/` — ヘルプ描画コンポーネント（`HelpSection`: react-markdown 描画、`HelpLink`: 各画面の PageHeader から `/help#<anchor>` への「?」深リンク）
+- `scripts/backup/` — セルフホスト Windows Server 向けの DB バックアップ運用スクリプト（PowerShell）。`backup-db.ps1`（`pg_dump` 論理バックアップ + `.env` 退避 + 14日世代管理）、`sync-backup.ps1`（`C:\backups` を共有フォルダ/NAS へ robocopy 複製）、`register-task.ps1` / `register-sync-task.ps1`（タスクスケジューラ日次登録）。セットアップ・リストア手順は `scripts/backup/README.md` 参照
 
 ### Authentication
 - Auth.js v5 with Credentials Provider + JWT sessions
