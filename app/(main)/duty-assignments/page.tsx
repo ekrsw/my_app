@@ -259,6 +259,7 @@ export default async function DutyAssignmentsPage({ searchParams }: Props) {
           { label: "ダッシュボード", href: "/" },
           { label: "業務管理" },
         ]}
+        actions={<HelpLink anchor="duty-assign" />}
       />
       <PageContainer>
         <DutyAssignmentPageClient

@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.11.1] - 2026-06-07
+
+### Fixed
+- 業務管理 (`/duty-assignments`) の月次ビュー（既定表示）でページ右上のヘルプ「?」リンクが表示されず、ヘルプ (`/help#duty-assign`) へ移動できなかった問題を修正。日次ビューと同様にヘルプリンクを表示するようにした。
+
 ## [0.3.11.0] - 2026-06-07
 
 ### Added
