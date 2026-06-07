@@ -463,3 +463,50 @@ export async function getDutyAssignmentsForCalendar(
   return { data, dutyTypeSummary, total, hasMore, nextCursor: hasMore ? cursor + pageSize : null, employeeRoster }
 }
 
+// --- 業務割当の一括置換: 実行履歴（Undo 用一覧） ---
+
+export type BulkReplaceBatchSummary = {
+  id: number
+  fromDutyTypeNames: string[]
+  toDutyTypeName: string
+  replacedCount: number
+  skippedCount: number
+  executedBy: string | null
+  executedAt: string // ISO
+  revertedAt: string | null // ISO or null
+  revertedBy: string | null
+}
+
+/** 一括置換バッチの実行履歴を新しい順に取得する（業務種別名を解決して返す）。 */
+export async function getBulkReplaceBatches(limit = 50): Promise<BulkReplaceBatchSummary[]> {
+  const batches = await prisma.dutyAssignmentBulkReplaceBatch.findMany({
+    orderBy: { executedAt: "desc" },
+    take: limit,
+  })
+  if (batches.length === 0) return []
+
+  const typeIds = new Set<number>()
+  for (const b of batches) {
+    for (const id of b.fromDutyTypeIds) typeIds.add(id)
+    typeIds.add(b.toDutyTypeId)
+  }
+  const types = await prisma.dutyType.findMany({
+    where: { id: { in: [...typeIds] } },
+    select: { id: true, name: true },
+  })
+  const nameMap = new Map(types.map((t) => [t.id, t.name]))
+  const label = (id: number) => nameMap.get(id) ?? `#${id}（削除済み）`
+
+  return batches.map((b) => ({
+    id: b.id,
+    fromDutyTypeNames: b.fromDutyTypeIds.map(label),
+    toDutyTypeName: label(b.toDutyTypeId),
+    replacedCount: b.replacedCount,
+    skippedCount: b.skippedCount,
+    executedBy: b.executedBy,
+    executedAt: b.executedAt.toISOString(),
+    revertedAt: b.revertedAt ? b.revertedAt.toISOString() : null,
+    revertedBy: b.revertedBy,
+  }))
+}
+

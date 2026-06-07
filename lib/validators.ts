@@ -164,6 +164,20 @@ export const dutyAssignmentSchema = z.object({
 })
 export type DutyAssignmentFormData = z.infer<typeof dutyAssignmentSchema>
 
+// 業務割当の一括置換（業務種別の統廃合）スキーマ
+export const dutyAssignmentBulkReplaceSchema = z
+  .object({
+    fromDutyTypeIds: z
+      .array(z.coerce.number().int().positive())
+      .min(1, "置換元の業務種別を選択してください"),
+    toDutyTypeId: z.coerce.number().int().positive("置換先の業務種別を選択してください"),
+  })
+  .refine((d) => !d.fromDutyTypeIds.includes(d.toDutyTypeId), {
+    message: "置換先は置換元と異なる業務種別を選んでください",
+    path: ["toDutyTypeId"],
+  })
+export type DutyAssignmentBulkReplaceInput = z.infer<typeof dutyAssignmentBulkReplaceSchema>
+
 // CSV Import schemas
 export const employeeCsvRowSchema = z.object({
   employeeId: z.string().uuid().nullable(),
