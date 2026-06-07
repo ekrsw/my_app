@@ -432,3 +432,19 @@
 **Depends on:** 上記シフトの事前検証 PR のマージ
 
 **Effort:** M (CC+gstack: ~40min) | **Priority:** P3 | **Risk:** Low
+
+## 業務割当の一括置換に group/role/従業員フィルタを追加（v2）
+
+**What:** 業務割当の一括置換（v1: 元種別→先種別の全件置換）に、グループ/ロール/従業員での絞り込みを追加し、部分統合（例「来月この班だけXからYへ」相当の対象者限定）に対応する。
+
+**Why:** office-hours の元要望は group/role/従業員/業務種別の4条件指定だった。eng-review で複雑さ低減のため v1 はフィルタを外し「元種別のみ全件置換」に縮小（主用途の統廃合は全員対象で足りる）。部分統合ニーズが実際に出たら v2 で復活させる。
+
+**Pros:** 部分統合・対象者限定の統合に対応 / 元要望の完全充足
+
+**Cons:** 「現所属(endDate=null)を全期間の割当に適用する」意味の曖昧さをUIで明示する必要。group/role の期間判定（employee_groups/roles の start/end）をどう扱うか要設計。月スコープの getDutyAssignmentsForCalendar とは判定基準が違い流用は限定的。
+
+**Context:** v1 設計: `~/.gstack/projects/ekrsw-my_app/eisuke_koresawa-main-design-20260607-082609.md`（§2 の従業員絞り込みロジックと Open Question 1 が該当）。実装時はバッチテーブル `duty_assignment_bulk_replace_batch` に group_ids/role_ids/employee_ids 列を追加するマイグレーション（v1で YAGNI のため未作成）と、絞り込み条件のスナップショット保存を行う。
+
+**Depends on:** v1（元種別→先種別 全件置換）のマージ
+
+**Effort:** M (CC+gstack: ~40min) | **Priority:** P3 | **Risk:** Med

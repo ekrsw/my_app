@@ -295,6 +295,41 @@ model DutyAssignment {
   @@map("duty_assignments")
 }
 
+// 業務割当の一括置換バッチ（業務種別の統廃合）。実行ごとに1行。
+// Undo(取り消し)のため、影響した割当と置換前の業務種別を items に保持する。
+// 履歴トリガーは付けない（追記専用の事実記録）。
+model DutyAssignmentBulkReplaceBatch {
+  id              Int       @id @default(autoincrement())
+  fromDutyTypeIds Int[]     @map("from_duty_type_ids")
+  toDutyTypeId    Int       @map("to_duty_type_id")
+  replacedCount   Int       @map("replaced_count")
+  skippedCount    Int       @map("skipped_count")
+  executedBy      String?   @map("executed_by") @db.VarChar(100)
+  executedAt      DateTime  @default(now()) @map("executed_at")
+  revertedBy      String?   @map("reverted_by") @db.VarChar(100)
+  revertedAt      DateTime? @map("reverted_at")
+
+  items DutyAssignmentBulkReplaceItem[]
+
+  @@index([executedAt])
+  @@map("duty_assignment_bulk_replace_batch")
+}
+
+// バッチで置換した1割当の記録（置換前の業務種別）。
+// dutyAssignmentId はあえて FK を張らない（割当が後で削除/カスケード消失しても
+// 監査記録は残す。Undo は実行時にガードで対応する）。
+model DutyAssignmentBulkReplaceItem {
+  id                 Int @id @default(autoincrement())
+  batchId            Int @map("batch_id")
+  dutyAssignmentId   Int @map("duty_assignment_id")
+  previousDutyTypeId Int @map("previous_duty_type_id")
+
+  batch DutyAssignmentBulkReplaceBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
+
+  @@index([batchId])
+  @@map("duty_assignment_bulk_replace_item")
+}
+
 model User {
   id           Int      @id @default(autoincrement())
   username     String   @unique @db.VarChar(50)
