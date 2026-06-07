@@ -9,8 +9,8 @@ import { HELP_SECTIONS } from "@/lib/help/sections"
  * 壊れるため、ここで早期に検知する。
  */
 describe("HELP_SECTIONS マニフェスト", () => {
-  it("4 セクションある", () => {
-    expect(HELP_SECTIONS).toHaveLength(4)
+  it("5 セクションある", () => {
+    expect(HELP_SECTIONS).toHaveLength(5)
   })
 
   it("anchor が一意である", () => {
