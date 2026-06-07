@@ -21,6 +21,7 @@ import { DutyTypeImportSection } from "@/components/data/duty-type-import-sectio
 import { DutyTypeExportSection } from "@/components/data/duty-type-export-section"
 import { DutyAssignmentImportSection } from "@/components/data/duty-assignment-import-section"
 import { DutyAssignmentExportSection } from "@/components/data/duty-assignment-export-section"
+import { DutyAssignmentBulkReplaceSection } from "@/components/data/duty-assignment-bulk-replace-section"
 import { ImportLogHistorySection } from "@/components/data/import-log-history-section"
 
 type Group = {
@@ -47,7 +48,7 @@ type Props = {
   dutyTypes: DutyType[]
 }
 
-type Mode = "import" | "export" | "convert" | "history"
+type Mode = "import" | "export" | "convert" | "replace" | "history"
 type DataType = "shifts" | "employees" | "roles" | "dutyTypes" | "dutyAssignments"
 
 export function DataPageClient({ groups, roles, dutyTypes }: Props) {
@@ -73,6 +74,10 @@ export function DataPageClient({ groups, roles, dutyTypes }: Props) {
           <div className="flex items-center space-x-2">
             <RadioGroupItem value="convert" id="mode-convert" />
             <Label htmlFor="mode-convert">Excel変換</Label>
+          </div>
+          <div className="flex items-center space-x-2">
+            <RadioGroupItem value="replace" id="mode-replace" />
+            <Label htmlFor="mode-replace">一括置換</Label>
           </div>
           <div className="flex items-center space-x-2">
             <RadioGroupItem value="history" id="mode-history" />
@@ -131,6 +136,14 @@ export function DataPageClient({ groups, roles, dutyTypes }: Props) {
         {mode === "convert" && dataType !== "shifts" && (
           <div className="py-8 text-center text-sm text-muted-foreground">
             Excel変換は現在「シフト管理」のみ対応しています
+          </div>
+        )}
+        {mode === "replace" && dataType === "dutyAssignments" && (
+          <DutyAssignmentBulkReplaceSection dutyTypes={dutyTypes} />
+        )}
+        {mode === "replace" && dataType !== "dutyAssignments" && (
+          <div className="py-8 text-center text-sm text-muted-foreground">
+            一括置換は現在「業務割当」のみ対応しています
           </div>
         )}
         {mode === "history" && (
