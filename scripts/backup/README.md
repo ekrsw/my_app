@@ -19,7 +19,9 @@ Windows Server 2019 でのセルフホスト運用を想定。
 | ファイル | 役割 |
 |----------|------|
 | `backup-db.ps1` | バックアップ本体（ダンプ取得・秘密情報退避・世代管理） |
-| `register-task.ps1` | タスクスケジューラへ日次タスクを登録（要管理者権限） |
+| `register-task.ps1` | タスクスケジューラへ日次バックアップを登録（要管理者権限） |
+| `sync-backup.ps1` | `C:\backups` を共有フォルダ（別サーバー/NAS）へ複製（robocopy） |
+| `register-sync-task.ps1` | タスクスケジューラへ日次同期を登録（要管理者権限） |
 
 ## 前提条件
 
@@ -94,8 +96,82 @@ $env:PGPASSWORD = $null
 このサーバーには C: ドライブしかなく、バックアップも同一ディスク上にあります。
 **サーバー/ディスク障害時に全滅する**ため、3-2-1 ルールに従い別拠点への複製を強く推奨します。
 
-- `C:\backups\` を 1日1回、別サーバー / NAS / クラウドストレージへ同期
+- `C:\backups\` を 1日1回、別サーバー / NAS / クラウドストレージへ同期（下記「共有フォルダへの同期」参照）
 - オフサイトへ送る際、`secrets\` の中身（平文の `.env`）は暗号化して保管すること
+  （`sync-backup.ps1` は暗号化を行わないため、同期先は NTFS/共有権限でアクセス制限する）
+
+## 共有フォルダへの同期
+
+`C:\backups\` を別サーバー / NAS の共有フォルダへ複製し、ディスク障害時の全滅を防ぎます。
+`sync-backup.ps1` は Windows 標準の `robocopy` を使用します。
+
+### 動作モード
+
+- **既定（追加コピーのみ / `$Mirror = $false`）**: 同期先にファイルを追加していくのみ。
+  ローカルが破損・全消失しても同期先に過去世代が残るため、オフサイト退避として安全。
+  ただし同期先の容量は増え続けるため、定期的な手動整理が必要。
+- **ミラー（`$Mirror = $true`）**: 同期先を `C:\backups\` と完全一致させる。
+  ローカルで世代管理により削除された古い世代は、同期先からも削除される（容量は一定）。
+
+### 1. 設定値の調整
+
+同期先パスはプロジェクトルートの `.env` から取得します（DB接続情報と同じく Git 管理外）。
+`.env` に以下を追記:
+
+```dotenv
+# 同期先（UNC パス または マッピング済みドライブ）【必須】
+BACKUP_SYNC_DEST=\\NAS\backups\shift_db
+# 実行アカウント自体に共有アクセス権がない場合のみ設定【任意・通常は不要】
+BACKUP_SYNC_USER=NAS\backupuser
+BACKUP_SYNC_PASS=（共有アクセス用パスワード）
+```
+
+robocopy の挙動は `sync-backup.ps1` 冒頭で切り替えます:
+
+- `$Mirror` … `$true` でミラー、`$false`（既定）で追加コピーのみ
+
+### 2. 手動実行で動作確認
+
+通常の PowerShell（昇格不要）で実行。実行アカウントが共有にアクセスできることが前提:
+
+```powershell
+cd C:\path\to\my_app
+powershell -ExecutionPolicy Bypass -File .\scripts\backup\sync-backup.ps1
+```
+
+成功すると同期先に `db\` / `secrets\` が複製され、`C:\backups\sync.log` に実行ログ、
+`C:\backups\sync-robocopy.log` に robocopy 詳細ログが記録されます。
+
+### 3. タスクスケジューラへ登録（要管理者権限）
+
+> ⚠ 共有フォルダ（UNC）へアクセスするには **SYSTEM ではなく、共有にアクセス権を持つ実ユーザー**で
+> 実行する必要があります。`-RunAsUser` を必ず指定してください。
+
+PowerShell を **「管理者として実行」** で起動し:
+
+```powershell
+cd C:\path\to\my_app
+powershell -ExecutionPolicy Bypass -File .\scripts\backup\register-sync-task.ps1 -RunAsUser "DOMAIN\backupuser"
+```
+
+実行ユーザーのパスワード入力を求められます（タスクに安全に保存され、未ログオン時も実行されます）。
+`OK: タスク 'ShiftDB-DailySync' を登録しました（毎日 02:30 実行）` と表示されれば完了。
+
+> 既定の実行時刻は 02:30。バックアップ本体（`ShiftDB-DailyBackup` / 02:00）の完了後に走るよう調整済み。
+> 時刻を変える場合は `-At "03:00"` のように指定します。
+
+### 4. 登録後の確認
+
+```powershell
+# タスクを今すぐ手動実行
+Start-ScheduledTask -TaskName "ShiftDB-DailySync"
+
+# 次回実行時刻・前回結果の確認
+Get-ScheduledTaskInfo -TaskName "ShiftDB-DailySync"
+
+# 同期ログの確認
+Get-Content C:\backups\sync.log -Tail 8
+```
 
 ## トラブルシューティング
 
@@ -108,3 +184,10 @@ $env:PGPASSWORD = $null
   → `backup-db.ps1` の `$PgBin` をインストール先に合わせて修正する。
 - **`.env に DATABASE_URL が見つかりません`**
   → プロジェクトルートに `.env` があり `DATABASE_URL` が設定されているか確認する。
+- **`.env に BACKUP_SYNC_DEST（同期先パス）が設定されていません`**
+  → プロジェクトルートの `.env` に `BACKUP_SYNC_DEST=\\サーバー\共有\パス` を追記する。
+- **同期タスクが共有にアクセスできない（`同期先にアクセスできません`）**
+  → SYSTEM で登録していると UNC 共有にアクセスできない。`-RunAsUser` で共有アクセス権を持つ
+  ユーザーを指定して `register-sync-task.ps1` を再実行する。手動実行で成功しタスクで失敗する場合も同原因。
+- **`robocopy が失敗しました (exit=8 以上)`**
+  → `C:\backups\sync-robocopy.log` で詳細を確認。共有の空き容量・権限・ネットワーク断を疑う。
