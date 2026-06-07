@@ -23,7 +23,11 @@ test.describe("ヘルプページと各画面からの導線", () => {
       .getByRole("link", { name: "変更履歴の操作" })
       .click()
     await expect(page).toHaveURL(/\/help#history$/)
-    await expect(page.locator("section#history")).toBeInViewport()
+    // 同一ルート内のハッシュ遷移は Next.js のソフトナビゲーションとして扱われ、
+    // RSC 再フェッチ中の React トランジションで section#history が一時的に二重マウント
+    // されることがある。strict ロケータだと一致が2件になり strict mode violation で落ちる。
+    // .first() で strict 判定を回避し、toBeInViewport の自動リトライで DOM 安定後に判定する。
+    await expect(page.locator("section#history").first()).toBeInViewport()
   })
 
   test("3. 業務種別画面の「?」→ /help#duty-types", async ({ page }) => {
