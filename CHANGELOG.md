@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.11.5] - 2026-06-08
+
+### Added
+- バックアップの共有フォルダ同期一式を追加（`scripts/backup/`）。`C:\backups` を別サーバー/NAS の共有フォルダへ robocopy で複製する PowerShell スクリプト（`sync-backup.ps1`）と、Windows タスクスケジューラへ日次同期（既定 02:30、バックアップ本体 02:00 の後）を登録するスクリプト（`register-sync-task.ps1`）を同梱。同期先・共有認証情報は `.env`（`BACKUP_SYNC_DEST` / `BACKUP_SYNC_USER` / `BACKUP_SYNC_PASS`）から取得し、スクリプトに直書きしない。既定は追加コピーのみ（`$Mirror = $true` で完全ミラー）。README にセットアップ手順、`.env.example` に設定キーの雛形を追記。3-2-1 バックアップの別拠点複製を満たすことが目的（アプリのユーザー向け機能の変更はなし）。
+
 ## [0.3.11.4] - 2026-06-08
 
 ### Added
