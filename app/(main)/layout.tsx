@@ -2,6 +2,7 @@ import { cookies } from "next/headers"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 import { AppSidebar } from "@/components/layout/app-sidebar"
 import { SessionProvider } from "@/components/auth/session-provider"
+import { SealedBanner } from "@/components/crypto/sealed-banner"
 
 export default async function MainLayout({
   children,
@@ -15,7 +16,10 @@ export default async function MainLayout({
     <SessionProvider>
       <SidebarProvider defaultOpen={defaultOpen}>
         <AppSidebar />
-        <SidebarInset>{children}</SidebarInset>
+        <SidebarInset>
+          <SealedBanner />
+          {children}
+        </SidebarInset>
       </SidebarProvider>
     </SessionProvider>
   )
