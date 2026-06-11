@@ -16,3 +16,14 @@ export class KeyringUnlockError extends Error {
     this.name = "KeyringUnlockError"
   }
 }
+
+/**
+ * sealed エラー判定。Prisma Client Extension 越しに再 throw されても識別できるよう、
+ * instance チェックに加えて name でも判定する。
+ */
+export function isKeyringSealedError(e: unknown): e is KeyringSealedError {
+  return (
+    e instanceof KeyringSealedError ||
+    (e instanceof Error && e.name === "KeyringSealedError")
+  )
+}

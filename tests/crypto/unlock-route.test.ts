@@ -26,14 +26,18 @@ async function loadRoutes() {
   return { unlockRoute, statusRoute }
 }
 
-beforeEach(() => {
+beforeEach(async () => {
   dir = mkdtempSync(join(tmpdir(), "keyring-route-"))
   const path = join(dir, "keyring.json")
   writeKeyringFile(path, buildKeyringFile(randomDek(), OP_FIXTURE, generateRecoveryCode()))
   process.env.KEYRING_PATH = path
   process.env.UNLOCK_TOKEN_PATH = join(dir, "unlock.token")
-  // モジュール状態（keyring シングルトン・レート制限）をテスト毎にリセット
+  // モジュール状態（レート制限）をテスト毎にリセット
   vi.resetModules()
+  // keyring の状態は globalThis に載るため vi.resetModules では消えない。
+  // 明示的にリセットしないと前テストの DEK/token が漏れる（token ファイル未生成→読込失敗）。
+  const keyring = await import("@/lib/crypto/keyring")
+  keyring.__resetForTest()
 })
 
 afterEach(() => {

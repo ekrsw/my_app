@@ -1,4 +1,5 @@
 import { PrismaClient } from "@/app/generated/prisma/client"
+import { withEncryption } from "@/lib/crypto/prisma-encryption"
 
 const testDatabaseUrl = process.env.DATABASE_URL
 
@@ -9,6 +10,9 @@ if (!testDatabaseUrl || !testDatabaseUrl.includes("_test")) {
   )
 }
 
-export const prisma = new PrismaClient({
-  datasourceUrl: testDatabaseUrl,
-})
+// 本番と同じ透過暗号化拡張を適用し、統合テスト・サーバーアクションテストでも暗号化を効かせる。
+export const prisma = withEncryption(
+  new PrismaClient({
+    datasourceUrl: testDatabaseUrl,
+  })
+)

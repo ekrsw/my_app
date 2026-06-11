@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.11.16] - 2026-06-12
+
+### Added
+- **アプリレベル暗号化（P1）**: 業務割当・業務種別の自由記述列（`DutyAssignment.note`/`title`・`DutyType.defaultNote`/`defaultTitle`）を Prisma Client Extension で**透過的に暗号化**して保存（`v1:` 形式）。クエリ・アクション層は暗号化を意識せず、CSV エクスポートも復号済み平文を出力。鍵が sealed（未アンロック）の間は対象列を読むページ（ダッシュボード・業務管理・業務種別管理）が 500 にならず「🔒 ロック中」を表示する（フェイルクローズ）。既存平文は `npm run keyring:backfill-tier3`（冪等・要アンロック）で暗号化。
+- **バックアップの暗号化（at-rest 盗難対策）**: 日次バックアップのダンプと秘密情報（`.env`/`.env.test`/`secrets/keyring.json`）を 7-Zip(AES-256・ヘッダ暗号化) で暗号化し、平文を残さず保存（NAS/共有フォルダへの複製先でも読めない）。パスフレーズは `BACKUP_PASSPHRASE` か DPAPI 保護ファイルから取得し、バックアップの隣には置かない。稼働中 DB 本体の保存時暗号化は BitLocker（手順を `scripts/backup/README.md` に追記）。
+
+### Changed
+- `DutyAssignment.title` と `DutyType.defaultTitle` を `VARCHAR(100)` → `TEXT` に拡張（暗号文が切り詰められないように）。マイグレーション `20260611153530_widen_duty_title_to_text`（後方互換）。
+
+### Fixed
+- keyring の DEK 保持をモジュールスコープから **globalThis シングルトン**に変更。Next.js は同一プロセスでも route handler 層（`unlock` を書く）と RSC 層（`SealedBanner`・復号拡張が読む）で keyring モジュールを別インスタンスとして評価するため、アンロック後もページ描画側が sealed のままになり「🔒 ロック中」が消えない問題を解消（`lib/prisma.ts` と同じ方式）。
+
+### For contributors
+- 透過暗号化拡張は `lib/crypto/prisma-encryption.ts`（`withEncryption()` + `ENCRYPTED_FIELDS` レジストリ）。復号は「操作モデル起点」で `RELATIONS` マップに沿って辿るため、同名の平文列（`ShiftChangeHistory.note` 等）を誤って復号しない。暗号化列を読む新しいページは `isKeyringSealedError()` での sealed 捕捉が必要。
+- テストは一時 keyring を生成・アンロックして実行（`KEYRING_TEST_PASSPHRASE`）。新規テスト: 暗号往復・at-rest 暗号文・null/二重暗号化なし・各書き込み形態（create/update/updateMany/upsert/createMany/`{set}`）・sealed フェイルクローズ・同名平文の非復号・冪等バックフィル・sealed UI。
+
 ## [0.3.11.15] - 2026-06-11
 
 ### Docs
