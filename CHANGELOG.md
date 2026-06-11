@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.11.7] - 2026-06-11
+
+### Security
+- CSV エクスポート（従業員・シフト・当番割当・当番種別・ロール割当・シフトコードの全6エンドポイント）に数式インジェクション（CSV Injection）対策を追加。セル先頭が `=` `+` `-` `@` タブ/CR の値に `'` を前置し、出力CSVを Excel/Sheets で開いた際に数式として評価されないようにした。共通ヘルパー `lib/csv.ts`（`rowsToCsv()`）に集約し、従来各ルートに重複していたCSV生成処理を統一。ユニットテストを追加（`tests/utils/csv.test.ts`）。
+
+### Changed
+- `CLAUDE.md` の `app/api/` 記述を実装に合わせて修正。エクスポート系 GET エンドポイントは「未認証ユーザーも閲覧可」というアプリ全体の設計に従い認証ガードを持たず（読み取り専用・社内LAN限定運用前提）、認証ガードは処理系 POST（Excel→CSV 変換等）に適用される旨を明記。
+- `README.md` の技術スタックの Zod にメジャーバージョン（4）を明記。
+
 ## [0.3.11.6] - 2026-06-08
 
 ### Fixed
