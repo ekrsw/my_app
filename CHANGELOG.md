@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.11.13] - 2026-06-11
+
+### Docs
+- P0 実装スペックに「シークレットの受け渡し」節を追記（`docs/plans/app-level-encryption-p0-spec.md`）。DEK・運用パスフレーズ・リカバリコードそれぞれの生成主体・入力有無・保存形態の表、局面別（開発/初回セットアップ/起動時）の扱い、渡し方のルール（no-echo stdin、引数/環境変数禁止、サーバ側ラップ解除、平文DEK非保存）を明記。
+
 ## [0.3.11.12] - 2026-06-11
 
 ### Docs
