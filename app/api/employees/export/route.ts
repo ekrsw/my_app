@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getEmployeesForExport } from "@/lib/db/employees"
 import { formatDate } from "@/lib/date-utils"
+import { rowsToCsv } from "@/lib/csv"
 
 export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl
@@ -20,9 +21,7 @@ export async function GET(request: NextRequest) {
     e.groups.map((g) => g.group.name).join("|"),
   ])
 
-  const csv = [headers, ...rows]
-    .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(","))
-    .join("\n")
+  const csv = rowsToCsv([headers, ...rows])
 
   const bom = "\uFEFF"
   const now = new Date()

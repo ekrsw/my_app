@@ -71,7 +71,7 @@ Form (Client Component) → lib/actions/ (Server Actions) → requireAuth() → 
 - `components/auth/` — Login form and SessionProvider wrapper
 - `components/ui/` — shadcn/ui base components (do not edit manually, use `npx shadcn add`)
 - `app/generated/prisma/` — Prisma generated client (do not edit)
-- `app/api/` — Route Handler (export CSV エンドポイント、Excel→CSV 変換 POST エンドポイント等)。mutation 系 Server Action と同様に先頭で `auth()` による認証ガードを実施
+- `app/api/` — Route Handler。**書き込み・処理系 POST エンドポイント**（Excel→CSV 変換 `data/shift-conversion` 等）は mutation 系 Server Action と同様に先頭で `auth()` による認証ガードを実施。一方、**CSV エクスポート系 GET エンドポイント**（`*/export`）と参照系 GET（`shifts/versions` 等）は「未認証ユーザーも閲覧可」というアプリ全体の設計（下記 Authentication 参照）に従い、認証ガードを持たない（読み取り専用・社内LAN限定運用前提）。CSV 生成は `lib/csv.ts` の `rowsToCsv()` 経由でエスケープ＋数式インジェクション中和を行う
 - `content/help/*.md` — ヘルプページ本文（人手で編集する Markdown）。本文の更新は .md を編集・コミット・再デプロイで反映
 - `lib/help/` — ヘルプのマニフェスト（`sections.ts`: 目次・anchor・読み込む .md の唯一のソース）と loader（`load-help.ts`）
 - `app/(main)/help/` — ヘルプページ（`/help`）。Server Component で `content/help/*.md` を読み込み描画

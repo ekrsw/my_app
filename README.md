@@ -8,7 +8,7 @@
 - [React](https://react.dev) 19
 - [Prisma](https://www.prisma.io) 6 (PostgreSQL)
 - [Auth.js](https://authjs.dev) v5 (next-auth@beta) + bcrypt
-- [Zod](https://zod.dev) (バリデーション)
+- [Zod](https://zod.dev) 4 (バリデーション)
 - [Vitest](https://vitest.dev) (ユニット/統合テスト)
 - [Playwright](https://playwright.dev) (E2E テスト)
 - [Tailwind CSS](https://tailwindcss.com) 4
