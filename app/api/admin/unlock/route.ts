@@ -42,5 +42,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "アンロックに失敗しました" }, { status: 401 })
   }
 
+  // 成功したら失敗カウントをリセット（攻撃者は成功しないので安全・操作者UXのみ改善）
+  failures = []
   return NextResponse.json({ state: "ready" })
 }

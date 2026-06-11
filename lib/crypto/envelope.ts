@@ -138,5 +138,7 @@ export function readKeyringFile(path: string): KeyringFile {
 
 export function writeKeyringFile(path: string, file: KeyringFile): void {
   mkdirSync(dirname(path), { recursive: true })
+  // mode 0o600 は POSIX のみ有効。Windows(NTFS)では無視されるため、本番では
+  // secrets/ フォルダの NTFS ACL（管理者限定）でアクセス制御すること。
   writeFileSync(path, JSON.stringify(file, null, 2) + "\n", { encoding: "utf8", mode: 0o600 })
 }

@@ -83,4 +83,29 @@ describe("unlock route", () => {
     )
     expect(r6.status).toBe(429)
   })
+
+  it("成功アンロックで失敗カウントがリセットされる", async () => {
+    const { statusRoute, unlockRoute } = await loadRoutes()
+    await statusRoute.GET()
+    const token = readFileSync(process.env.UNLOCK_TOKEN_PATH as string, "utf8").trim()
+
+    for (let i = 0; i < 4; i++) {
+      const r = await unlockRoute.POST(
+        makeReq({ token: "bad", passphrase: "x" }) as Parameters<typeof unlockRoute.POST>[0],
+      )
+      expect(r.status).toBe(401)
+    }
+    // 成功でリセット
+    const ok = await unlockRoute.POST(
+      makeReq({ token, passphrase: PASS }) as Parameters<typeof unlockRoute.POST>[0],
+    )
+    expect(ok.status).toBe(200)
+    // さらに4回失敗しても 429 にならない（カウントがリセット済み）
+    for (let i = 0; i < 4; i++) {
+      const r = await unlockRoute.POST(
+        makeReq({ token: "bad", passphrase: "x" }) as Parameters<typeof unlockRoute.POST>[0],
+      )
+      expect(r.status).toBe(401)
+    }
+  })
 })
