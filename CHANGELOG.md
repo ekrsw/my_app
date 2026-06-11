@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.11.15] - 2026-06-11
+
+### Docs
+- アプリレベル暗号化の **P1 実装スペック**を追加（`docs/plans/app-level-encryption-p1-spec.md`）。Tier3 自由記述列のうち通常 Prisma 書き込みの4列（DutyAssignment.note/title・DutyType.defaultNote/defaultTitle）を Prisma Client Extension で透過暗号化する backlog-ready スペック。title 列の Text 拡張、sealed 時のページハンドリング、冪等バックフィル、テストインフラを確定。トリガー書き込みの shift_change_history.note は P1.5 に分離。
+- 鍵エスクロー手順書のステータスを **承認済み（2026-06-11）** に更新（実装着手ゲート解除の記録）。
+
 ## [0.3.11.14] - 2026-06-11
 
 ### Added
