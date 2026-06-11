@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.11.12] - 2026-06-11
+
+### Docs
+- アプリレベル暗号化の **P0 実装スペック**を追加（`docs/plans/app-level-encryption-p0-spec.md`）。暗号コア（`lib/crypto/` envelope・keyring・errors）と sealed/unlock 動線（unlock/lock-status ルート、init/recover/unlock CLI）の backlog-ready スペック。暗号仕様（AES-256-GCM + Envelope・scrypt・`v1:` 形式）、keyring.json 形式、unlock の localhost 保証（token ファイル + loopback）、受け入れ基準9件、テスト14本、工数見積を確定。スキーマ・実データは非対象。実装着手は鍵エスクロー承認が前提。
+
 ## [0.3.11.11] - 2026-06-11
 
 ### Docs
