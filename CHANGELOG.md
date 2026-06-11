@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.11.11] - 2026-06-11
+
+### Docs
+- アプリレベル暗号化の設計ドキュメントに plan-eng-review の所見を反映（`docs/plans/app-level-encryption-design.md`）。フェイルクローズ契約（§3）、暗号化列の列幅拡張 VarChar→Text（§4）、Tier2 の在籍判定が範囲比較である点の訂正（§4）、サイレント・フットガン対策＝リポジトリ隠蔽＋テストガード（§5）、冪等バックフィルと移行中の平文許容（§7）、自作実装・フットガン対策の決定追加（§11）、テスト戦略とスケール閾値の新規節（§13）を追記。
+
 ## [0.3.11.10] - 2026-06-11
 
 ### Docs
