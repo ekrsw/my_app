@@ -11,6 +11,9 @@ All notable changes to this project will be documented in this file.
 ### Changed
 - `DutyAssignment.title` と `DutyType.defaultTitle` を `VARCHAR(100)` → `TEXT` に拡張（暗号文が切り詰められないように）。マイグレーション `20260611153530_widen_duty_title_to_text`（後方互換）。
 
+### Fixed
+- keyring の DEK 保持をモジュールスコープから **globalThis シングルトン**に変更。Next.js は同一プロセスでも route handler 層（`unlock` を書く）と RSC 層（`SealedBanner`・復号拡張が読む）で keyring モジュールを別インスタンスとして評価するため、アンロック後もページ描画側が sealed のままになり「🔒 ロック中」が消えない問題を解消（`lib/prisma.ts` と同じ方式）。
+
 ### For contributors
 - 透過暗号化拡張は `lib/crypto/prisma-encryption.ts`（`withEncryption()` + `ENCRYPTED_FIELDS` レジストリ）。復号は「操作モデル起点」で `RELATIONS` マップに沿って辿るため、同名の平文列（`ShiftChangeHistory.note` 等）を誤って復号しない。暗号化列を読む新しいページは `isKeyringSealedError()` での sealed 捕捉が必要。
 - テストは一時 keyring を生成・アンロックして実行（`KEYRING_TEST_PASSPHRASE`）。新規テスト: 暗号往復・at-rest 暗号文・null/二重暗号化なし・各書き込み形態（create/update/updateMany/upsert/createMany/`{set}`）・sealed フェイルクローズ・同名平文の非復号・冪等バックフィル・sealed UI。

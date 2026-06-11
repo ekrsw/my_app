@@ -19,8 +19,29 @@ import {
 import { KeyringSealedError, KeyringUnlockError } from "./errors"
 
 // メモリのみ保持。プロセス生存中はリクエストをまたいで保持される（next start 単一プロセス前提）。
-let dek: Buffer | null = null
-let unlockToken: string | null = null
+//
+// 重要: 状態は globalThis に載せる。Next.js は同一プロセス内でも route handler 層と
+// RSC（サーバーコンポーネント）層で本モジュールを別インスタンスとして評価しうるため、
+// 単純なモジュールスコープ変数だと unlock（route）でメモリに載せた DEK が
+// page 描画（RSC: SealedBanner・復号拡張）から見えず、アンロック後も「ロック中」のままになる。
+// lib/prisma.ts と同じ globalThis シングルトン方式で、全モジュールインスタンス間で共有する。
+const globalForKeyring = globalThis as unknown as {
+  __keyringDek?: Buffer | null
+  __keyringUnlockToken?: string | null
+}
+
+function getDek(): Buffer | null {
+  return globalForKeyring.__keyringDek ?? null
+}
+function setDek(value: Buffer | null): void {
+  globalForKeyring.__keyringDek = value
+}
+function getUnlockToken(): string | null {
+  return globalForKeyring.__keyringUnlockToken ?? null
+}
+function setUnlockToken(value: string | null): void {
+  globalForKeyring.__keyringUnlockToken = value
+}
 
 function keyringPath(): string {
   return resolve(process.cwd(), process.env.KEYRING_PATH ?? "secrets/keyring.json")
@@ -32,7 +53,7 @@ function tokenPath(): string {
 
 /** 鍵がメモリに載っているか（= 暗号操作が可能か）。 */
 export function isUnlocked(): boolean {
-  return dek !== null
+  return getDek() !== null
 }
 
 /**
@@ -50,23 +71,26 @@ export function unlock(passphrase: string): void {
   if (!verifyDekCheck(candidate, file.dekCheck)) {
     throw new KeyringUnlockError("鍵の検証に失敗しました")
   }
-  dek = candidate
+  setDek(candidate)
 }
 
 /** メモリ上の DEK を消去して sealed に戻す。 */
 export function lock(): void {
+  const dek = getDek()
   if (dek) dek.fill(0)
-  dek = null
+  setDek(null)
 }
 
 /** 平文を暗号化。sealed 中は KeyringSealedError を throw（暗号文や null を返さない）。 */
 export function encrypt(plaintext: string): string {
+  const dek = getDek()
   if (!dek) throw new KeyringSealedError()
   return encryptWithKey(dek, Buffer.from(plaintext, "utf8"))
 }
 
 /** 暗号文を復号。sealed 中は KeyringSealedError を throw。 */
 export function decrypt(token: string): string {
+  const dek = getDek()
   if (!dek) throw new KeyringSealedError()
   return decryptWithKey(dek, token).toString("utf8")
 }
@@ -77,16 +101,18 @@ export function decrypt(token: string): string {
  * ローカル CLI はこのファイルを読んで unlock リクエストに添える。
  */
 export function getOrCreateUnlockToken(): string {
-  if (unlockToken) return unlockToken
+  const existing = getUnlockToken()
+  if (existing) return existing
   const p = tokenPath()
   if (existsSync(p)) {
-    unlockToken = readFileSync(p, "utf8").trim()
-    return unlockToken
+    const fromFile = readFileSync(p, "utf8").trim()
+    setUnlockToken(fromFile)
+    return fromFile
   }
   const t = randomBytes(32).toString("base64url")
   mkdirSync(dirname(p), { recursive: true })
   writeFileSync(p, t + "\n", { encoding: "utf8", mode: 0o600 })
-  unlockToken = t
+  setUnlockToken(t)
   return t
 }
 
@@ -101,5 +127,5 @@ export function verifyUnlockToken(candidate: string): boolean {
 /** テスト専用: モジュール状態をリセットする。 */
 export function __resetForTest(): void {
   lock()
-  unlockToken = null
+  setUnlockToken(null)
 }
