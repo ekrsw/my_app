@@ -1,6 +1,6 @@
 {
   "name": "my_app",
-  "version": "0.3.11.15",
+  "version": "0.3.11.16",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -17,7 +17,8 @@
     "db:seed": "tsx prisma/seed.ts",
     "keyring:init": "tsx scripts/keyring-init.ts",
     "keyring:recover": "tsx scripts/keyring-recover.ts",
-    "keyring:unlock": "tsx scripts/unlock.ts"
+    "keyring:unlock": "tsx scripts/unlock.ts",
+    "keyring:backfill-tier3": "tsx scripts/backfill-encrypt-tier3.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
