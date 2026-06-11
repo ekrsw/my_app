@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.11.9] - 2026-06-11
+
+### Docs
+- アプリレベル暗号化の設計ドキュメントに「§12 鍵エスクローフロー（詳細）」を追記（`docs/plans/app-level-encryption-design.md`）。DEK を運用パスフレーズとリカバリコードの2鍵で二重ラップする構造、フロー①〜⑥（セットアップ/アンロック/リカバリ/ローテーション）、保管ルールの分離原則、災害マトリクス、軽量代替案を記載。
+
 ## [0.3.11.8] - 2026-06-11
 
 ### Docs
