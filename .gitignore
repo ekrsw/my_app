@@ -34,6 +34,9 @@ yarn-error.log*
 .env
 .env.test
 
+# 暗号 keyring（鍵のラップ済みファイルと unlock token）。絶対にコミットしない
+/secrets/
+
 # vercel
 .vercel
 
