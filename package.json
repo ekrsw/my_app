@@ -14,7 +14,10 @@
     "test:e2e:ui": "playwright test --ui",
     "test:all": "npm run test && npm run test:e2e",
     "test:setup-db": "tsx tests/setup-db.ts",
-    "db:seed": "tsx prisma/seed.ts"
+    "db:seed": "tsx prisma/seed.ts",
+    "keyring:init": "tsx scripts/keyring-init.ts",
+    "keyring:recover": "tsx scripts/keyring-recover.ts",
+    "keyring:unlock": "tsx scripts/unlock.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
