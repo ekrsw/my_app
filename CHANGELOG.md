@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.11.10] - 2026-06-11
+
+### Docs
+- アプリレベル暗号化の**鍵エスクロー手順書（承認用）**を追加（`docs/plans/app-level-encryption-key-escrow-procedure.md`）。運用パスフレーズ／リカバリコードの保持者・保管場所（分離原則・2拠点）、アンロック手順、リカバリ手順、ローテーション計画、バックアップ要件、リスク承認、承認欄を記入式でまとめた運用ドキュメント。暗号化実装（P0〜）の着手前提条件。
+
 ## [0.3.11.9] - 2026-06-11
 
 ### Docs
