@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.11.14] - 2026-06-11
+
+### Added
+- アプリレベル暗号化の **P0 暗号コア + sealed/unlock 動線**を実装（方式B）。スキーマ・実データは非対象の基盤フェーズ。
+  - `lib/crypto/envelope.ts`: AES-256-GCM + Envelope(DEK/KEK)・scrypt KDF・`v1:` 形式・keyring.json I/O（`node:crypto` のみ、新規依存ゼロ）。
+  - `lib/crypto/keyring.ts`: DEK をプロセスメモリのみで保持するシングルトン。sealed 中の encrypt/decrypt は `KeyringSealedError` を throw（フェイルクローズ）。
+  - `app/api/admin/{unlock,lock-status}/route.ts`: loopback token + レート制限（15分5回・成功時リセット）、`runtime=nodejs`。
+  - `scripts/{keyring-init,keyring-recover,unlock}.ts`: no-echo 入力の CLI。`package.json` に `keyring:*` スクリプト、`.gitignore` に `/secrets/` を追加。
+  - テスト `tests/crypto/` 21件（暗号往復・GCM改竄検出・状態機械・エスクロー・unlockルート）。
+  - 注: 本番鍵生成（`keyring:init` の実行）は鍵エスクロー手順書の承認後に行う。Windows では `secrets/` の NTFS ACL でアクセス制御すること。
+
 ## [0.3.11.13] - 2026-06-11
 
 ### Docs
