@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.11.8] - 2026-06-11
+
+### Docs
+- アプリレベル暗号化の設計ドキュメントを追加（`docs/plans/app-level-encryption-design.md`）。サーバー非依存で PII 列（氏名・フリガナ・自由記述）を暗号化する方式の設計。脅威モデル（OS/DB管理者の at-rest 読み取り）、鍵管理方式B（起動時パスフレーズ・メモリのみ DEK、nssm は sealed→unlock 型）、AES-256-GCM + Envelope(DEK/KEK)、scrypt KDF、CLIアンロックを確定。実装はまだ含まない（設計のみ）。
+
 ## [0.3.11.7] - 2026-06-11
 
 ### Security
