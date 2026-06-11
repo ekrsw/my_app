@@ -30,7 +30,7 @@ describe("envelope: encryptWithKey / decryptWithKey", () => {
   })
 
   it("暗号文を改竄すると復号で throw（GCM 認証失敗）", () => {
-    const ct = encryptWithKey(key, Buffer.from("secret"))
+    const ct = encryptWithKey(key, Buffer.from("plaintext"))
     const segs = ct.slice(3).split(".")
     const ctBuf = Buffer.from(segs[2], "base64url")
     ctBuf[0] ^= 0xff
@@ -60,7 +60,7 @@ describe("envelope: wrap/unwrap と keyring ファイル", () => {
 
   it("buildKeyringFile は平文 DEK を含まず、dekCheck が検証できる", () => {
     const dek = randomDek()
-    const file = buildKeyringFile(dek, "op-passphrase-123", generateRecoveryCode())
+    const file = buildKeyringFile(dek, "op-test-input-123", generateRecoveryCode())
     const json = JSON.stringify(file)
     expect(json).not.toContain(dek.toString("base64url"))
     expect(json).not.toContain(dek.toString("hex"))

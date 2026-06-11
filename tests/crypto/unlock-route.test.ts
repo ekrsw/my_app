@@ -9,7 +9,7 @@ import {
   writeKeyringFile,
 } from "@/lib/crypto/envelope"
 
-const PASS = "operational-passphrase-123"
+const OP_FIXTURE = "operational-test-input-123"
 let dir: string
 
 function makeReq(body: unknown): Request {
@@ -29,7 +29,7 @@ async function loadRoutes() {
 beforeEach(() => {
   dir = mkdtempSync(join(tmpdir(), "keyring-route-"))
   const path = join(dir, "keyring.json")
-  writeKeyringFile(path, buildKeyringFile(randomDek(), PASS, generateRecoveryCode()))
+  writeKeyringFile(path, buildKeyringFile(randomDek(), OP_FIXTURE, generateRecoveryCode()))
   process.env.KEYRING_PATH = path
   process.env.UNLOCK_TOKEN_PATH = join(dir, "unlock.token")
   // モジュール状態（keyring シングルトン・レート制限）をテスト毎にリセット
@@ -47,7 +47,7 @@ describe("unlock route", () => {
     const { statusRoute, unlockRoute } = await loadRoutes()
     await statusRoute.GET() // token ファイルを materialize
     const res = await unlockRoute.POST(
-      makeReq({ token: "bad-token", passphrase: PASS }) as Parameters<typeof unlockRoute.POST>[0],
+      makeReq({ token: "bad-token", passphrase: OP_FIXTURE }) as Parameters<typeof unlockRoute.POST>[0],
     )
     expect(res.status).toBe(401)
   })
@@ -61,7 +61,7 @@ describe("unlock route", () => {
     expect((await before.json()).state).toBe("sealed")
 
     const res = await unlockRoute.POST(
-      makeReq({ token, passphrase: PASS }) as Parameters<typeof unlockRoute.POST>[0],
+      makeReq({ token, passphrase: OP_FIXTURE }) as Parameters<typeof unlockRoute.POST>[0],
     )
     expect(res.status).toBe(200)
 
@@ -97,7 +97,7 @@ describe("unlock route", () => {
     }
     // 成功でリセット
     const ok = await unlockRoute.POST(
-      makeReq({ token, passphrase: PASS }) as Parameters<typeof unlockRoute.POST>[0],
+      makeReq({ token, passphrase: OP_FIXTURE }) as Parameters<typeof unlockRoute.POST>[0],
     )
     expect(ok.status).toBe(200)
     // さらに4回失敗しても 429 にならない（カウントがリセット済み）

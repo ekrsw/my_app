@@ -11,13 +11,13 @@ import {
 import * as keyring from "@/lib/crypto/keyring"
 import { KeyringSealedError, KeyringUnlockError } from "@/lib/crypto/errors"
 
-const PASS = "operational-passphrase-123"
+const OP_FIXTURE = "operational-test-input-123"
 let dir: string
 
 beforeEach(() => {
   dir = mkdtempSync(join(tmpdir(), "keyring-"))
   const path = join(dir, "keyring.json")
-  writeKeyringFile(path, buildKeyringFile(randomDek(), PASS, generateRecoveryCode()))
+  writeKeyringFile(path, buildKeyringFile(randomDek(), OP_FIXTURE, generateRecoveryCode()))
   process.env.KEYRING_PATH = path
   process.env.UNLOCK_TOKEN_PATH = join(dir, "unlock.token")
   keyring.__resetForTest()
@@ -43,24 +43,24 @@ describe("keyring: sealed 状態", () => {
 
 describe("keyring: unlock", () => {
   it("正しい運用パスフレーズで ready になり、暗号往復する", () => {
-    keyring.unlock(PASS)
+    keyring.unlock(OP_FIXTURE)
     expect(keyring.isUnlocked()).toBe(true)
     const ct = keyring.encrypt("田中太郎")
     expect(keyring.decrypt(ct)).toBe("田中太郎")
   })
 
   it("unlock 後も同一平文は異なる暗号文になる", () => {
-    keyring.unlock(PASS)
+    keyring.unlock(OP_FIXTURE)
     expect(keyring.encrypt("same")).not.toBe(keyring.encrypt("same"))
   })
 
   it("誤った運用パスフレーズは throw し、sealed のまま", () => {
-    expect(() => keyring.unlock("wrong-passphrase")).toThrow(KeyringUnlockError)
+    expect(() => keyring.unlock("wrong-input")).toThrow(KeyringUnlockError)
     expect(keyring.isUnlocked()).toBe(false)
   })
 
   it("lock() で再 sealed する", () => {
-    keyring.unlock(PASS)
+    keyring.unlock(OP_FIXTURE)
     keyring.lock()
     expect(keyring.isUnlocked()).toBe(false)
   })
