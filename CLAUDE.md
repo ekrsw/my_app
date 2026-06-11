@@ -39,6 +39,12 @@ npx vitest run tests/actions/employee-actions.test.ts
 npx prisma generate         # Regenerate client after schema changes
 npx prisma migrate dev      # Create new migration
 npx prisma migrate deploy   # Apply migrations
+
+# App-level encryption (keyring) — node runtime only
+npm run keyring:init             # First-time only: create secrets/keyring.json (passphrase + recovery code)
+npm run keyring:unlock           # Per-process-start: load DEK into memory via loopback unlock endpoint
+npm run keyring:recover          # Re-wrap DEK with a new passphrase using the recovery code
+npm run keyring:backfill-tier3   # Encrypt existing plaintext in Tier3 columns (idempotent, requires unlock)
 ```
 
 ## Architecture
@@ -64,6 +70,7 @@ Form (Client Component) → lib/actions/ (Server Actions) → requireAuth() → 
 - `lib/db/` — Database query functions (read operations, filtering, pagination). No auth required
 - `lib/auth-guard.ts` — `requireAuth()` helper that throws if unauthenticated
 - `lib/validators.ts` — All Zod schemas used for form validation
+- `lib/crypto/` — アプリレベル暗号化（node ランタイム専用、middleware/edge から import 禁止）。`envelope.ts`（AES-256-GCM + Envelope/scrypt・`v1:` 形式）、`keyring.ts`（DEK をプロセスメモリのみ保持するシングルトン。sealed 中の encrypt/decrypt は `KeyringSealedError` を throw）、`prisma-encryption.ts`（`withEncryption()` 拡張ファクトリ + `ENCRYPTED_FIELDS` レジストリ。対象列を書き込み時に暗号化・読み取り時に復号する透過暗号化）、`backfill-tier3.ts`（既存平文の冪等バックフィル）、`errors.ts`（`KeyringSealedError` / `isKeyringSealedError`）
 - `lib/excel/` — Excel (`.xlsx`) パース/変換ロジック (現場シフト表 Excel → 既存 CSV インポート互換フォーマット)。`parse-shift-xlsx.ts` 参照
 - `auth.ts` — Auth.js v5 configuration (Credentials Provider, JWT strategy)
 - `middleware.ts` — Attaches session info to requests (does not enforce auth)
@@ -101,7 +108,7 @@ Form (Client Component) → lib/actions/ (Server Actions) → requireAuth() → 
 - **Junction tables** for many-to-many: `employee_groups`, `employee_function_roles`, `employee_positions`
 - **History tables** auto-populated by PostgreSQL triggers (PL/pgSQL in migration SQL files): `employee_group_history`, `shift_change_history`, etc.
 - Prisma schema uses `@@map()` to map PascalCase models to snake_case table names
-- Prisma client is imported from `@/lib/prisma` (singleton pattern)
+- Prisma client is imported from `@/lib/prisma` (singleton pattern)。このクライアントは `withEncryption()`（`lib/crypto/prisma-encryption.ts`）でラップされ、`ENCRYPTED_FIELDS` に登録された列を**透過的に暗号化/復号**する（現在: `DutyAssignment.note/title`・`DutyType.defaultNote/defaultTitle`）。`lib/db/` や `lib/actions/` は暗号化を意識しない。keyring が sealed の間、暗号化列を読むクエリは `KeyringSealedError` で失敗する（フェイルクローズ）ため、当該列を読むページ（`duty-assignments` / `duty-types`）は `isKeyringSealedError()` で捕捉して「🔒 ロック中」を表示する。既存平文の暗号化は `npm run keyring:backfill-tier3`（冪等）
 - **Schema documentation**: `docs/shift_database_schema_v9.md` — When the database schema changes (e.g., adding/removing tables, columns, indexes, triggers, or modifying migrations), this file must be updated to reflect the current state
 
 ### Testing Patterns
