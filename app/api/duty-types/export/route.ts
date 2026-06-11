@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma"
 import { NextRequest, NextResponse } from "next/server"
+import { rowsToCsv } from "@/lib/csv"
 
 export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl
@@ -40,9 +41,7 @@ export async function GET(request: NextRequest) {
     dt.defaultNote ?? "",
   ])
 
-  const csv = [headers, ...rows]
-    .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(","))
-    .join("\n")
+  const csv = rowsToCsv([headers, ...rows])
 
   const bom = "\uFEFF"
   const now = new Date()

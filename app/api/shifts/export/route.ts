@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma"
 import { NextRequest, NextResponse } from "next/server"
 import { formatDate, formatTime } from "@/lib/date-utils"
+import { rowsToCsv } from "@/lib/csv"
 
 export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl
@@ -97,9 +98,7 @@ export async function GET(request: NextRequest) {
     s.isRemote ? "t" : "f",
   ])
 
-  const csv = [headers, ...rows]
-    .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(","))
-    .join("\n")
+  const csv = rowsToCsv([headers, ...rows])
 
   const bom = "\uFEFF"
   const filename = `shifts_${year}${String(month).padStart(2, "0")}.csv`

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { getShiftCodes } from "@/lib/db/shift-codes"
+import { rowsToCsv } from "@/lib/csv"
 
 function formatTime(date: Date | null): string {
   if (!date) return ""
@@ -25,9 +26,7 @@ export async function GET() {
     formatTime(sc.defaultLunchBreakEnd),
   ])
 
-  const csv = [headers, ...rows]
-    .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(","))
-    .join("\n")
+  const csv = rowsToCsv([headers, ...rows])
 
   const bom = "\uFEFF"
   const now = new Date()
