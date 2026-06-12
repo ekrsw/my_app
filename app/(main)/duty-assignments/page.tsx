@@ -2,8 +2,6 @@ import { PageHeader } from "@/components/layout/page-header"
 import { PageContainer } from "@/components/layout/page-container"
 import { DutyAssignmentPageClient } from "@/components/duty-assignments/duty-assignment-page-client"
 import { HelpLink } from "@/components/help/help-link"
-import { SealedNotice } from "@/components/crypto/sealed-notice"
-import { isKeyringSealedError } from "@/lib/crypto/errors"
 import {
   getDutyAssignmentsForCalendar,
   getDailyDutyAssignments,
@@ -45,31 +43,6 @@ function parseStrings(value: string | string[] | undefined): string[] {
 
 export default async function DutyAssignmentsPage({ searchParams }: Props) {
   const params = await searchParams
-  try {
-    return await renderDutyAssignments(params)
-  } catch (e) {
-    if (isKeyringSealedError(e)) {
-      return (
-        <>
-          <PageHeader
-            title="業務管理"
-            breadcrumbs={[
-              { label: "ダッシュボード", href: "/" },
-              { label: "業務管理" },
-            ]}
-            actions={<HelpLink anchor="duty-assign" />}
-          />
-          <PageContainer>
-            <SealedNotice description="業務割当のメモ・タイトルは暗号化されています。表示するには管理者によるアンロックが必要です。" />
-          </PageContainer>
-        </>
-      )
-    }
-    throw e
-  }
-}
-
-async function renderDutyAssignments(params: Awaited<Props["searchParams"]>) {
   const viewMode = params.view === "daily" ? "daily" : "monthly" as const
 
   const session = await auth()

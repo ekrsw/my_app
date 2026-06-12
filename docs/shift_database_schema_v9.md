@@ -40,7 +40,6 @@ erDiagram
         varchar default_start_time
         varchar default_end_time
         text default_note
-        text default_title
     }
 
     duty_assignments {
@@ -51,7 +50,6 @@ erDiagram
         time start_time
         time end_time
         text note
-        text title
         boolean reduces_capacity
     }
 
@@ -913,14 +911,11 @@ EXECUTE FUNCTION record_employee_position_change();
 | default_reduces_capacity | BOOLEAN | NO | true | デフォルト: 対応可能人員から控除するか |
 | default_start_time | VARCHAR(5) | YES | - | デフォルト開始時刻（HH:mm形式） |
 | default_end_time | VARCHAR(5) | YES | - | デフォルト終了時刻（HH:mm形式） |
-| default_note | TEXT | YES | - | デフォルト備考（**アプリレベル暗号化**: P1） |
-| default_title | TEXT | YES | - | デフォルトタイトル（**アプリレベル暗号化**: P1） |
+| default_note | TEXT | YES | - | デフォルト備考 |
 
 **制約**: PK(id)
 
-**備考**:
-- default_start_time / default_end_time はTIME型ではなくVARCHAR(5)でHH:mm文字列を格納する。これはシフトの実時刻ではなくフォームプリフィル用のテンプレート値であるため。
-- default_note / default_title は P1（アプリレベル暗号化）で Prisma Client Extension により透過暗号化される（`v1:<iv>.<tag>.<ct>` 形式で格納）。default_title は暗号文長が VARCHAR(100) を超えるため TEXT に拡張済み（migration `20260611153530_widen_duty_title_to_text`）。
+**備考**: default_start_time / default_end_time はTIME型ではなくVARCHAR(5)でHH:mm文字列を格納する。これはシフトの実時刻ではなくフォームプリフィル用のテンプレート値であるため。
 
 ---
 
@@ -936,8 +931,7 @@ EXECUTE FUNCTION record_employee_position_change();
 | duty_date | DATE | NO | - | 業務日 |
 | start_time | TIME(6) | NO | - | 開始時刻 |
 | end_time | TIME(6) | NO | - | 終了時刻 |
-| note | TEXT | YES | - | 備考（**アプリレベル暗号化**: P1） |
-| title | TEXT | YES | - | タイトル（**アプリレベル暗号化**: P1） |
+| note | TEXT | YES | - | 備考 |
 | reduces_capacity | BOOLEAN | NO | true | 対応可能人員から控除するか |
 
 **制約**:
@@ -945,8 +939,6 @@ EXECUTE FUNCTION record_employee_position_change();
 - FK(employee_id → employees.id) ON DELETE CASCADE
 - FK(duty_type_id → duty_types.id) ON DELETE RESTRICT
 - UNIQUE(employee_id, duty_type_id, duty_date, start_time)
-
-**備考**: note / title は P1（アプリレベル暗号化）で Prisma Client Extension により透過暗号化される（`v1:<iv>.<tag>.<ct>` 形式で格納）。title は暗号文長が VARCHAR(100) を超えるため TEXT に拡張済み（migration `20260611153530_widen_duty_title_to_text`）。keyring が sealed の間は復号できず、当該列を読むクエリは `KeyringSealedError` で失敗する（フェイルクローズ）。
 
 ---
 
@@ -1115,4 +1107,3 @@ groups (1) ────< (N) employee_groups (N) >────(1) employees
 | v22 | 2026-04-10 | duty_typesテーブルからcode VARCHAR(20)カラムとUNIQUE(code)制約を削除。業務種別の識別はid（PK）で行い、表示はnameを使用する |
 | v23 | 2026-04-11 | groupsテーブルにabbreviated_name VARCHAR(10)カラムを追加。ダッシュボードの本日の業務エリアでグループ省略名を優先表示する |
 | v24 | 2026-06-07 | duty_assignment_bulk_replace_batch / duty_assignment_bulk_replace_item テーブルを追加。データメニューの「一括置換」で業務種別の統廃合（元種別→先種別の全件付け替え）と取り消し（Undo）を可能にする。明細は置換前の業務種別を保持し、duty_assignment_id にはFKを張らない（割当削除後も監査記録を残すため） |
-| v25 | 2026-06-11 | P1 アプリレベル暗号化: duty_assignments.title / duty_types.default_title を VARCHAR(100)→TEXT に拡張（migration `20260611153530_widen_duty_title_to_text`）。note / title / default_note / default_title の4列を Prisma Client Extension で透過暗号化（`v1:` 形式で格納）。ドキュメント未記載だった title / default_title 列も併せて反映 |

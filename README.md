@@ -161,69 +161,6 @@ npm run db:seed
 - **UI（Client Component）**: `useSession()` でテーブル行クリック（編集ダイアログ）を認証状態に応じて制御
 - **読み取り操作**: `lib/db/` のクエリ関数は認証不要（誰でも閲覧可能）
 
-## アプリレベル暗号化（keyring）
-
-一部の自由記述列（業務割当・業務種別のメモ／タイトル）は、DB に平文ではなく暗号文（`v1:` 形式）で保存されます。暗号化は `lib/crypto/` の Prisma Client Extension が**透過的に**行うため、アプリのクエリ・アクション層は暗号化を意識しません。
-
-### 仕組み
-
-- **鍵はメモリのみ**: データ暗号鍵（DEK）はディスクに平文で置かず、**プロセスのメモリにのみ**保持します（`secrets/keyring.json` には運用パスフレーズとリカバリコードの2鍵でラップした DEK だけを保存）。
-- **起動ごとにアンロックが必要**: アプリ起動直後は `sealed`（鍵未ロード）状態です。アンロックするまで暗号化列は読めません。**再起動すると sealed に戻る**ため、起動のたびにアンロックします。
-- **フェイルクローズ**: sealed の間に暗号化列を読むクエリは `KeyringSealedError` で失敗します。該当ページ（業務管理・業務種別管理）は 500 にせず「🔒 ロック中」を表示し、全ページ上部に sealed バナーが出ます。
-
-### ① 初回のみ: keyring を作成
-
-本番サーバで1回だけ実行します。
-
-```bash
-npm run keyring:init
-```
-
-- 運用パスフレーズ（12文字以上）を設定します。
-- **リカバリコードが1回だけ表示**されます。パスフレーズとは別の安全な場所（金庫等・2拠点推奨）にオフライン保管してください。**両方を失うと復旧できません。**
-- `secrets/keyring.json` が生成されます（`/secrets` は `.gitignore` 済み。Windows では `secrets/` の NTFS ACL を管理者限定にすること）。
-
-### ② 起動ごと: アンロック
-
-アプリを起動した状態で、**同じマシン上**の別ターミナルから実行します。
-
-```bash
-# ターミナル1: アプリ起動
-npm run dev          # または npm run start
-
-# ターミナル2: アンロック
-npm run keyring:unlock
-```
-
-運用パスフレーズを入力すると `✅ ready` になります。仕組み上、`keyring:unlock` は内部で loopback（`127.0.0.1`）の `/api/admin/lock-status` → `/api/admin/unlock` を叩き、パスフレーズはサーバ側で scrypt 検証されます（CLI は転送のみ）。同一マシン実行の証明に `secrets/unlock.token` を使用します。
-
-状態確認:
-
-```bash
-curl http://127.0.0.1:3000/api/admin/lock-status   # {"state":"sealed"} または {"state":"ready"}
-```
-
-> **レート制限**: アンロック失敗が15分で5回に達すると `429` になり、サーバの再起動が必要です。
-
-### ③ 既存データの暗号化（バックフィル）
-
-暗号化を導入した直後、既存行はまだ平文です。アンロックした状態で1回実行すると、平文の対象列を暗号化します。
-
-```bash
-npm run keyring:backfill-tier3
-```
-
-- **冪等**: 既に暗号化済み（`v1:`）の行はスキップします。途中で失敗しても再実行で続きから処理できます。
-- スクリプト自身がパスフレーズを尋ねて自プロセスをアンロックします（起動中アプリのアンロックとは別プロセス）。
-
-### パスフレーズを変更したい / 忘れた場合
-
-リカバリコードを使って新しい運用パスフレーズに再ラップします（DEK は不変なので既存データは復号可能なまま）。
-
-```bash
-npm run keyring:recover
-```
-
 ## テスト
 
 ### テスト環境セットアップ
@@ -237,10 +174,7 @@ DATABASE_URL="postgresql://my_user:password@localhost:5432/shift_database_test"
 AUTH_SECRET="test-secret"
 ADMIN_USERNAME="admin"
 ADMIN_PASSWORD="admin123"
-KEYRING_TEST_PASSPHRASE="test-keyring-passphrase-0123456789"
 ```
-
-> **Note**: `KEYRING_TEST_PASSPHRASE` はテスト起動時に一時 keyring を生成・アンロックし、透過暗号化（`lib/crypto/`）を有効にするために使用します。テスト専用の値で問題ありません。
 
 > **重要**: ホスト名は必ず `localhost` を指定してください。
 
@@ -340,10 +274,6 @@ vi.mock("@/auth", () => ({
 | `npx prisma generate` | Prisma Client 再生成 |
 | `npx prisma migrate dev` | マイグレーション作成・適用 |
 | `npx prisma migrate deploy` | マイグレーション適用（本番用） |
-| `npm run keyring:init` | 初回のみ: keyring 作成（パスフレーズ + リカバリコード） |
-| `npm run keyring:unlock` | 起動ごと: DEK をメモリにロード（アンロック） |
-| `npm run keyring:recover` | リカバリコードで新パスフレーズに再ラップ |
-| `npm run keyring:backfill-tier3` | 既存平文を暗号化（冪等・要アンロック） |
 
 ## トラブルシューティング
 

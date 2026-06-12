@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.11.17] - 2026-06-12
+
+### Removed
+- **アプリレベル暗号化を全面撤去**（P0 鍵基盤・P1 自由記述列の透過暗号化・sealed/unlock 動線・バックアップの 7-Zip 暗号化）。`lib/crypto`・`components/crypto`・`app/api/admin`・keyring CLI スクリプト・関連テスト・設計ドキュメントを削除し、`lib/prisma` を素の Prisma クライアントに戻した。`DutyAssignment.title` / `DutyType.defaultTitle` を `TEXT` → `VARCHAR(100)` に戻すマイグレーションを追加。理由: 守りたい対象（氏名・シフト）に対してアプリ層の列暗号化は脅威モデルに合わず、シフトの日付・時刻は範囲検索のため暗号化不可能と判断したため。保存時の盗難対策はストレージ層（BitLocker 等）で別途行う。
+
 ## [0.3.11.16] - 2026-06-12
 
 ### Added
