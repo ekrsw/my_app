@@ -1,6 +1,6 @@
 {
   "name": "my_app",
-  "version": "0.3.11.16",
+  "version": "0.3.11.17",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -14,11 +14,7 @@
     "test:e2e:ui": "playwright test --ui",
     "test:all": "npm run test && npm run test:e2e",
     "test:setup-db": "tsx tests/setup-db.ts",
-    "db:seed": "tsx prisma/seed.ts",
-    "keyring:init": "tsx scripts/keyring-init.ts",
-    "keyring:recover": "tsx scripts/keyring-recover.ts",
-    "keyring:unlock": "tsx scripts/unlock.ts",
-    "keyring:backfill-tier3": "tsx scripts/backfill-encrypt-tier3.ts"
+    "db:seed": "tsx prisma/seed.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
