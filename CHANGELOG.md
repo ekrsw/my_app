@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.11.18] - 2026-06-12
+
+### Added
+- **バックアップ成果物の公開鍵暗号化**（共有フォルダ漏洩対策）。日次バックアップのダンプと秘密情報（`.env`/`.env.test`）を `backup-db.ps1` の時点で **`Protect-CmsMessage`（X.509 公開鍵）** により暗号化（`*.cms`）。サーバーには公開鍵 `.cer` のみを置き、復号に必要な秘密鍵はサーバーにも共有フォルダにも置かない。共有フォルダにアクセスできる社内の人でも、秘密鍵なしには `pg_restore` で復元できない。CMS はテキスト前提のため base64 を噛ませてバイト無損失化（実DB 0.5MB で往復ハッシュ一致・`pg_restore --list` 通過を確認済み）。脅威モデル・代替案比較・検証結果は `docs/plans/backup-encryption-cms-design.md` 参照。
+  - 注: [0.3.11.16] で一度 7-Zip(AES-256) 対称鍵方式を入れ [0.3.11.17] で撤去した経緯があるが、本件は脅威モデル（共有アクセス者）に合わせ**公開鍵方式**で再設計し、アプリ層暗号化とは切り離した運用スクリプト単独の変更。
+
+### Changed
+- `sync-backup.ps1` の robocopy を `/IF *.cms *.log` の**許可リスト方式**に変更。暗号文とログ以外は共有へ複製しない多層防御。
+- `backup-db.ps1` を **fail-closed** 化。暗号化失敗時は catch で `db\`/`secrets\` の非 `.cms`（平文）を全削除してから中止し、平文が共有へ漏れるのを防ぐ。暗号化直後に CMS 形式・非ゼロの健全性チェックを実施。
+
+### Docs
+- `scripts/backup/README.md` に鍵ペア作成手順・復号→復元手順・**復元ドリル（四半期ごと）**を追記。`[IO.File]` の相対パスが .NET カレントで解決される落とし穴を踏まえ、復元手順は絶対パス（`Join-Path (Get-Location)`）に統一。
+- `.gitignore` に `/scripts/backup/keys/` と `*.pfx` を追加（鍵の誤コミット防止）。
+
 ## [0.3.11.17] - 2026-06-12
 
 ### Removed
