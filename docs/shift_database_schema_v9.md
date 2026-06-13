@@ -495,14 +495,16 @@ ORDER BY g.id, e.id
 | id | SERIAL | NO | auto_increment | 主キー |
 | employee_id | UUID | NO | - | 従業員ID |
 | position_id | INTEGER | NO | - | 役職ID |
-| start_date | DATE | NO | - | 開始日 |
+| start_date | DATE | YES | - | 開始日（未入力可。NULLは「過去から有効」とみなし、現在の役職として判定される） |
 | end_date | DATE | YES | - | 終了日（現行はNULL） |
 
 **制約**:
 - PK(id)
 - FK(employee_id → employees.id) ON DELETE CASCADE
 - FK(position_id → positions.id) ON DELETE RESTRICT
-- **EXCLUDE制約**: `EXCLUDE USING GiST (employee_id WITH =, daterange(start_date, COALESCE(end_date, '9999-12-31'::date), '[)') WITH &&)` — 同一従業員の期間重複を禁止（btree_gist拡張が必要）
+- **EXCLUDE制約**: `EXCLUDE USING GiST (employee_id WITH =, daterange(start_date, COALESCE(end_date, '9999-12-31'::date), '[)') WITH &&)` — 同一従業員の期間重複を禁止（btree_gist拡張が必要）。`start_date` がNULLの場合 `daterange` の下限は無限となり、過去から有効な期間として重複判定される
+
+**現在の役職判定**: `start_date IS NULL OR start_date <= today` かつ `end_date IS NULL OR end_date >= today`。`employee_groups` / `employee_function_roles` と同じ意味論（開始日未入力でも現在の役職として判定）。クライアント側は `lib/date-utils.ts` の `isCurrentRecord()` で同一判定を行う。
 
 ---
 
