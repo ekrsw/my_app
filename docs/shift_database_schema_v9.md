@@ -495,14 +495,16 @@ ORDER BY g.id, e.id
 | id | SERIAL | NO | auto_increment | 主キー |
 | employee_id | UUID | NO | - | 従業員ID |
 | position_id | INTEGER | NO | - | 役職ID |
-| start_date | DATE | NO | - | 開始日 |
+| start_date | DATE | YES | - | 開始日（未入力可。NULLは「過去から有効」とみなし、現在の役職として判定される） |
 | end_date | DATE | YES | - | 終了日（現行はNULL） |
 
 **制約**:
 - PK(id)
 - FK(employee_id → employees.id) ON DELETE CASCADE
 - FK(position_id → positions.id) ON DELETE RESTRICT
-- **EXCLUDE制約**: `EXCLUDE USING GiST (employee_id WITH =, daterange(start_date, COALESCE(end_date, '9999-12-31'::date), '[)') WITH &&)` — 同一従業員の期間重複を禁止（btree_gist拡張が必要）
+- **EXCLUDE制約**: `EXCLUDE USING GiST (employee_id WITH =, daterange(start_date, COALESCE(end_date, '9999-12-31'::date), '[)') WITH &&)` — 同一従業員の期間重複を禁止（btree_gist拡張が必要）。`start_date` がNULLの場合 `daterange` の下限は無限となり、過去から有効な期間として重複判定される
+
+**現在の役職判定**: `start_date IS NULL OR start_date <= today` かつ `end_date IS NULL OR end_date >= today`。`employee_groups` / `employee_function_roles` と同じ意味論（開始日未入力でも現在の役職として判定）。クライアント側は `lib/date-utils.ts` の `isCurrentRecord()` で同一判定を行う。
 
 ---
 
@@ -1107,3 +1109,4 @@ groups (1) ────< (N) employee_groups (N) >────(1) employees
 | v22 | 2026-04-10 | duty_typesテーブルからcode VARCHAR(20)カラムとUNIQUE(code)制約を削除。業務種別の識別はid（PK）で行い、表示はnameを使用する |
 | v23 | 2026-04-11 | groupsテーブルにabbreviated_name VARCHAR(10)カラムを追加。ダッシュボードの本日の業務エリアでグループ省略名を優先表示する |
 | v24 | 2026-06-07 | duty_assignment_bulk_replace_batch / duty_assignment_bulk_replace_item テーブルを追加。データメニューの「一括置換」で業務種別の統廃合（元種別→先種別の全件付け替え）と取り消し（Undo）を可能にする。明細は置換前の業務種別を保持し、duty_assignment_id にはFKを張らない（割当削除後も監査記録を残すため） |
+| v25 | 2026-06-14 | employee_positions.start_date を NOT NULL から nullable に変更（マイグレーション 20260614000000_make_employee_position_start_date_nullable）。開始日未入力（NULL）の役職を「過去から有効」とみなし現在の役職として判定できるようにし、employee_groups / employee_function_roles と同じ意味論に統一。EXCLUDE制約（employee_positions_no_overlap）では NULL 開始日を下限なし（過去から有効）として重複判定する |

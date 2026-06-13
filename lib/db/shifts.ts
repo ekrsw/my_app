@@ -195,13 +195,13 @@ export async function getShiftsForCalendarPaginated(
   if (filter.groupIds && filter.groupIds.length > 0) {
     sqlGroupConditions.push(Prisma.sql`EXISTS (
       SELECT 1 FROM employee_groups eg2
-      WHERE eg2.employee_id = e.id AND (eg2.start_date <= ${todayStr}::date) AND (eg2.end_date IS NULL OR eg2.end_date >= ${todayStr}::date) AND eg2.group_id = ANY(${filter.groupIds})
+      WHERE eg2.employee_id = e.id AND (eg2.start_date IS NULL OR eg2.start_date <= ${todayStr}::date) AND (eg2.end_date IS NULL OR eg2.end_date >= ${todayStr}::date) AND eg2.group_id = ANY(${filter.groupIds})
     )`)
   }
   if (filter.unassigned) {
     sqlGroupConditions.push(Prisma.sql`NOT EXISTS (
       SELECT 1 FROM employee_groups eg2
-      WHERE eg2.employee_id = e.id AND (eg2.start_date <= ${todayStr}::date) AND (eg2.end_date IS NULL OR eg2.end_date >= ${todayStr}::date)
+      WHERE eg2.employee_id = e.id AND (eg2.start_date IS NULL OR eg2.start_date <= ${todayStr}::date) AND (eg2.end_date IS NULL OR eg2.end_date >= ${todayStr}::date)
     )`)
   }
   if (sqlGroupConditions.length > 0) {
@@ -249,7 +249,7 @@ export async function getShiftsForCalendarPaginated(
   const orderedIds = await prisma.$queryRaw<{ id: string }[]>(Prisma.sql`
     SELECT e.id
     FROM employees e
-    LEFT JOIN employee_groups eg ON e.id = eg.employee_id AND (eg.start_date <= ${todayStr}::date) AND (eg.end_date IS NULL OR eg.end_date >= ${todayStr}::date)
+    LEFT JOIN employee_groups eg ON e.id = eg.employee_id AND (eg.start_date IS NULL OR eg.start_date <= ${todayStr}::date) AND (eg.end_date IS NULL OR eg.end_date >= ${todayStr}::date)
     LEFT JOIN groups g ON eg.group_id = g.id
     ${whereClause}
     GROUP BY e.id, e.name
@@ -322,13 +322,13 @@ export async function getCalendarEmployeeOptions(
   if (filter.groupIds && filter.groupIds.length > 0) {
     sqlGroupConditions.push(Prisma.sql`EXISTS (
       SELECT 1 FROM employee_groups eg2
-      WHERE eg2.employee_id = e.id AND (eg2.start_date <= ${todayStr}::date) AND (eg2.end_date IS NULL OR eg2.end_date >= ${todayStr}::date) AND eg2.group_id = ANY(${filter.groupIds})
+      WHERE eg2.employee_id = e.id AND (eg2.start_date IS NULL OR eg2.start_date <= ${todayStr}::date) AND (eg2.end_date IS NULL OR eg2.end_date >= ${todayStr}::date) AND eg2.group_id = ANY(${filter.groupIds})
     )`)
   }
   if (filter.unassigned) {
     sqlGroupConditions.push(Prisma.sql`NOT EXISTS (
       SELECT 1 FROM employee_groups eg2
-      WHERE eg2.employee_id = e.id AND (eg2.start_date <= ${todayStr}::date) AND (eg2.end_date IS NULL OR eg2.end_date >= ${todayStr}::date)
+      WHERE eg2.employee_id = e.id AND (eg2.start_date IS NULL OR eg2.start_date <= ${todayStr}::date) AND (eg2.end_date IS NULL OR eg2.end_date >= ${todayStr}::date)
     )`)
   }
   if (sqlGroupConditions.length > 0) {

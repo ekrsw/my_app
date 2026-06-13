@@ -237,7 +237,7 @@ model EmployeePosition {
   id         Int       @id @default(autoincrement())
   employeeId String    @map("employee_id") @db.Uuid
   positionId Int       @map("position_id")
-  startDate  DateTime  @map("start_date") @db.Date
+  startDate  DateTime? @map("start_date") @db.Date
   endDate    DateTime? @map("end_date") @db.Date
 
   employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)

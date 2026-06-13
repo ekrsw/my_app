@@ -229,7 +229,7 @@ export async function updateEmployeeWithRoles(
             data: {
               employeeId: id,
               positionId: change.positionId,
-              startDate: change.startDate ? new Date(change.startDate) : new Date(),
+              startDate: change.startDate ? new Date(change.startDate) : null,
               endDate: null,
             },
           })
@@ -237,7 +237,7 @@ export async function updateEmployeeWithRoles(
           await tx.employeePosition.update({
             where: { id: change.id },
             data: {
-              startDate: change.startDate ? new Date(change.startDate) : undefined,
+              startDate: change.startDate ? new Date(change.startDate) : null,
               endDate: change.endDate ? new Date(change.endDate) : null,
             },
           })
@@ -387,7 +387,7 @@ export async function addEmployeePosition(data: {
       data: {
         employeeId: parsed.data.employeeId,
         positionId: parsed.data.positionId,
-        startDate: parsed.data.startDate ? new Date(parsed.data.startDate) : new Date(),
+        startDate: parsed.data.startDate ? new Date(parsed.data.startDate) : null,
         endDate: parsed.data.endDate ? new Date(parsed.data.endDate) : null,
       },
     })
@@ -411,9 +411,9 @@ export async function updateEmployeePosition(
 ) {
   await requireAuth()
   try {
-    const updateData: { startDate?: Date; endDate?: Date | null } = {}
-    if (data.startDate !== undefined && data.startDate) {
-      updateData.startDate = new Date(data.startDate)
+    const updateData: { startDate?: Date | null; endDate?: Date | null } = {}
+    if (data.startDate !== undefined) {
+      updateData.startDate = data.startDate ? new Date(data.startDate) : null
     }
     if (data.endDate !== undefined) {
       updateData.endDate = data.endDate ? new Date(data.endDate) : null
