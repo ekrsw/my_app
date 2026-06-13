@@ -103,10 +103,13 @@ try {
     # /R:3 /W:10 : 失敗時 3回まで・10秒間隔でリトライ
     # /NP /NDL  : 進捗率・ディレクトリ名のログを抑制
     # /TEE      : コンソールとログ両方へ出力
+    # /IF       : 許可リスト（暗号文 .cms とログのみ複製）。多層防御として、万一ローカルに
+    #             平文が紛れ込んでも共有へ出さない。backup-db.ps1 の fail-closed と二重の防御線。
     $mode = if ($Mirror) { "/MIR" } else { "/E" }
     $rcLog = Join-Path $BackupRoot "sync-robocopy.log"
     $rcArgs = @("`"$BackupRoot`"", "`"$DestRoot`"", $mode, "/Z", "/R:3", "/W:10",
-                "/NP", "/NDL", "/TEE", "/LOG+:`"$rcLog`"")
+                "/NP", "/NDL", "/TEE", "/LOG+:`"$rcLog`"",
+                "/IF", "*.cms", "*.log")
 
     Write-Log "robocopy 実行（モード: $mode）: $BackupRoot -> $DestRoot"
     & robocopy.exe @rcArgs | Out-Null
