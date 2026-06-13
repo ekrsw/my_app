@@ -96,6 +96,7 @@ Form (Client Component) → lib/actions/ (Server Actions) → requireAuth() → 
 - サーバーのタイムゾーンに依存せず、JST (UTC+9) 基準で日付比較を行うこと
 - 「今日」の算出には `lib/date-utils.ts` の `getTodayJST()` を使用する（`new Date()` のローカル日付を直接使わない）
 - `getTodayJST()` は Prisma `@db.Date` カラム比較用の UTC midnight Date を返す
+- 開始日・終了日を持つレコード（グループ所属・ロール・役職）が指定日時点で「現在有効（current）」かの判定には `lib/date-utils.ts` の `isCurrentRecord()` を使用する。`start_date`/`end_date` が NULL の場合は「過去から有効／終了未定」とみなし、DB クエリ側の `(start_date IS NULL OR start_date <= today) AND (end_date IS NULL OR end_date >= today)` と同じ意味論をクライアント側でも担保する（インラインで再実装しない）
 
 ### Database Design
 - **Junction tables** for many-to-many: `employee_groups`, `employee_function_roles`, `employee_positions`
