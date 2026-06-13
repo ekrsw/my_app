@@ -94,3 +94,25 @@ export function getTodayJST(): Date {
     jstNow.getUTCDate()
   ))
 }
+
+/**
+ * 開始日・終了日を持つレコード（グループ所属・ロール・役職など）が
+ * 指定日時点で「現在有効（current）」かを判定する。
+ *
+ * - startDate が null（未入力）の場合は「いつから有効か不明＝過去から有効」とみなし、
+ *   開始条件を常に満たすものとして扱う。
+ * - endDate が null の場合は「終了未定＝現在も有効」とみなす。
+ *
+ * これにより、開始日が入力されていなくても現在のロール・グループ所属・役職を
+ * 正しく current と判定できる。DB クエリ側の
+ * `(start_date IS NULL OR start_date <= today) AND (end_date IS NULL OR end_date >= today)`
+ * と同じ意味論をクライアント側でも担保する。
+ */
+export function isCurrentRecord(
+  item: { startDate: Date | null; endDate: Date | null },
+  today: Date = getTodayJST()
+): boolean {
+  const startOk = !item.startDate || item.startDate.getTime() <= today.getTime()
+  const endOk = !item.endDate || item.endDate.getTime() >= today.getTime()
+  return startOk && endOk
+}

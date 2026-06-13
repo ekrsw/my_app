@@ -33,7 +33,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { Plus, Pencil, X, Check } from "lucide-react"
-import { formatDate, formatDateForInput, getTodayJST } from "@/lib/date-utils"
+import { formatDate, formatDateForInput, getTodayJST, isCurrentRecord } from "@/lib/date-utils"
 import {
   addEmployeePosition,
   updateEmployeePosition,
@@ -64,14 +64,10 @@ export function EmployeePositionsTab({ employee, allPositions, isAuthenticated }
   const [showCurrentOnly, setShowCurrentOnly] = useState(false)
 
   const today = getTodayJST()
-  const isCurrentRecord = (item: { startDate: Date | null; endDate: Date | null }) => {
-    const startOk = !item.startDate || item.startDate.getTime() <= today.getTime()
-    const endOk = !item.endDate || item.endDate.getTime() >= today.getTime()
-    return startOk && endOk
-  }
+  const isCurrent = (item: { startDate: Date | null; endDate: Date | null }) => isCurrentRecord(item, today)
 
   const activePositions = employee.positions.filter((p) => !p.endDate)
-  const displayPositions = showCurrentOnly ? employee.positions.filter(isCurrentRecord) : employee.positions
+  const displayPositions = showCurrentOnly ? employee.positions.filter(isCurrent) : employee.positions
   const activePositionIds = new Set(activePositions.map((p) => p.positionId))
   const availablePositions = allPositions.filter((p) => p.isActive && !activePositionIds.has(p.id))
 
@@ -205,7 +201,7 @@ export function EmployeePositionsTab({ employee, allPositions, isAuthenticated }
                 </TableHeader>
                 <TableBody>
                   {displayPositions.map((pos) => (
-                    <TableRow key={pos.id} className={!isCurrentRecord(pos) ? "text-muted-foreground" : ""}>
+                    <TableRow key={pos.id} className={!isCurrent(pos) ? "text-muted-foreground" : ""}>
                       <TableCell className="font-medium">{pos.position.positionName}</TableCell>
                       {isAuthenticated && editingId === pos.id ? (
                         <>

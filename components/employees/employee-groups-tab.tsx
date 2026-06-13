@@ -33,7 +33,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { Plus, Pencil, X, Check } from "lucide-react"
-import { formatDate, formatDateForInput, getTodayJST } from "@/lib/date-utils"
+import { formatDate, formatDateForInput, getTodayJST, isCurrentRecord } from "@/lib/date-utils"
 import {
   addEmployeeGroup,
   updateEmployeeGroup,
@@ -65,14 +65,10 @@ export function EmployeeGroupsTab({ employee, groups, isAuthenticated }: Props) 
   const [showCurrentOnly, setShowCurrentOnly] = useState(false)
 
   const today = getTodayJST()
-  const isCurrentRecord = (item: { startDate: Date | null; endDate: Date | null }) => {
-    const startOk = !item.startDate || item.startDate.getTime() <= today.getTime()
-    const endOk = !item.endDate || item.endDate.getTime() >= today.getTime()
-    return startOk && endOk
-  }
+  const isCurrent = (item: { startDate: Date | null; endDate: Date | null }) => isCurrentRecord(item, today)
 
   const activeGroups = employee.groups.filter((g) => !g.endDate)
-  const displayGroups = showCurrentOnly ? employee.groups.filter(isCurrentRecord) : employee.groups
+  const displayGroups = showCurrentOnly ? employee.groups.filter(isCurrent) : employee.groups
   const activeGroupIds = new Set(activeGroups.map((g) => g.groupId))
   const availableGroups = groups.filter((g) => !activeGroupIds.has(g.id))
 
@@ -206,7 +202,7 @@ export function EmployeeGroupsTab({ employee, groups, isAuthenticated }: Props) 
                 </TableHeader>
                 <TableBody>
                   {displayGroups.map((eg) => (
-                    <TableRow key={eg.id} className={!isCurrentRecord(eg) ? "text-muted-foreground" : ""}>
+                    <TableRow key={eg.id} className={!isCurrent(eg) ? "text-muted-foreground" : ""}>
                       <TableCell className="font-medium">{eg.group.name}</TableCell>
                       {isAuthenticated && editingId === eg.id ? (
                         <>
