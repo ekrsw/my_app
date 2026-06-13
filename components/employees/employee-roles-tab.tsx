@@ -34,7 +34,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { Plus, Pencil, X, Check } from "lucide-react"
-import { formatDate, formatDateForInput, getTodayJST } from "@/lib/date-utils"
+import { formatDate, formatDateForInput, getTodayJST, isCurrentRecord } from "@/lib/date-utils"
 import { assignRole, updateEmployeeRole, unassignRole } from "@/lib/actions/role-actions"
 import { EmployeeRoleHistorySection } from "@/components/employees/employee-role-history-section"
 import { toast } from "sonner"
@@ -63,14 +63,10 @@ export function EmployeeRolesTab({ employee, allRoles, isAuthenticated }: Props)
   const [showCurrentOnly, setShowCurrentOnly] = useState(false)
 
   const today = getTodayJST()
-  const isCurrentRecord = (item: { startDate: Date | null; endDate: Date | null }) => {
-    const startOk = !item.startDate || item.startDate.getTime() <= today.getTime()
-    const endOk = !item.endDate || item.endDate.getTime() >= today.getTime()
-    return startOk && endOk
-  }
+  const isCurrent = (item: { startDate: Date | null; endDate: Date | null }) => isCurrentRecord(item, today)
 
   const activeRoles = employee.functionRoles.filter((r) => !r.endDate)
-  const displayRoles = showCurrentOnly ? employee.functionRoles.filter(isCurrentRecord) : employee.functionRoles
+  const displayRoles = showCurrentOnly ? employee.functionRoles.filter(isCurrent) : employee.functionRoles
   const activeRoleIds = new Set(activeRoles.map((r) => r.functionRoleId))
   const availableRoles = allRoles.filter((r) => r.isActive && !activeRoleIds.has(r.id))
 
@@ -224,7 +220,7 @@ export function EmployeeRolesTab({ employee, allRoles, isAuthenticated }: Props)
                 </TableHeader>
                 <TableBody>
                   {displayRoles.map((role) => (
-                    <TableRow key={role.id} className={!isCurrentRecord(role) ? "text-muted-foreground" : ""}>
+                    <TableRow key={role.id} className={!isCurrent(role) ? "text-muted-foreground" : ""}>
                       <TableCell className="font-medium">
                         {role.functionRole?.roleName ?? "-"}
                       </TableCell>

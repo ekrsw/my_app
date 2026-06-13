@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.11.19] - 2026-06-14
+
+### Fixed
+- **開始日（入社年月日・ロール/グループ所属/役職の開始日）が未入力でも「現在」を正しく判定**。一部のシフトカレンダー（`getShiftsForCalendarPaginated`・`getCalendarEmployeeOptions`）とダッシュボード（当日のシフト変更履歴）のグループ条件で、開始日が NULL の所属が現在所属として扱われず一覧やフィルタから漏れていた問題を修正。`(start_date IS NULL OR start_date <= 今日)` の意味論を全クエリで統一し、count とリストのページネーション不整合も解消。
+
+### Changed
+- **役職（`employee_positions`）の開始日を任意化（nullable）**。これまで開始日を空で登録すると自動的に「今日」が補完されていたが、ロール・グループ所属と同様に未入力（NULL）のまま保存できるようになり、開始日未入力でも現在の役職として正しく判定される（マイグレーション `20260614000000_make_employee_position_start_date_nullable`）。なお重複排除制約（`employee_positions_no_overlap`）では NULL 開始日は「過去から有効」（下限なし）として扱われ、同一従業員の既存役職期間と重複する場合は従来どおりエラーになる。
+- 現在の所属/ロール/役職の判定ロジック（開始日・終了日からの current 判定）を `lib/date-utils.ts` の `isCurrentRecord()` に共通化（従業員詳細の3タブで重複していたインライン実装を統合）。
+
 ## [0.3.11.18] - 2026-06-12
 
 ### Added

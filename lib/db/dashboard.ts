@@ -292,10 +292,7 @@ export async function getTodayShiftChangeHistory() {
         include: {
           groups: {
             include: { group: true },
-            where: {
-              startDate: { lte: todayStart },
-              OR: [{ endDate: null }, { endDate: { gte: todayStart } }],
-            },
+            where: currentGroupDateWhere(todayStart),
           },
         },
       },
