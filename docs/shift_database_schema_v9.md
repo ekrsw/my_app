@@ -1109,3 +1109,4 @@ groups (1) ────< (N) employee_groups (N) >────(1) employees
 | v22 | 2026-04-10 | duty_typesテーブルからcode VARCHAR(20)カラムとUNIQUE(code)制約を削除。業務種別の識別はid（PK）で行い、表示はnameを使用する |
 | v23 | 2026-04-11 | groupsテーブルにabbreviated_name VARCHAR(10)カラムを追加。ダッシュボードの本日の業務エリアでグループ省略名を優先表示する |
 | v24 | 2026-06-07 | duty_assignment_bulk_replace_batch / duty_assignment_bulk_replace_item テーブルを追加。データメニューの「一括置換」で業務種別の統廃合（元種別→先種別の全件付け替え）と取り消し（Undo）を可能にする。明細は置換前の業務種別を保持し、duty_assignment_id にはFKを張らない（割当削除後も監査記録を残すため） |
+| v25 | 2026-06-14 | employee_positions.start_date を NOT NULL から nullable に変更（マイグレーション 20260614000000_make_employee_position_start_date_nullable）。開始日未入力（NULL）の役職を「過去から有効」とみなし現在の役職として判定できるようにし、employee_groups / employee_function_roles と同じ意味論に統一。EXCLUDE制約（employee_positions_no_overlap）では NULL 開始日を下限なし（過去から有効）として重複判定する |
