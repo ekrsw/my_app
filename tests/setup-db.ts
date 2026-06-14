@@ -102,6 +102,21 @@ async function main() {
     "20260412000000_add_lunch_break_to_shifts/migration.sql",
   ]
 
+  // prisma db push が「最終形」のスキーマを一括作成した後、過去マイグレーションから
+  // 抽出した CREATE FUNCTION/TRIGGER と ALTER TABLE を再適用する。歴史的な ALTER TABLE は
+  // db push 済みの最終スキーマに対しては当然失敗する（途中状態の列・制約を前提とするため）。
+  // これらは想定内・無害なので握りつぶし、それ以外の真に予期しないエラーのみログする。
+  const EXPECTED_PG_CODES = new Set([
+    "42710", // duplicate_object: トリガー/制約が既に存在
+    "42701", // duplicate_column: 列が既に存在（db push が作成済み）
+    "42P07", // duplicate_table: 制約/インデックス/テーブルが既に存在（例: employee_positions_no_overlap）
+    "42703", // undefined_column: db push が最終形のため、削除済み/移行済み列への ALTER（例: is_paid_leave, group_id）
+    "2BP01", // dependent_objects_still_exist: 依存オブジェクトのある制約 DROP（uuid 移行の途中 ALTER）
+    "42P16", // invalid_table_definition: 主キー重複（uuid 移行で PK は既に最終形）
+    "42704", // undefined_object: 後発マイグレーションで DROP 済みの制約への DROP（例: shift_change_history_shift_id_fkey）
+    "23503", // foreign_key_violation: 後発マイグレーションで DROP される FK の ADD（最終形に無い FK なので不在が正。最終形に在る FK なら db push 済みで 42710 になる）
+  ])
+
   for (const file of migrationFiles) {
     const filePath = path.resolve(__dirname, "../prisma/migrations", file)
     const sql = readFileSync(filePath, "utf-8")
@@ -111,9 +126,7 @@ async function main() {
         await testClient.query(stmt)
       } catch (err: unknown) {
         const pgErr = err as { code?: string }
-        // 42710: trigger already exists / 42701: column already exists
-        // (db push がスキーマ列を作成済みのため、後発マイグレーションの ADD COLUMN は重複となる)
-        if (pgErr.code !== "42710" && pgErr.code !== "42701") {
+        if (!EXPECTED_PG_CODES.has(pgErr.code ?? "")) {
           console.error(`Error applying trigger SQL from ${file}:`, err)
         }
       }
@@ -126,7 +139,7 @@ async function main() {
   // Apply partial unique indexes
   const indexRegex =
     /CREATE\s+UNIQUE\s+INDEX[\s\S]*?;/gi
-  let indexMatch
+  let indexMatch: RegExpExecArray | null
   while ((indexMatch = indexRegex.exec(initSql)) !== null) {
     // Only apply partial unique indexes (WHERE clause)
     if (indexMatch[0].includes("WHERE")) {
@@ -149,7 +162,7 @@ function extractTriggerStatements(sql: string): string[] {
   // Extract CREATE OR REPLACE FUNCTION blocks (which contain $$ delimiters)
   const funcRegex =
     /CREATE\s+OR\s+REPLACE\s+FUNCTION\s+[\s\S]*?\$\$[\s\S]*?\$\$\s+LANGUAGE\s+plpgsql(?:\s+(?:VOLATILE|STABLE|IMMUTABLE))?\s*;/gi
-  let match
+  let match: RegExpExecArray | null
   while ((match = funcRegex.exec(sql)) !== null) {
     statements.push(match[0])
   }
