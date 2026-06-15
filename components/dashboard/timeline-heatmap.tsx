@@ -5,6 +5,7 @@ import Link from "next/link"
 import { Home } from "lucide-react"
 import { getTimeHHMM, getCurrentJSTTimeHHMM, isLunchBreak, getCapacityColor, isRoleActiveOnDate } from "@/lib/capacity-utils"
 import { cn } from "@/lib/utils"
+import { employeeDetail } from "@/lib/routes"
 import { ColumnFilterPopover } from "@/components/common/filters/column-filter-popover"
 import { CheckboxListFilter } from "@/components/common/filters/checkbox-list-filter"
 import { ToggleFilter } from "@/components/common/filters/toggle-filter"
@@ -712,7 +713,7 @@ export function TimelineHeatmap({
                 <td className="sticky left-0 z-10 w-[120px] min-w-[120px] max-w-[120px] bg-background px-3 py-1 font-medium overflow-hidden text-ellipsis whitespace-nowrap">
                   {emp ? (
                     <Link
-                      href={`/employees/${emp.id}`}
+                      href={employeeDetail(emp.id)}
                       className="hover:underline hover:text-primary"
                       onClick={(e) => e.stopPropagation()}
                       title={emp.name}

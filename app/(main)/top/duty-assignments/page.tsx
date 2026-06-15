@@ -1,4 +1,5 @@
 import { PageHeader } from "@/components/layout/page-header"
+import { ROUTES } from "@/lib/routes"
 import { PageContainer } from "@/components/layout/page-container"
 import { DutyAssignmentPageClient } from "@/components/duty-assignments/duty-assignment-page-client"
 import { HelpLink } from "@/components/help/help-link"
@@ -128,7 +129,7 @@ export default async function DutyAssignmentsPage({ searchParams }: Props) {
         <PageHeader
           title="業務管理"
           breadcrumbs={[
-            { label: "ダッシュボード", href: "/" },
+            { label: "ダッシュボード", href: ROUTES.top },
             { label: "業務管理" },
           ]}
           actions={<HelpLink anchor="duty-assign" />}
@@ -256,7 +257,7 @@ export default async function DutyAssignmentsPage({ searchParams }: Props) {
       <PageHeader
         title="業務管理"
         breadcrumbs={[
-          { label: "ダッシュボード", href: "/" },
+          { label: "ダッシュボード", href: ROUTES.top },
           { label: "業務管理" },
         ]}
         actions={<HelpLink anchor="duty-assign" />}

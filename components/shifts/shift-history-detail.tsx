@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { ShiftBadge } from "./shift-badge"
 import { formatDate, formatTime } from "@/lib/date-utils"
+import { ROUTES, shiftHistoryDetail } from "@/lib/routes"
 import {
   updateShiftHistory,
   deleteShiftHistory,
@@ -65,7 +66,7 @@ export function ShiftHistoryDetail({ entry, versions, isAuthenticated }: ShiftHi
       toast.error(result.error)
     } else {
       toast.success(`バージョン${entry.version}に復元しました`)
-      router.push("/shifts/history")
+      router.push(ROUTES.shiftHistory)
     }
   }
 
@@ -77,7 +78,7 @@ export function ShiftHistoryDetail({ entry, versions, isAuthenticated }: ShiftHi
       toast.error(result.error)
     } else {
       toast.success("変更履歴を削除しました")
-      router.push("/shifts/history")
+      router.push(ROUTES.shiftHistory)
     }
   }
 
@@ -85,7 +86,7 @@ export function ShiftHistoryDetail({ entry, versions, isAuthenticated }: ShiftHi
     <div className="space-y-6">
       {/* Action buttons */}
       <div className="flex items-center gap-2">
-        <Button variant="outline" size="sm" onClick={() => router.push("/shifts/history")}>
+        <Button variant="outline" size="sm" onClick={() => router.push(ROUTES.shiftHistory)}>
           <ArrowLeft className="h-4 w-4 mr-1" />
           一覧に戻る
         </Button>
@@ -299,7 +300,7 @@ export function ShiftHistoryDetail({ entry, versions, isAuthenticated }: ShiftHi
                   key={v.id}
                   className={`rounded-md border p-3 space-y-2 cursor-pointer hover:bg-muted/50 transition-colors ${v.id === entry.id ? "border-primary bg-muted/30" : ""}`}
                   onClick={() => {
-                    if (v.id !== entry.id) router.push(`/shifts/history/${v.id}`)
+                    if (v.id !== entry.id) router.push(shiftHistoryDetail(v.id))
                   }}
                 >
                   <div className="flex items-center justify-between">

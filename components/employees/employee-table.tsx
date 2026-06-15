@@ -5,6 +5,7 @@ import { DataTable } from "@/components/data-table"
 import { employeeColumns } from "./employee-columns"
 import type { EmployeeWithGroups } from "@/types/employees"
 import { useQueryParams } from "@/hooks/use-query-params"
+import { employeeDetail } from "@/lib/routes"
 
 type EmployeeTableProps = {
   data: EmployeeWithGroups[]
@@ -23,7 +24,7 @@ export function EmployeeTable({ data, pageCount, page }: EmployeeTableProps) {
       pageCount={pageCount}
       page={page}
       onPageChange={(p) => setParams({ page: p })}
-      onRowClick={(row) => router.push(`/employees/${row.id}`)}
+      onRowClick={(row) => router.push(employeeDetail(row.id))}
     />
   )
 }

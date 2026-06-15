@@ -1,4 +1,5 @@
 import { PageHeader } from "@/components/layout/page-header"
+import { ROUTES } from "@/lib/routes"
 import { PageContainer } from "@/components/layout/page-container"
 import { DataPageClient } from "@/components/data/data-page-client"
 import { getGroups } from "@/lib/db/groups"
@@ -17,7 +18,7 @@ export default async function DataPage() {
       <PageHeader
         title="データ"
         breadcrumbs={[
-          { label: "ダッシュボード", href: "/" },
+          { label: "ダッシュボード", href: ROUTES.top },
           { label: "設定" },
           { label: "データ" },
         ]}

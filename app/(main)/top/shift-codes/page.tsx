@@ -1,4 +1,5 @@
 import { PageHeader } from "@/components/layout/page-header"
+import { ROUTES } from "@/lib/routes"
 import { PageContainer } from "@/components/layout/page-container"
 import { ShiftCodeTable } from "@/components/shift-codes/shift-code-table"
 import { getShiftCodes } from "@/lib/db/shift-codes"
@@ -17,7 +18,7 @@ export default async function ShiftCodesPage() {
       <PageHeader
         title="シフトコード管理"
         breadcrumbs={[
-          { label: "ダッシュボード", href: "/" },
+          { label: "ダッシュボード", href: ROUTES.top },
           { label: "シフトコード管理" },
         ]}
       />

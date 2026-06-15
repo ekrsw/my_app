@@ -28,6 +28,7 @@ import { ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Checkbox } from "@/components/ui/checkbox"
 import { cn } from "@/lib/utils"
+import { employeeDetail } from "@/lib/routes"
 import type { Shift, Employee, Group, EmployeeGroup, EmployeeFunctionRole, FunctionRole } from "@/app/generated/prisma/client"
 import type { DashboardFilterOptions } from "@/types"
 import type { DutyAssignmentWithDetails } from "@/types/duties"
@@ -703,7 +704,7 @@ export function DailyOverviewClient({ date, isToday, shifts, overnightShifts, fi
                       <TableCell className="font-medium">
                       {emp ? (
                         <Link
-                          href={`/employees/${emp.id}`}
+                          href={employeeDetail(emp.id)}
                           className="hover:underline hover:text-primary"
                           onClick={(e) => e.stopPropagation()}
                         >
