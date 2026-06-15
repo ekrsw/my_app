@@ -56,6 +56,8 @@ next-env.d.ts
 /playwright-report/
 /blob-report/
 /playwright/.cache/
+# E2E 認証フィクスチャ（storageState。秘匿セッションを含むためコミットしない）
+tests/e2e/.auth/
 .gstack/
 .claude/skills/gstack/
 .claude/scheduled_tasks.lock

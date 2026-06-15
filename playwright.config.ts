@@ -1,5 +1,8 @@
 import { defineConfig, devices } from "@playwright/test"
 
+// 認証付き E2E 用の storageState 保存先（単一ソース）。auth.setup.ts も同じ定数を使う。
+import { STORAGE_STATE } from "./tests/e2e/constants"
+
 // 社内プロキシ(HTTP_PROXY)が localhost までトンネルする環境では、
 // webServer への接続がタイムアウトする。NO_PROXY に localhost を含めて自動バイパス。
 // ユーザーが NO_PROXY を既に指定している場合は尊重する。
@@ -26,15 +29,23 @@ export default defineConfig({
     video: "retain-on-failure",
   },
   projects: [
+    // 認証セットアップ：/login でログインし storageState を保存する。
+    // 以降の認証必須プロジェクトはこれに依存し、ログイン済み状態で起動する。
+    {
+      name: "setup",
+      testMatch: /auth\.setup\.ts/,
+    },
     {
       name: "chromium-desktop",
-      use: { ...devices["Desktop Chrome"] },
+      use: { ...devices["Desktop Chrome"], storageState: STORAGE_STATE },
+      dependencies: ["setup"],
       testMatch: /desktop\.spec\.ts|sidebar\.spec\.ts|help\.spec\.ts/,
       grep: /Sidebar — desktop|ヘルプページと各画面からの導線/,
     },
     {
       name: "chromium-mobile",
-      use: { ...devices["Pixel 5"] },
+      use: { ...devices["Pixel 5"], storageState: STORAGE_STATE },
+      dependencies: ["setup"],
       testMatch: /mobile\.spec\.ts|sidebar\.spec\.ts/,
       grep: /Sidebar — mobile/,
     },

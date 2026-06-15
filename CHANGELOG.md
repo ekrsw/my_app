@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.13.0] - 2026-06-16
+
+### Tests
+- **認証必須化で skip していた E2E（help / sidebar）を再有効化**。ログイン状態を再現する認証フィクスチャ `tests/e2e/auth.setup.ts` を追加し、`/login` で `.env` の `ADMIN_USERNAME`/`ADMIN_PASSWORD` を使ってログイン → storageState を保存する。`playwright.config.ts` に `setup` プロジェクトを追加し、`chromium-desktop`/`chromium-mobile` が `dependencies: [setup]` + `storageState` でログイン済み状態から起動するようにした。これにより `0.3.12.0` で skip していたヘルプ導線・サイドバーの計 14 テストが通る（`npm run db:seed` 済みの admin ユーザーが前提）。
+- **storageState の保存先を単一ソース化**: `tests/e2e/constants.ts` の `STORAGE_STATE` を `playwright.config.ts` と `auth.setup.ts` の両方が import する形に統一（従来はパスを2箇所に重複定義しコメントで同期）。
+- **App Router のハイドレーション競合対策**: ページ表示直後のクリックが next/link のハイドレーション完了前で取りこぼされる問題に対し、ナビゲーション成立まで短間隔でクリックを再試行する `clickUntilNavigated()` ヘルパーを help spec に追加。
+- 認証 storageState（`tests/e2e/.auth/`、秘匿セッションを含む）を `.gitignore` に追加。
+
 ## [0.3.12.0] - 2026-06-15
 
 ### Changed
