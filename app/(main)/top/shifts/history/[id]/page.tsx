@@ -1,4 +1,5 @@
 import { PageHeader } from "@/components/layout/page-header"
+import { ROUTES } from "@/lib/routes"
 import { PageContainer } from "@/components/layout/page-container"
 import { ShiftHistoryDetail } from "@/components/shifts/shift-history-detail"
 import { getShiftHistoryById, getShiftVersions } from "@/lib/db/history"
@@ -34,8 +35,8 @@ export default async function ShiftHistoryDetailPage({
       <PageHeader
         title="変更履歴詳細"
         breadcrumbs={[
-          { label: "ダッシュボード", href: "/" },
-          { label: "シフト変更履歴", href: "/shifts/history" },
+          { label: "ダッシュボード", href: ROUTES.top },
+          { label: "シフト変更履歴", href: ROUTES.shiftHistory },
           { label: `履歴 #${entry.id}` },
         ]}
       />

@@ -1,4 +1,5 @@
 import { PageHeader } from "@/components/layout/page-header"
+import { ROUTES } from "@/lib/routes"
 import { PageContainer } from "@/components/layout/page-container"
 import { PositionTable } from "@/components/positions/position-table"
 import { getPositions } from "@/lib/db/positions"
@@ -15,7 +16,7 @@ export default async function PositionsPage() {
       <PageHeader
         title="役職管理"
         breadcrumbs={[
-          { label: "ダッシュボード", href: "/" },
+          { label: "ダッシュボード", href: ROUTES.top },
           { label: "役職管理" },
         ]}
       />

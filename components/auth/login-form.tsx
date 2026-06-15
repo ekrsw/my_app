@@ -2,7 +2,8 @@
 
 import { useState } from "react"
 import { signIn } from "next-auth/react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
+import { safeCallback } from "@/lib/routes"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -16,6 +17,7 @@ import {
 
 export function LoginForm() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
 
@@ -39,7 +41,8 @@ export function LoginForm() {
     if (result?.error) {
       setError("ユーザー名またはパスワードが正しくありません")
     } else {
-      router.push("/")
+      // callbackUrl は同一オリジン相対パスのみ許可（オープンリダイレクト防止）
+      router.push(safeCallback(searchParams.get("callbackUrl")))
       router.refresh()
     }
   }

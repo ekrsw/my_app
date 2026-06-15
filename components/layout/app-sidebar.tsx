@@ -50,22 +50,23 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { ROUTES } from "@/lib/routes"
 
 const navItems = [
-  { label: "ダッシュボード", href: "/", icon: LayoutDashboard },
-  { label: "シフト変更履歴", href: "/shifts/history", icon: History },
-  { label: "業務管理", href: "/duty-assignments", icon: ClipboardList },
-  { label: "従業員", href: "/employees", icon: User },
+  { label: "ダッシュボード", href: ROUTES.top, icon: LayoutDashboard },
+  { label: "シフト変更履歴", href: ROUTES.shiftHistory, icon: History },
+  { label: "業務管理", href: ROUTES.dutyAssignments, icon: ClipboardList },
+  { label: "従業員", href: ROUTES.employees, icon: User },
 ]
 
 const settingsSubItems = [
-  { label: "グループ", href: "/groups", icon: UsersRound },
-  { label: "ロール", href: "/roles", icon: Shield },
-  { label: "役職", href: "/positions", icon: Award },
-  { label: "シフトコード", href: "/shift-codes", icon: Tag },
-  { label: "業務種別", href: "/duty-types", icon: ListChecks },
-  { label: "データ", href: "/data", icon: Database },
-  { label: "ヘルプ", href: "/help", icon: CircleHelp },
+  { label: "グループ", href: ROUTES.groups, icon: UsersRound },
+  { label: "ロール", href: ROUTES.roles, icon: Shield },
+  { label: "役職", href: ROUTES.positions, icon: Award },
+  { label: "シフトコード", href: ROUTES.shiftCodes, icon: Tag },
+  { label: "業務種別", href: ROUTES.dutyTypes, icon: ListChecks },
+  { label: "データ", href: ROUTES.data, icon: Database },
+  { label: "ヘルプ", href: ROUTES.help, icon: CircleHelp },
 ]
 
 function useIsDesktopCollapsed() {
@@ -93,7 +94,7 @@ function SidebarBrandToggle() {
 
   return (
     <div className="flex min-w-0 items-center justify-between gap-2">
-      <Link href="/" className="flex min-w-0 items-center gap-2">
+      <Link href={ROUTES.top} className="flex min-w-0 items-center gap-2">
         <Headset className="h-6 w-6 shrink-0" />
         <span className="truncate text-lg font-bold">CSC管理ツール</span>
       </Link>
@@ -188,8 +189,8 @@ export function AppSidebar() {
             <SidebarMenu>
               {navItems.map((item) => {
                 const isActive =
-                  item.href === "/"
-                    ? pathname === "/"
+                  item.href === ROUTES.top
+                    ? pathname === ROUTES.top
                     : pathname.startsWith(item.href)
                 return (
                   <SidebarMenuItem key={item.href}>
@@ -224,7 +225,7 @@ export function AppSidebar() {
                 tooltip="ログアウト"
                 onClick={async () => {
                   await signOut({ redirect: false })
-                  window.location.href = "/"
+                  window.location.href = ROUTES.underConstruction
                 }}
               >
                 <LogOut className="h-4 w-4" />
@@ -232,7 +233,7 @@ export function AppSidebar() {
               </SidebarMenuButton>
             ) : (
               <SidebarMenuButton asChild tooltip="管理者ログイン">
-                <Link href="/login">
+                <Link href={ROUTES.login}>
                   <LogIn className="h-4 w-4" />
                   <span>管理者ログイン</span>
                 </Link>

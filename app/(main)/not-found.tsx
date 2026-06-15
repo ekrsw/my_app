@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { FileQuestion } from "lucide-react"
 import Link from "next/link"
+import { ROUTES } from "@/lib/routes"
 
 export default function NotFound() {
   return (
@@ -18,7 +19,7 @@ export default function NotFound() {
             お探しのページは存在しないか、移動された可能性があります。
           </p>
           <Button asChild>
-            <Link href="/">ダッシュボードに戻る</Link>
+            <Link href={ROUTES.top}>ダッシュボードに戻る</Link>
           </Button>
         </CardContent>
       </Card>

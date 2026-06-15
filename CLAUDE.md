@@ -66,12 +66,12 @@ Form (Client Component) → lib/actions/ (Server Actions) → requireAuth() → 
 - `lib/validators.ts` — All Zod schemas used for form validation
 - `lib/excel/` — Excel (`.xlsx`) パース/変換ロジック (現場シフト表 Excel → 既存 CSV インポート互換フォーマット)。`parse-shift-xlsx.ts` 参照
 - `auth.ts` — Auth.js v5 configuration (Credentials Provider, JWT strategy)
-- `middleware.ts` — Attaches session info to requests (does not enforce auth)
+- `middleware.ts` — `authorized` コールバックで認証を一元強制（`/`・`/login`・`/api/auth`・静的アセット以外は認証必須）。判定本体は `lib/routes.ts` の `isPublic()`
 - `types/` — Application types extending Prisma generated types
 - `components/auth/` — Login form and SessionProvider wrapper
 - `components/ui/` — shadcn/ui base components (do not edit manually, use `npx shadcn add`)
 - `app/generated/prisma/` — Prisma generated client (do not edit)
-- `app/api/` — Route Handler。**書き込み・処理系 POST エンドポイント**（Excel→CSV 変換 `data/shift-conversion` 等）は mutation 系 Server Action と同様に先頭で `auth()` による認証ガードを実施。一方、**CSV エクスポート系 GET エンドポイント**（`*/export`）と参照系 GET（`shifts/versions` 等）は「未認証ユーザーも閲覧可」というアプリ全体の設計（下記 Authentication 参照）に従い、認証ガードを持たない（読み取り専用・社内LAN限定運用前提）。CSV 生成は `lib/csv.ts` の `rowsToCsv()` 経由でエスケープ＋数式インジェクション中和を行う
+- `app/api/` — Route Handler。**全 `/api/*`（`/api/auth/*` を除く）は middleware の `authorized` で認証必須**（CSV エクスポート `*/export`・参照系 `shifts/versions` 含む。未認証は JSON 401）。**書き込み・処理系 POST**（Excel→CSV 変換 `data/shift-conversion` 等）は加えて route 先頭で `auth()` ガードも持つ（多層防御）。CSV 生成は `lib/csv.ts` の `rowsToCsv()` 経由でエスケープ＋数式インジェクション中和を行う
 - `content/help/*.md` — ヘルプページ本文（人手で編集する Markdown）。本文の更新は .md を編集・コミット・再デプロイで反映
 - `lib/help/` — ヘルプのマニフェスト（`sections.ts`: 目次・anchor・読み込む .md の唯一のソース）と loader（`load-help.ts`）
 - `app/(main)/help/` — ヘルプページ（`/help`）。Server Component で `content/help/*.md` を読み込み描画
@@ -80,12 +80,15 @@ Form (Client Component) → lib/actions/ (Server Actions) → requireAuth() → 
 
 ### Authentication
 - Auth.js v5 with Credentials Provider + JWT sessions
-- Unauthenticated users can read all pages; mutations require authentication
-- Server Actions: `await requireAuth()` at the top of every mutation function
+- **全面認証必須**: `/`（工事中）・`/login`・`/api/auth/*` と静的アセットのみ公開。それ以外（全 `/top/*` ページと `/api/*`（CSV エクスポート含む））は `middleware.ts` の `authorized` コールバックで認証必須。未認証ページアクセスは `/login?callbackUrl=` へリダイレクト、未認証 API は JSON 401。公開判定の単一ソースは `lib/routes.ts` の `isPublic()`（純関数・never-throw）。閲覧・編集とも管理者（ログイン済み）のみ。
+- ルート構成: `/`＝公開の工事中ページ（`app/page.tsx`、サイドバー無し）。アプリ本体は `/top` 配下（`app/(main)/top/*`）。旧 `/` のダッシュボードは `/top`。アプリ内パスは `lib/routes.ts`（`ROUTES`/`employeeDetail`/`shiftHistoryDetail`/`helpAnchor`）に集約（裸リテラル禁止）。
+- ログイン後リダイレクトは `callbackUrl` を `safeCallback()` で同一オリジン相対パスに限定（オープンリダイレクト防止）。`login` ページ・工事中ページは既ログインなら `/top` へ転送。
+- Server Actions: `await requireAuth()` at the top of every mutation function（middleware が主、Server Action が副の多層防御）
 - Server Components: `auth()` from `@/auth` to get session and conditionally render create/edit/delete UI
 - Client Components: `useSession()` from `next-auth/react` (wrapped in `SessionProvider` in `(main)/layout.tsx`)
-- Route Groups: `(auth)/` for login page (no sidebar), `(main)/` for main app (with sidebar + SessionProvider)
+- Route Groups: `(auth)/` for login page (no sidebar), `(main)/top/` for main app (with sidebar + SessionProvider)
 - Admin user seeded via `npm run db:seed` using `ADMIN_USERNAME`/`ADMIN_PASSWORD` from `.env`
+- **全ユーザー強制ログアウト**: 既存セッションを一括無効化したい時は `.env` の `AUTH_SECRET` をローテーション（新値 `openssl rand -base64 32`）して再デプロイ。JWT 戦略のため既存トークンが署名検証に失敗し全員ログアウトになる。
 
 ### Styling
 - **スタイルガイド**: `docs/style-guide.md` — カラーシステム、タイポグラフィ、コンポーネントパターン、シフトコード配色などのスタイリング規約を定義。新規コンポーネント作成やスタイル変更時に参照すること

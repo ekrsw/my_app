@@ -1,4 +1,5 @@
 import { PageHeader } from "@/components/layout/page-header"
+import { ROUTES } from "@/lib/routes"
 import { PageContainer } from "@/components/layout/page-container"
 import { GroupTable } from "@/components/groups/group-table"
 import { GroupForm } from "@/components/groups/group-form"
@@ -15,7 +16,7 @@ export default async function GroupsPage() {
       <PageHeader
         title="グループ管理"
         breadcrumbs={[
-          { label: "ダッシュボード", href: "/" },
+          { label: "ダッシュボード", href: ROUTES.top },
           { label: "グループ管理" },
         ]}
       />

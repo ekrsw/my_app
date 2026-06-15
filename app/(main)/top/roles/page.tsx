@@ -1,5 +1,6 @@
 import { connection } from "next/server"
 import { PageHeader } from "@/components/layout/page-header"
+import { ROUTES } from "@/lib/routes"
 import { PageContainer } from "@/components/layout/page-container"
 import { getFunctionRoles } from "@/lib/db/roles"
 import { RoleForm } from "@/components/roles/role-form"
@@ -18,7 +19,7 @@ export default async function RolesPage() {
       <PageHeader
         title="ロール管理"
         breadcrumbs={[
-          { label: "ダッシュボード", href: "/" },
+          { label: "ダッシュボード", href: ROUTES.top },
           { label: "ロール管理" },
         ]}
       />

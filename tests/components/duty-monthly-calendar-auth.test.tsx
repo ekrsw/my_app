@@ -328,7 +328,7 @@ describe("月次カレンダー 行ヘッダー 従業員名 Link", () => {
     return { ...BASE_PROPS, calendarData: data, calendarTotal: data.length }
   }
 
-  it("在籍者の従業員名は /employees/{id} への Link としてレンダリングされる", () => {
+  it("在籍者の従業員名は /top/employees/{id} への Link としてレンダリングされる", () => {
     render(
       <DutyAssignmentPageClient
         {...withCalendarData([
@@ -345,7 +345,7 @@ describe("月次カレンダー 行ヘッダー 従業員名 Link", () => {
       />
     )
     const link = screen.getByRole("link", { name: "在籍太郎" })
-    expect(link).toHaveAttribute("href", "/employees/emp-42")
+    expect(link).toHaveAttribute("href", "/top/employees/emp-42")
   })
 
   it("退職者の従業員名も Link としてレンダリングされ、退職 Badge は Link の外側にある", () => {
@@ -365,7 +365,7 @@ describe("月次カレンダー 行ヘッダー 従業員名 Link", () => {
       />
     )
     const link = screen.getByRole("link", { name: "退職花子" })
-    expect(link).toHaveAttribute("href", "/employees/emp-99")
+    expect(link).toHaveAttribute("href", "/top/employees/emp-99")
     expect(within(link).queryByText("退職")).not.toBeInTheDocument()
     expect(screen.getByLabelText("退職")).toBeInTheDocument()
   })
@@ -396,11 +396,11 @@ describe("月次カレンダー 行ヘッダー 従業員名 Link", () => {
     )
     expect(screen.getByRole("link", { name: "山田一郎" })).toHaveAttribute(
       "href",
-      "/employees/emp-1"
+      "/top/employees/emp-1"
     )
     expect(screen.getByRole("link", { name: "佐藤二郎" })).toHaveAttribute(
       "href",
-      "/employees/emp-2"
+      "/top/employees/emp-2"
     )
   })
 })
