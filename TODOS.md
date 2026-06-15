@@ -448,3 +448,19 @@
 **Depends on:** v1（元種別→先種別 全件置換）のマージ
 
 **Effort:** M (CC+gstack: ~40min) | **Priority:** P3 | **Risk:** Med
+
+## テスト: 認証リダイレクト動線の Playwright E2E
+
+**What:** ルート構成変更＋全面認証必須化（design-20260615）で導入する認証ゲートの E2E を追加する。3ケース想定: (1) 未認証で `/top` 直アクセス → `/login?callbackUrl=/top` へ遷移、(2) 深いリンク `/top/employees` に未認証アクセス → ログイン後にそのページへ復帰（callbackUrl）、(3) ログイン済みで `/` → `/top` 転送 / `/login` → `/top` 転送。
+
+**Why:** plan-eng-review (2026-06-15) で「認証ゲートは重要動線なので unit/結合は今回 PR、ブラウザ E2E は CI 統合後」とスコープ決定。`isPublic`/`authorized`/`safeCallback`/`callbackUrl` の純ロジックは単体で、工事中転送・export 401 は結合でカバーするが、「実ブラウザで未認証アクセス→リダイレクト→ログイン→復帰」の連続動線は E2E でしか拾えない。認証は data-destruction と並ぶ重要フローのため、CI 整備後に必ず E2E 化したい。
+
+**Pros:** 認証ゲートのリグレッションを PR マージ前に自動ブロック / callbackUrl 復帰の連続検証 / 工事中ファサードと /top 動線の end-to-end 保証
+
+**Cons:** Playwright が CI 未統合のため当面ローカル実行のみ。新規 spec は `playwright.config.ts` の `testMatch` と `grep` の**両方**に登録が必要（登録漏れで No tests found の既知の落とし穴あり）。
+
+**Context:** 設計: `~/.gstack/projects/ekrsw-my_app/eisuke_koresawa-develop-design-20260615-215529.md`、テストプラン: `~/.gstack/projects/ekrsw-my_app/eisuke_koresawa-develop-eng-review-test-plan-20260615-222020.md`。認証付き E2E はログイン済みコンテキスト（storageState 等）の用意が必要。既存 `tests/e2e/help.spec.ts`・`sidebar.spec.ts` も同変更で認証必須化・`/top` パス化の修正が入る（こちらは本体 PR の REGRESSION 対応で実施済みの前提）。
+
+**Depends on:** 「Playwright E2E を CI パイプラインに統合」TODO の完了 / 本体（ルート構成変更＋認証ゲート）PR のマージ
+
+**Effort:** M (CC+gstack: ~30min) | **Priority:** P3 | **Risk:** Low
