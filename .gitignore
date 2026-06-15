@@ -59,7 +59,9 @@ next-env.d.ts
 # E2E 認証フィクスチャ（storageState。秘匿セッションを含むためコミットしない）
 tests/e2e/.auth/
 .gstack/
-.claude/skills/gstack/
+# gstack/Claude スキル一式はツール管理（アプリ本体と無関係）のため追跡しない。
+# 既に追跡済みのスキルは追跡継続（gitignore は追跡済みファイルには影響しない）。
+.claude/skills/
 .claude/scheduled_tasks.lock
 
 # local sample data (real employee data, never commit)
