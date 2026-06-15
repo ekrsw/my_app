@@ -1,4 +1,5 @@
 import { PageHeader } from "@/components/layout/page-header"
+import { ROUTES } from "@/lib/routes"
 import { PageContainer } from "@/components/layout/page-container"
 import { EmployeeTable } from "@/components/employees/employee-table"
 import { EmployeeFilters } from "@/components/employees/employee-filters"
@@ -63,7 +64,7 @@ export default async function EmployeesPage({
       <PageHeader
         title="従業員"
         breadcrumbs={[
-          { label: "ダッシュボード", href: "/" },
+          { label: "ダッシュボード", href: ROUTES.top },
           { label: "従業員" },
         ]}
       />

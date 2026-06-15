@@ -2,6 +2,7 @@
 
 import { useRef } from "react"
 import { useSession } from "next-auth/react"
+import { ROUTES } from "@/lib/routes"
 import Link from "next/link"
 import { Download, FileSpreadsheet, LogIn, RotateCcw } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -160,7 +161,7 @@ export function ShiftConversionSection() {
                     ))}
                   </ul>
                   <Link
-                    href="/shift-codes"
+                    href={ROUTES.shiftCodes}
                     className="inline-block mt-2 text-xs text-blue-600 underline"
                   >
                     → シフトコード管理画面で登録する
@@ -181,7 +182,7 @@ export function ShiftConversionSection() {
                     ))}
                   </ul>
                   <Link
-                    href="/employees"
+                    href={ROUTES.employees}
                     className="inline-block mt-2 text-xs text-blue-600 underline"
                   >
                     → 従業員管理画面で登録する

@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation"
 import type { SearchParams } from "@/types"
+import { ROUTES } from "@/lib/routes"
 
 export default async function ShiftsPage({
   searchParams,
@@ -18,5 +19,5 @@ export default async function ShiftsPage({
     }
   }
   const qs = query.toString()
-  redirect(`/shifts/history${qs ? `?${qs}` : ""}`)
+  redirect(`${ROUTES.shiftHistory}${qs ? `?${qs}` : ""}`)
 }

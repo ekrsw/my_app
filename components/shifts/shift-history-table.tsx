@@ -6,6 +6,7 @@ import { ColumnDef } from "@tanstack/react-table"
 import { ShiftBadge } from "./shift-badge"
 import { formatDate } from "@/lib/date-utils"
 import { useQueryParams } from "@/hooks/use-query-params"
+import { shiftHistoryDetail } from "@/lib/routes"
 import type { ShiftHistoryEntry } from "@/types/shifts"
 
 const columns: ColumnDef<ShiftHistoryEntry>[] = [
@@ -77,7 +78,7 @@ export function ShiftHistoryTable({ data, pageCount, page }: ShiftHistoryTablePr
       pageCount={pageCount}
       page={page}
       onPageChange={(p) => setParams({ page: p })}
-      onRowClick={(row) => router.push(`/shifts/history/${row.id}`)}
+      onRowClick={(row) => router.push(shiftHistoryDetail(row.id))}
     />
   )
 }

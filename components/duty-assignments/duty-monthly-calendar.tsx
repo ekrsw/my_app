@@ -12,6 +12,7 @@ import {
   toDateString,
 } from "@/lib/date-utils"
 import { cn } from "@/lib/utils"
+import { employeeDetail } from "@/lib/routes"
 import { ColumnFilterPopover } from "@/components/common/filters/column-filter-popover"
 import { EmployeeCheckboxFilter } from "@/components/common/filters/employee-checkbox-filter"
 import { useQueryParams } from "@/hooks/use-query-params"
@@ -405,7 +406,7 @@ export function DutyMonthlyCalendar({
             <div className="sticky left-0 z-10 flex w-52 min-w-52 flex-col justify-center gap-1 border-r bg-background px-3 py-1 text-sm">
               <div className="flex items-center gap-1.5">
                 <Link
-                  href={`/employees/${emp.employeeId}`}
+                  href={employeeDetail(emp.employeeId)}
                   className="truncate font-medium hover:underline hover:text-primary"
                 >
                   {emp.employeeName}

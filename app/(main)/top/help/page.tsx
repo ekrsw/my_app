@@ -4,6 +4,7 @@ import { PageContainer } from "@/components/layout/page-container"
 import { HelpSection } from "@/components/help/help-section"
 import { HELP_SECTIONS } from "@/lib/help/sections"
 import { loadHelpSection } from "@/lib/help/load-help"
+import { ROUTES } from "@/lib/routes"
 
 /**
  * ヘルプページ（/help）。
@@ -32,7 +33,7 @@ export default async function HelpPage() {
     <>
       <PageHeader
         title="ヘルプ"
-        breadcrumbs={[{ label: "ダッシュボード", href: "/" }, { label: "ヘルプ" }]}
+        breadcrumbs={[{ label: "ダッシュボード", href: ROUTES.top }, { label: "ヘルプ" }]}
       />
       <PageContainer>
         <div className="mx-auto max-w-[72ch]">

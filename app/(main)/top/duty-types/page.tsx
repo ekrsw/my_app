@@ -1,4 +1,5 @@
 import { PageHeader } from "@/components/layout/page-header"
+import { ROUTES } from "@/lib/routes"
 import { PageContainer } from "@/components/layout/page-container"
 import { DutyTypeTable } from "@/components/duty-types/duty-type-table"
 import { DutyTypeForm } from "@/components/duty-types/duty-type-form"
@@ -16,7 +17,7 @@ export default async function DutyTypesPage() {
       <PageHeader
         title="業務種別管理"
         breadcrumbs={[
-          { label: "ダッシュボード", href: "/" },
+          { label: "ダッシュボード", href: ROUTES.top },
           { label: "業務種別管理" },
         ]}
         actions={<HelpLink anchor="duty-types" />}

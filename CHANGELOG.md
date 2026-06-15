@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.12.0] - 2026-06-15
+
+### Changed
+- **アプリ全体を `/top` 配下へ移設し、全面認証必須化**（ルート構成変更 + アクセス制御強化）。`/` は公開の「工事中」ページになり、これまでのアプリ（ダッシュボード・各管理画面）は `/top` 配下（`/top`, `/top/employees`, `/top/shifts/history` 等）へ移動。未認証で `/top/*` にアクセスすると `/login?callbackUrl=` へリダイレクトされ、ログイン後に元のページへ復帰する。これまで「未認証でも閲覧可」だったが、**閲覧・編集ともログイン管理者のみ**に変更。
+- **CSV エクスポート系 GET（`/api/*/export`）と参照系 GET（`/api/shifts/versions`）も認証必須化**。従来「社内 LAN 向けに未認証公開」だった方針を転換（未認証は JSON 401）。未認証エクスポートに依存する運用がないことを確認済み。
+
+### Added
+- **認証ゲートの一元化**: `middleware.ts` の `authorized` コールバックで `/`・`/login`・`/api/auth/*`・静的アセット以外を認証必須化。公開判定は `lib/routes.ts` の `isPublic()`（純関数・never-throw）に集約。API は HTML リダイレクトでなく JSON 401 を返す。
+- **公開の工事中ページ**（`app/page.tsx`、サイドバー無し）。ログイン済みなら `/top` へ自動転送。ルート 404（`app/not-found.tsx`）も追加。
+- **ルート定数 `lib/routes.ts`**（`ROUTES`・`employeeDetail`/`shiftHistoryDetail`/`helpAnchor`）にアプリ内パスを集約。サイドバー・パンくず・動的リンクを全て集約参照へ置換（裸パスリテラルは `lib/routes.ts` 外に 0 件）。
+
+### Security
+- **ログイン後リダイレクトのオープンリダイレクト防止**: `callbackUrl` を `safeCallback()` で同一オリジン相対パス（`/` 始まり、`//`・`/\` 除外）に限定。外部 URL は `/top` にフォールバック。
+- `useSearchParams()` を `<Suspense>` で包囲し本番ビルドの prerender エラーを回避。
+
+### Ops
+- **全ユーザー強制ログアウト**: 既存セッションを一括無効化したい場合は `.env` の `AUTH_SECRET` をローテーション（新値生成 → 再デプロイ）。JWT 戦略のため既存トークンが署名検証に失敗し全員ログアウトになる。
+
+### Tests
+- `isPublic`/`safeCallback`/`authorized` の単体テストを追加（never-throw・export 401・オープンリダイレクト各ケース）。ルート移設に伴う既存テストの期待値を `/top` へ更新。認証コンテキストが必要になった E2E（help/sidebar）はパスを `/top` 化のうえ skip（認証フィクスチャ整備まで。TODOS 追跡）。
+
 ## [0.3.11.20] - 2026-06-15
 
 ### Tests

@@ -2,6 +2,7 @@ import Link from "next/link"
 import { CircleHelp } from "lucide-react"
 import { buttonVariants } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+import { helpAnchor } from "@/lib/routes"
 import type { HelpAnchor } from "@/lib/help/sections"
 
 /**
@@ -13,7 +14,7 @@ import type { HelpAnchor } from "@/lib/help/sections"
 export function HelpLink({ anchor }: { anchor: HelpAnchor }) {
   return (
     <Link
-      href={`/help#${anchor}`}
+      href={helpAnchor(anchor)}
       aria-label="ヘルプ"
       title="ヘルプ"
       className={cn(buttonVariants({ variant: "ghost", size: "icon" }))}
