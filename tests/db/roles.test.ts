@@ -80,19 +80,20 @@ describe("lib/db/roles", () => {
   describe("getFunctionRoleById", () => {
     it("現役の割り当て従業員を name 昇順で返す", async () => {
       const role = await createRole("F1", "機能ロール")
-      // Postgres の name 昇順は Unicode コードポイント順（佐 U+4F50 < 阿 U+963F）
-      const sato = await createEmployee("佐藤花子")
-      const abe = await createEmployee("阿部一郎")
+      // ひらがな先頭文字の名前は照合順序非依存で同順になる
+      // （Unicode コードポイント順・Japanese_Japan.932 等いずれも あ < や）
+      const aoki = await createEmployee("あおき")
+      const yamada = await createEmployee("やまだ")
 
-      await assignRole(abe.id, role.id, null)
-      await assignRole(sato.id, role.id, null)
+      await assignRole(yamada.id, role.id, null)
+      await assignRole(aoki.id, role.id, null)
 
       const result = await getFunctionRoleById(role.id)
 
       expect(result).not.toBeNull()
       expect(result!.employeeRoles).toHaveLength(2)
-      expect(result!.employeeRoles[0].employee!.name).toBe("佐藤花子")
-      expect(result!.employeeRoles[1].employee!.name).toBe("阿部一郎")
+      expect(result!.employeeRoles[0].employee!.name).toBe("あおき")
+      expect(result!.employeeRoles[1].employee!.name).toBe("やまだ")
     })
 
     it("終了済みの割り当ては含めない", async () => {
