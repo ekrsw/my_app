@@ -11,7 +11,9 @@ vi.mock("@/auth", () => ({
   auth: vi.fn().mockResolvedValue({ user: { id: "1", name: "admin" } }),
 }))
 
-const { recordImportLog } = await import("@/lib/actions/import-log-actions")
+const { recordImportLog, fetchImportLogs } = await import(
+  "@/lib/actions/import-log-actions"
+)
 
 describe("recordImportLog", () => {
   beforeEach(async () => {
@@ -68,5 +70,42 @@ describe("recordImportLog", () => {
     expect("error" in result).toBe(true)
     const count = await prisma.importLog.count()
     expect(count).toBe(0)
+  })
+})
+
+describe("fetchImportLogs", () => {
+  beforeEach(async () => {
+    await cleanupDatabase()
+    vi.mocked(auth).mockResolvedValue({ user: { id: "1", name: "admin" } } as never)
+  })
+
+  it("ページネーション付きで取り込み履歴を返す", async () => {
+    await recordImportLog({ targetType: "shifts", createdCount: 1, updatedCount: 0, errorCount: 0 })
+    await recordImportLog({ targetType: "employees", createdCount: 2, updatedCount: 0, errorCount: 0 })
+
+    const result = await fetchImportLogs({ page: 1, pageSize: 20 })
+
+    expect(result.error).toBeUndefined()
+    expect(result.data.total).toBe(2)
+    expect(result.data.page).toBe(1)
+    expect(result.data.totalPages).toBe(1)
+    expect(result.data.data).toHaveLength(2)
+  })
+
+  it("targetType フィルタを適用できる", async () => {
+    await recordImportLog({ targetType: "shifts", createdCount: 1, updatedCount: 0, errorCount: 0 })
+    await recordImportLog({ targetType: "employees", createdCount: 2, updatedCount: 0, errorCount: 0 })
+
+    const result = await fetchImportLogs({ page: 1, pageSize: 20 }, { targetType: "shifts" })
+
+    expect(result.data.total).toBe(1)
+    expect(result.data.data.every((l) => l.targetType === "shifts")).toBe(true)
+  })
+
+  it("該当が無ければ空の結果を返す", async () => {
+    const result = await fetchImportLogs({ page: 1, pageSize: 20 })
+
+    expect(result.data.total).toBe(0)
+    expect(result.data.data).toEqual([])
   })
 })

@@ -17,6 +17,7 @@ const {
   deleteShift,
   bulkUpdateShifts,
   restoreShiftVersion,
+  fetchShiftVersions,
 } = await import("@/lib/actions/shift-actions")
 
 describe("Shift Actions", () => {
@@ -368,6 +369,34 @@ describe("Shift Actions", () => {
         where: { id: history.id },
       })
       expect(updatedHistory!.note).toBeNull()
+    })
+  })
+
+  describe("fetchShiftVersions", () => {
+    it("シフトの変更履歴を version 降順で返す", async () => {
+      const shift = await prisma.shift.create({
+        data: { employeeId, shiftDate: new Date("2026-01-15"), shiftCode: "A" },
+      })
+      await prisma.shift.update({ where: { id: shift.id }, data: { shiftCode: "B" } }) // v1
+      await prisma.shift.update({ where: { id: shift.id }, data: { shiftCode: "C" } }) // v2
+
+      const result = await fetchShiftVersions(shift.id)
+
+      expect(result.error).toBeUndefined()
+      expect(result.data).toHaveLength(2)
+      // version 降順: 先頭が最新 v2
+      expect(result.data[0].version).toBe(2)
+      expect(result.data[1].version).toBe(1)
+    })
+
+    it("履歴が無ければ空配列を返す", async () => {
+      const shift = await prisma.shift.create({
+        data: { employeeId, shiftDate: new Date("2026-02-01"), shiftCode: "A" },
+      })
+
+      const result = await fetchShiftVersions(shift.id)
+
+      expect(result.data).toEqual([])
     })
   })
 })

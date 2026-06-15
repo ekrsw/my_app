@@ -14,7 +14,37 @@ const {
   createDutyType,
   updateDutyType,
   deleteDutyType,
+  importDutyTypes,
 } = await import("@/lib/actions/duty-type-actions")
+
+function makeImportRow(
+  overrides: Partial<{
+    rowIndex: number
+    name: string
+    color: string | null
+    isActive: boolean
+    sortOrder: number
+    defaultReducesCapacity: boolean
+    defaultStartTime: string | null
+    defaultEndTime: string | null
+    defaultTitle: string | null
+    defaultNote: string | null
+  }> = {}
+) {
+  return {
+    rowIndex: 1,
+    name: "電話対応",
+    color: null,
+    isActive: true,
+    sortOrder: 0,
+    defaultReducesCapacity: true,
+    defaultStartTime: null,
+    defaultEndTime: null,
+    defaultTitle: null,
+    defaultNote: null,
+    ...overrides,
+  }
+}
 
 function makeFormData(data: Record<string, string>): FormData {
   const fd = new FormData()
@@ -223,6 +253,97 @@ describe("DutyType Actions", () => {
 
       const deleted = await prisma.dutyType.findUnique({ where: { id: dt.id } })
       expect(deleted).toBeNull()
+    })
+
+    it("使用中（割当あり）の業務種別削除はエラーを返す", async () => {
+      const dt = await prisma.dutyType.create({ data: { name: "使用中種別" } })
+      const emp = await prisma.employee.create({ data: { name: "田中太郎" } })
+      await prisma.dutyAssignment.create({
+        data: {
+          dutyTypeId: dt.id,
+          employeeId: emp.id,
+          dutyDate: new Date("2026-01-15"),
+          startTime: new Date("1970-01-01T09:00:00Z"),
+          endTime: new Date("1970-01-01T17:00:00Z"),
+        },
+      })
+
+      const result = await deleteDutyType(dt.id)
+
+      expect(result).toHaveProperty("error")
+      // 削除は失敗し、レコードは残っている
+      const still = await prisma.dutyType.findUnique({ where: { id: dt.id } })
+      expect(still).not.toBeNull()
+    })
+  })
+
+  describe("importDutyTypes", () => {
+    it("新規行を作成し created にカウントする", async () => {
+      const result = await importDutyTypes([
+        makeImportRow({ rowIndex: 1, name: "電話対応" }),
+        makeImportRow({ rowIndex: 2, name: "会議", defaultStartTime: "09:00", defaultEndTime: "17:00" }),
+      ])
+
+      expect(result.created).toBe(2)
+      expect(result.updated).toBe(0)
+      expect(result.errors).toEqual([])
+
+      const meeting = await prisma.dutyType.findFirst({ where: { name: "会議" } })
+      expect(meeting!.defaultStartTime).toBe("09:00")
+      expect(meeting!.defaultEndTime).toBe("17:00")
+    })
+
+    it("同名の既存行は更新し updated にカウントする", async () => {
+      await prisma.dutyType.create({
+        data: { name: "電話対応", sortOrder: 0, defaultNote: "旧メモ" },
+      })
+
+      const result = await importDutyTypes([
+        makeImportRow({ name: "電話対応", sortOrder: 5, defaultNote: "新メモ" }),
+      ])
+
+      expect(result.created).toBe(0)
+      expect(result.updated).toBe(1)
+
+      const dt = await prisma.dutyType.findFirst({ where: { name: "電話対応" } })
+      expect(dt!.sortOrder).toBe(5)
+      expect(dt!.defaultNote).toBe("新メモ")
+    })
+
+    it("新規と更新が混在しても正しく集計する", async () => {
+      await prisma.dutyType.create({ data: { name: "既存種別" } })
+
+      const result = await importDutyTypes([
+        makeImportRow({ rowIndex: 1, name: "既存種別" }),
+        makeImportRow({ rowIndex: 2, name: "新規種別" }),
+      ])
+
+      expect(result.created).toBe(1)
+      expect(result.updated).toBe(1)
+      expect(result.errors).toEqual([])
+    })
+
+    it("保存失敗した行は errors に rowIndex 付きで記録し他の行は処理を続行する", async () => {
+      // name は VarChar(50)。51 文字超で DB エラーを誘発する
+      const tooLong = "あ".repeat(60)
+
+      const result = await importDutyTypes([
+        makeImportRow({ rowIndex: 1, name: "正常種別" }),
+        makeImportRow({ rowIndex: 2, name: tooLong }),
+      ])
+
+      expect(result.created).toBe(1)
+      expect(result.errors).toHaveLength(1)
+      expect(result.errors[0].rowIndex).toBe(2)
+
+      // 正常な行はコミットされている
+      const ok = await prisma.dutyType.findFirst({ where: { name: "正常種別" } })
+      expect(ok).not.toBeNull()
+    })
+
+    it("空配列なら全カウント 0", async () => {
+      const result = await importDutyTypes([])
+      expect(result).toEqual({ created: 0, updated: 0, errors: [] })
     })
   })
 })
