@@ -231,16 +231,23 @@ Playwright は `webServer` 設定で自動的に `npm run start` を起動する
 
 `HTTP_PROXY` が localhost までトンネルする環境(社内プロキシ等)では webServer への接続が失敗するため、`playwright.config.ts` 側で `NO_PROXY=localhost,127.0.0.1,::1` を自動的に付与している。ユーザーが既に `NO_PROXY` を設定している場合は尊重して merge する。通常は追加の環境変数設定は不要。
 
+#### 認証（storageState）
+
+アプリは全面認証必須のため、E2E は事前にログイン状態を用意する。`setup` プロジェクト（`tests/e2e/auth.setup.ts`）が `/login` で `.env` の `ADMIN_USERNAME`/`ADMIN_PASSWORD` を使ってログインし、認証状態を storageState として保存する。保存先は `tests/e2e/constants.ts` の `STORAGE_STATE`（= `tests/e2e/.auth/user.json`、`.gitignore` 済み）に単一ソース化しており、`playwright.config.ts` と `auth.setup.ts` の両方がこの定数を import する。各認証必須プロジェクトは `dependencies: ["setup"]` でこれを読み込み、ログイン済み状態から起動する。
+
+このため E2E 実行前に `npm run db:seed` で `.env` の admin ユーザーを投入しておくこと（未投入だと `setup` プロジェクトがログインに失敗する）。
+
 #### テストプロジェクト
 
-`playwright.config.ts` で 2 つに分離:
+`playwright.config.ts` で 3 つに分離:
 
 | Project | Device | 対象 |
 |---|---|---|
-| `chromium-desktop` | Desktop Chrome (1280x800) | `describe("Sidebar — desktop")` のみ |
-| `chromium-mobile` | Pixel 5 エミュレート | `describe("Sidebar — mobile")` のみ |
+| `setup` | — | `auth.setup.ts`：`/login` でログインし storageState を保存する認証セットアップ |
+| `chromium-desktop` | Desktop Chrome (1280x800) | `describe("Sidebar — desktop")` とヘルプ導線（`help.spec.ts`） |
+| `chromium-mobile` | Pixel 5 エミュレート | `describe("Sidebar — mobile")` |
 
-タッチデバイスでホバーが効かない等、プロジェクトごとに挙動が違うテストが混線しないよう `grep` でルーティングしている。
+`chromium-desktop`/`chromium-mobile` は `dependencies: ["setup"]` で `setup` プロジェクトに依存し、保存された storageState を読み込んでログイン済み状態から起動する。タッチデバイスでホバーが効かない等、プロジェクトごとに挙動が違うテストが混線しないよう `grep` でルーティングしている。
 
 ### Server Action テストの必須モック
 

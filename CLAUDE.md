@@ -120,6 +120,7 @@ Form (Client Component) → lib/actions/ (Server Actions) → requireAuth() → 
   vi.mock("@/auth", () => ({ auth: vi.fn().mockResolvedValue({ user: { id: "1", name: "admin" } }) }))
   ```
 - Tests run sequentially (`fileParallelism: false`) with 30s timeout
+- **E2E (Playwright)**: ブラウザ挙動の検証は `tests/e2e/` 配下（Vitest ではなく Playwright）。アプリは全面認証必須のため、`setup` プロジェクト（`tests/e2e/auth.setup.ts`）が `/login` で `.env` の `ADMIN_USERNAME`/`ADMIN_PASSWORD` を使ってログインし storageState を保存する。保存先は `tests/e2e/constants.ts` の `STORAGE_STATE`（単一ソース、`.gitignore` 済み）で、`playwright.config.ts` の各認証必須プロジェクトが `dependencies: ["setup"]` + `storageState` でログイン済み状態から起動する。E2E 実行前に `npm run db:seed` で admin ユーザーが投入されている必要がある。実行手順・プロジェクト構成は README の「E2E テスト (Playwright)」を参照。新規 spec は `playwright.config.ts` の `testMatch` と `grep` の**両方**に登録する（登録漏れで No tests found）
 
 ### Path Alias
 `@/*` maps to the project root (e.g., `@/lib/prisma`, `@/components/ui/button`).
