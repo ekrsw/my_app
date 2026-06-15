@@ -5,6 +5,10 @@ import {
   isDutyActive,
   isWorkerPresent,
   getCapacityColor,
+  isRoleActiveOnDate,
+  isLunchBreak,
+  getTodayJSTDateStr,
+  getCurrentJSTTimeHHMM,
 } from "@/lib/capacity-utils"
 
 describe("getTimeHHMM", () => {
@@ -194,5 +198,104 @@ describe("getCapacityColor", () => {
 
   it("0人は赤", () => {
     expect(getCapacityColor(0)).toBe("red")
+  })
+})
+
+describe("getTodayJSTDateStr — 現在の JST 日付文字列", () => {
+  it("YYYY-MM-DD 形式（ゼロ埋め）で返す", () => {
+    expect(getTodayJSTDateStr()).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+  })
+
+  it("JST で算出した今日の年月日と一致する", () => {
+    const jst = new Date(Date.now() + 9 * 60 * 60 * 1000)
+    const expected = `${jst.getUTCFullYear()}-${String(
+      jst.getUTCMonth() + 1
+    ).padStart(2, "0")}-${String(jst.getUTCDate()).padStart(2, "0")}`
+    expect(getTodayJSTDateStr()).toBe(expected)
+  })
+})
+
+describe("getCurrentJSTTimeHHMM — 現在の JST 時刻", () => {
+  it("HH:mm 形式（ゼロ埋め）で返す", () => {
+    expect(getCurrentJSTTimeHHMM()).toMatch(/^\d{2}:\d{2}$/)
+  })
+
+  it("時は 0〜23、分は 0〜59 の範囲に収まる", () => {
+    const [h, m] = getCurrentJSTTimeHHMM().split(":").map(Number)
+    expect(h).toBeGreaterThanOrEqual(0)
+    expect(h).toBeLessThanOrEqual(23)
+    expect(m).toBeGreaterThanOrEqual(0)
+    expect(m).toBeLessThanOrEqual(59)
+  })
+})
+
+describe("isRoleActiveOnDate — 指定日が有効期間内か", () => {
+  it("startDate も endDate も null なら常に有効", () => {
+    expect(isRoleActiveOnDate(null, null, "2026-06-15")).toBe(true)
+    expect(isRoleActiveOnDate(undefined, undefined, "2026-06-15")).toBe(true)
+  })
+
+  it("開始日前は無効", () => {
+    expect(isRoleActiveOnDate("2026-07-01", null, "2026-06-15")).toBe(false)
+  })
+
+  it("開始日当日は有効（境界）", () => {
+    expect(isRoleActiveOnDate("2026-06-15", null, "2026-06-15")).toBe(true)
+  })
+
+  it("終了日後は無効", () => {
+    expect(isRoleActiveOnDate(null, "2026-05-31", "2026-06-15")).toBe(false)
+  })
+
+  it("終了日当日は有効（境界）", () => {
+    expect(isRoleActiveOnDate(null, "2026-06-15", "2026-06-15")).toBe(true)
+  })
+
+  it("開始日〜終了日の範囲内なら有効", () => {
+    expect(isRoleActiveOnDate("2026-06-01", "2026-06-30", "2026-06-15")).toBe(true)
+  })
+
+  it("Date オブジェクトでも判定できる", () => {
+    expect(
+      isRoleActiveOnDate(
+        new Date(Date.UTC(2026, 5, 1)),
+        new Date(Date.UTC(2026, 5, 30)),
+        "2026-06-15"
+      )
+    ).toBe(true)
+  })
+})
+
+describe("isLunchBreak — 半開区間 [start, end) の昼休憩判定", () => {
+  it("lunchStart が無ければ常に false", () => {
+    expect(isLunchBreak(null, "1970-01-01T13:00:00Z", "12:30")).toBe(false)
+  })
+
+  it("lunchEnd が無ければ常に false", () => {
+    expect(isLunchBreak("1970-01-01T12:00:00Z", null, "12:30")).toBe(false)
+  })
+
+  it("休憩時間内は true", () => {
+    expect(
+      isLunchBreak("1970-01-01T12:00:00Z", "1970-01-01T13:00:00Z", "12:30")
+    ).toBe(true)
+  })
+
+  it("開始時刻ちょうどは true（区間に含む）", () => {
+    expect(
+      isLunchBreak("1970-01-01T12:00:00Z", "1970-01-01T13:00:00Z", "12:00")
+    ).toBe(true)
+  })
+
+  it("終了時刻ちょうどは false（区間に含まない）", () => {
+    expect(
+      isLunchBreak("1970-01-01T12:00:00Z", "1970-01-01T13:00:00Z", "13:00")
+    ).toBe(false)
+  })
+
+  it("休憩時間外は false", () => {
+    expect(
+      isLunchBreak("1970-01-01T12:00:00Z", "1970-01-01T13:00:00Z", "11:59")
+    ).toBe(false)
   })
 })
