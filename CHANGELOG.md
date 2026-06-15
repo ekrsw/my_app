@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.11.20] - 2026-06-15
+
+### Tests
+- **`lib/db/roles` の `getFunctionRoleById` テストを照合順序（collation）非依存に修正**。現役割り当て従業員を name 昇順で返す検証で、漢字名（佐藤花子・阿部一郎）を使い「Unicode コードポイント順（佐 < 阿）」を前提にハードコードしていたため、テスト DB の照合順序 `Japanese_Japan.932`（読み順 あべ → さとう）と矛盾して失敗していた。先頭文字の順序が照合方式によらず一致するひらがな名（あおき・やまだ）に差し替え、実 DB で順序一致を確認。本番コード（`lib/db/roles.ts`）に変更はなく、テストの前提のみ修正。
+
 ## [0.3.11.19] - 2026-06-14
 
 ### Fixed
