@@ -11,6 +11,11 @@ import {
 } from "@/lib/validators"
 import { revalidatePath } from "next/cache"
 import { requireAuth } from "@/lib/auth-guard"
+import {
+  resolveStartDate,
+  fillRetroactiveDates,
+  resolveStartDateForEmployee,
+} from "@/lib/assignment-dates"
 
 export type RoleChangeItem = {
   status: "added" | "modified" | "removed"
@@ -52,15 +57,15 @@ export async function createEmployee(formData: FormData) {
 
   const groupId = formData.get("groupId") ? Number(formData.get("groupId")) : null
 
+  const hireDate = parsed.data.hireDate ? new Date(parsed.data.hireDate) : null
+
   try {
     await prisma.$transaction(async (tx) => {
       const employee = await tx.employee.create({
         data: {
           name: parsed.data.name,
           nameKana: parsed.data.nameKana ?? null,
-          hireDate: parsed.data.hireDate
-            ? new Date(parsed.data.hireDate)
-            : null,
+          hireDate,
           terminationDate: parsed.data.terminationDate
             ? new Date(parsed.data.terminationDate)
             : null,
@@ -72,9 +77,8 @@ export async function createEmployee(formData: FormData) {
           data: {
             employeeId: employee.id,
             groupId,
-            startDate: parsed.data.hireDate
-              ? new Date(parsed.data.hireDate)
-              : null,
+            // 作成時の所属に開始日入力欄は無いので、入社日があれば開始日へ補完。
+            startDate: resolveStartDate(null, hireDate),
           },
         })
       }
@@ -102,19 +106,39 @@ export async function updateEmployee(id: string, formData: FormData) {
     return { error: parsed.error.issues[0].message }
   }
 
-  const data = {
-    name: parsed.data.name,
-    nameKana: parsed.data.nameKana ?? null,
-    hireDate: parsed.data.hireDate
-      ? new Date(parsed.data.hireDate)
-      : null,
-    terminationDate: parsed.data.terminationDate
-      ? new Date(parsed.data.terminationDate)
-      : null,
-  }
+  const newHireDate = parsed.data.hireDate ? new Date(parsed.data.hireDate) : null
+  const newTerminationDate = parsed.data.terminationDate
+    ? new Date(parsed.data.terminationDate)
+    : null
 
   try {
-    await prisma.employee.update({ where: { id }, data })
+    // 入社日/退職日が NULL→値 に変わったら、開始日/終了日が空欄の
+    // 所属・ロール・役職へ遡及補完する。更新前値の取得・更新・補完を
+    // 1トランザクションに収める（単一管理者・単一ライター前提）。
+    await prisma.$transaction(async (tx) => {
+      const before = await tx.employee.findUnique({
+        where: { id },
+        select: { hireDate: true, terminationDate: true },
+      })
+
+      await tx.employee.update({
+        where: { id },
+        data: {
+          name: parsed.data.name,
+          nameKana: parsed.data.nameKana ?? null,
+          hireDate: newHireDate,
+          terminationDate: newTerminationDate,
+        },
+      })
+
+      await fillRetroactiveDates(tx, id, {
+        hadHireDate: !!before?.hireDate,
+        newHireDate,
+        hadTerminationDate: !!before?.terminationDate,
+        newTerminationDate,
+      })
+    })
+
     revalidatePath("/employees")
     revalidatePath(`/employees/${id}`)
     revalidatePath("/duty-assignments")
@@ -176,20 +200,27 @@ export async function updateEmployeeWithRoles(
     return { error: parsed.error.issues[0].message }
   }
 
+  const newHireDate = parsed.data.hireDate ? new Date(parsed.data.hireDate) : null
+  const newTerminationDate = parsed.data.terminationDate
+    ? new Date(parsed.data.terminationDate)
+    : null
+
   try {
     await prisma.$transaction(async (tx) => {
+      // 更新前の入社日/退職日（NULL→値 検出用）
+      const before = await tx.employee.findUnique({
+        where: { id },
+        select: { hireDate: true, terminationDate: true },
+      })
+
       // 1. 従業員基本情報更新（名前変更はDBトリガーで履歴化）
       await tx.employee.update({
         where: { id },
         data: {
           name: parsed.data.name,
           nameKana: parsed.data.nameKana ?? null,
-          hireDate: parsed.data.hireDate
-            ? new Date(parsed.data.hireDate)
-            : null,
-          terminationDate: parsed.data.terminationDate
-            ? new Date(parsed.data.terminationDate)
-            : null,
+          hireDate: newHireDate,
+          terminationDate: newTerminationDate,
         },
       })
 
@@ -201,7 +232,11 @@ export async function updateEmployeeWithRoles(
               employeeId: id,
               functionRoleId: change.functionRoleId,
               isPrimary: change.isPrimary ?? false,
-              startDate: change.startDate ? new Date(change.startDate) : null,
+              // 作成時補完: 開始日空欄なら入社日（このコールで設定する値）で補完
+              startDate: resolveStartDate(
+                change.startDate ? new Date(change.startDate) : null,
+                newHireDate,
+              ),
               endDate: null,
             },
           })
@@ -229,7 +264,10 @@ export async function updateEmployeeWithRoles(
             data: {
               employeeId: id,
               positionId: change.positionId,
-              startDate: change.startDate ? new Date(change.startDate) : null,
+              startDate: resolveStartDate(
+                change.startDate ? new Date(change.startDate) : null,
+                newHireDate,
+              ),
               endDate: null,
             },
           })
@@ -256,7 +294,10 @@ export async function updateEmployeeWithRoles(
             data: {
               employeeId: id,
               groupId: change.groupId,
-              startDate: change.startDate ? new Date(change.startDate) : null,
+              startDate: resolveStartDate(
+                change.startDate ? new Date(change.startDate) : null,
+                newHireDate,
+              ),
               endDate: null,
             },
           })
@@ -275,6 +316,15 @@ export async function updateEmployeeWithRoles(
           })
         }
       }
+
+      // 5. 遡及補完（最後に実行）: 入社日/退職日が NULL→値 になったら、
+      // 既存の空欄 開始日/終了日 を埋める（start→end の順で範囲反転を防ぐ）。
+      await fillRetroactiveDates(tx, id, {
+        hadHireDate: !!before?.hireDate,
+        newHireDate,
+        hadTerminationDate: !!before?.terminationDate,
+        newTerminationDate,
+      })
     })
 
     revalidatePath("/employees")
@@ -304,13 +354,22 @@ export async function addEmployeeGroup(data: {
     return { error: parsed.error.issues[0].message }
   }
 
+  const endDate = parsed.data.endDate ? new Date(parsed.data.endDate) : null
+
   try {
+    // 開始日空欄なら従業員の入社日で補完（サーバーを権威ソースとする）。
+    const startDate = await resolveStartDateForEmployee(
+      prisma,
+      parsed.data.employeeId,
+      parsed.data.startDate ? new Date(parsed.data.startDate) : null,
+      endDate,
+    )
     await prisma.employeeGroup.create({
       data: {
         employeeId: parsed.data.employeeId,
         groupId: parsed.data.groupId,
-        startDate: parsed.data.startDate ? new Date(parsed.data.startDate) : null,
-        endDate: parsed.data.endDate ? new Date(parsed.data.endDate) : null,
+        startDate,
+        endDate,
       },
     })
     revalidatePath(`/employees/${parsed.data.employeeId}`)
@@ -382,13 +441,22 @@ export async function addEmployeePosition(data: {
     return { error: parsed.error.issues[0].message }
   }
 
+  const endDate = parsed.data.endDate ? new Date(parsed.data.endDate) : null
+
   try {
+    // 開始日空欄なら従業員の入社日で補完（サーバーを権威ソースとする）。
+    const startDate = await resolveStartDateForEmployee(
+      prisma,
+      parsed.data.employeeId,
+      parsed.data.startDate ? new Date(parsed.data.startDate) : null,
+      endDate,
+    )
     await prisma.employeePosition.create({
       data: {
         employeeId: parsed.data.employeeId,
         positionId: parsed.data.positionId,
-        startDate: parsed.data.startDate ? new Date(parsed.data.startDate) : null,
-        endDate: parsed.data.endDate ? new Date(parsed.data.endDate) : null,
+        startDate,
+        endDate,
       },
     })
     revalidatePath(`/employees/${parsed.data.employeeId}`)
@@ -547,19 +615,28 @@ export async function importEmployees(
                   }
                 }
 
-                // CSVにあるが未所属のグループ → 追加
+                // CSVにあるが未所属のグループ → 追加（開始日は入社日で補完）
                 for (const gid of csvGroupIds) {
                   if (!activeGroupIds.has(gid)) {
                     await tx.employeeGroup.create({
                       data: {
                         employeeId: existing.id,
                         groupId: gid,
-                        startDate: null,
+                        startDate: resolveStartDate(null, data.hireDate),
                       },
                     })
                   }
                 }
               }
+
+              // 遡及補完: CSV更新で入社日/退職日が NULL→値 になったら、
+              // 既存の空欄 開始日/終了日 を埋める（start→end の順）。
+              await fillRetroactiveDates(tx, existing.id, {
+                hadHireDate: !!existing.hireDate,
+                newHireDate: data.hireDate,
+                hadTerminationDate: !!existing.terminationDate,
+                newTerminationDate: data.terminationDate,
+              })
             }
           }
 
@@ -568,14 +645,14 @@ export async function importEmployees(
             const newEmployee = await tx.employee.create({ data })
             created++
 
-            // 新規従業員のグループ登録
+            // 新規従業員のグループ登録（開始日は入社日で補完）
             if (csvGroupIds !== null && csvGroupIds.length > 0) {
               for (const gid of csvGroupIds) {
                 await tx.employeeGroup.create({
                   data: {
                     employeeId: newEmployee.id,
                     groupId: gid,
-                    startDate: null,
+                    startDate: resolveStartDate(null, data.hireDate),
                   },
                 })
               }

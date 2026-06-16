@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma"
 import { functionRoleSchema, roleAssignmentSchema } from "@/lib/validators"
 import { revalidatePath } from "next/cache"
 import { requireAuth } from "@/lib/auth-guard"
+import { resolveStartDate, resolveStartDateForEmployee } from "@/lib/assignment-dates"
 
 export async function createFunctionRole(formData: FormData) {
   await requireAuth()
@@ -85,14 +86,23 @@ export async function assignRole(data: {
     return { error: parsed.error.issues[0].message }
   }
 
+  const endDate = parsed.data.endDate ? new Date(parsed.data.endDate) : null
+
   try {
+    // 開始日空欄なら従業員の入社日で補完（サーバーを権威ソースとする）。
+    const startDate = await resolveStartDateForEmployee(
+      prisma,
+      parsed.data.employeeId,
+      parsed.data.startDate ? new Date(parsed.data.startDate) : null,
+      endDate,
+    )
     await prisma.employeeFunctionRole.create({
       data: {
         employeeId: parsed.data.employeeId,
         functionRoleId: parsed.data.functionRoleId,
         isPrimary: parsed.data.isPrimary,
-        startDate: parsed.data.startDate ? new Date(parsed.data.startDate) : null,
-        endDate: parsed.data.endDate ? new Date(parsed.data.endDate) : null,
+        startDate,
+        endDate,
       },
     })
     revalidatePath("/roles")
@@ -182,16 +192,18 @@ export async function importRoleAssignments(
       // 在籍従業員のみ取得（退職済みを除外）
       const allEmployees = await tx.employee.findMany({
         where: { terminationDate: null },
-        select: { id: true, name: true },
+        select: { id: true, name: true, hireDate: true },
       })
 
-      // 名前→{id, count} マップ構築
+      // 名前→{id, count} マップ構築 + id→入社日マップ（作成時補完用）
       const nameCountMap = new Map<string, number>()
       const nameIdMap = new Map<string, string>()
+      const hireDateMap = new Map<string, Date | null>()
       for (const emp of allEmployees) {
         const count = nameCountMap.get(emp.name) || 0
         nameCountMap.set(emp.name, count + 1)
         nameIdMap.set(emp.name, emp.id)
+        hireDateMap.set(emp.id, emp.hireDate)
       }
 
       // アクティブなFunctionRoleのみ取得
@@ -288,7 +300,12 @@ export async function importRoleAssignments(
               roleType: roleInfo.roleType,
               kind: roleInfo.kind,
               isPrimary: row.isPrimary,
-              startDate: row.startDate ? new Date(row.startDate) : null,
+              // 開始日空欄なら従業員の入社日で補完
+              startDate: resolveStartDate(
+                row.startDate ? new Date(row.startDate) : null,
+                hireDateMap.get(employeeId) ?? null,
+                row.endDate ? new Date(row.endDate) : null,
+              ),
               endDate: row.endDate ? new Date(row.endDate) : null,
             },
           })

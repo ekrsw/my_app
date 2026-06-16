@@ -44,8 +44,8 @@ export default defineConfig({
       name: "chromium-desktop",
       use: { ...devices["Desktop Chrome"], storageState: STORAGE_STATE },
       dependencies: ["setup"],
-      testMatch: /desktop\.spec\.ts|sidebar\.spec\.ts|help\.spec\.ts/,
-      grep: /Sidebar — desktop|ヘルプページと各画面からの導線/,
+      testMatch: /desktop\.spec\.ts|sidebar\.spec\.ts|help\.spec\.ts|assignment-date-autofill\.spec\.ts/,
+      grep: /Sidebar — desktop|ヘルプページと各画面からの導線|入社日・退職日からの期間自動補完/,
     },
     {
       name: "chromium-mobile",

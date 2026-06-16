@@ -6,6 +6,8 @@ import {
   shiftBulkSchema,
   functionRoleSchema,
   roleAssignmentSchema,
+  groupAssignmentSchema,
+  positionAssignmentSchema,
   shiftCodeSchema,
   dutyAssignmentSchema,
   dutyTypeSchema,
@@ -838,6 +840,117 @@ describe("Zod Validation Schemas", () => {
         defaultTitle: "あ".repeat(101),
       })
       expect(result.success).toBe(false)
+    })
+  })
+
+  describe("期間の start ≤ end 検証（手入力逆転の防止）", () => {
+    const EMP_ID = "f47ac10b-58cc-4372-a567-0e02b2c3d479"
+
+    it("employeeSchema: 入社日 <= 退職日 は有効", () => {
+      const result = employeeSchema.safeParse({
+        name: "田中太郎",
+        hireDate: "2025-04-01",
+        terminationDate: "2025-10-01",
+      })
+      expect(result.success).toBe(true)
+    })
+
+    it("employeeSchema: 入社日 > 退職日 は無効", () => {
+      const result = employeeSchema.safeParse({
+        name: "田中太郎",
+        hireDate: "2025-10-01",
+        terminationDate: "2025-04-01",
+      })
+      expect(result.success).toBe(false)
+    })
+
+    it("employeeSchema: 入社日のみ（退職日 null）は有効", () => {
+      const result = employeeSchema.safeParse({
+        name: "田中太郎",
+        hireDate: "2025-04-01",
+        terminationDate: null,
+      })
+      expect(result.success).toBe(true)
+    })
+
+    it("groupAssignmentSchema: 開始日あり・終了日 null は有効（片側のみ）", () => {
+      const result = groupAssignmentSchema.safeParse({
+        employeeId: EMP_ID,
+        groupId: 1,
+        startDate: "2025-04-01",
+        endDate: null,
+      })
+      expect(result.success).toBe(true)
+    })
+
+    it("groupAssignmentSchema: 開始日 null・終了日あり は有効（開始日未指定はスキップ）", () => {
+      const result = groupAssignmentSchema.safeParse({
+        employeeId: EMP_ID,
+        groupId: 1,
+        startDate: null,
+        endDate: "2025-10-01",
+      })
+      expect(result.success).toBe(true)
+    })
+
+    it("groupAssignmentSchema: 開始日 > 終了日 は無効", () => {
+      const result = groupAssignmentSchema.safeParse({
+        employeeId: EMP_ID,
+        groupId: 1,
+        startDate: "2025-10-01",
+        endDate: "2025-04-01",
+      })
+      expect(result.success).toBe(false)
+    })
+
+    it("groupAssignmentSchema: 開始日 <= 終了日 は有効", () => {
+      const result = groupAssignmentSchema.safeParse({
+        employeeId: EMP_ID,
+        groupId: 1,
+        startDate: "2025-04-01",
+        endDate: "2025-10-01",
+      })
+      expect(result.success).toBe(true)
+    })
+
+    it("roleAssignmentSchema: 開始日 > 終了日 は無効", () => {
+      const result = roleAssignmentSchema.safeParse({
+        employeeId: EMP_ID,
+        functionRoleId: 1,
+        startDate: "2025-10-01",
+        endDate: "2025-04-01",
+      })
+      expect(result.success).toBe(false)
+    })
+
+    it("roleAssignmentSchema: 開始日 <= 終了日 は有効", () => {
+      const result = roleAssignmentSchema.safeParse({
+        employeeId: EMP_ID,
+        functionRoleId: 1,
+        startDate: "2025-04-01",
+        endDate: "2025-10-01",
+      })
+      expect(result.success).toBe(true)
+    })
+
+    it("positionAssignmentSchema: 開始日 > 終了日 は無効", () => {
+      const result = positionAssignmentSchema.safeParse({
+        employeeId: EMP_ID,
+        positionId: 1,
+        startDate: "2025-10-01",
+        endDate: "2025-04-01",
+      })
+      expect(result.success).toBe(false)
+    })
+
+    it("positionAssignmentSchema: 開始日 <= 終了日 は有効", () => {
+      const result = positionAssignmentSchema.safeParse({
+        employeeId: EMP_ID,
+        positionId: 1,
+        startDate: "2025-04-01",
+        endDate: "2025-10-01",
+      })
+      expect(result.success).toBe(true)
     })
   })
 })

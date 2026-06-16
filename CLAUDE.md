@@ -63,7 +63,8 @@ Form (Client Component) → lib/actions/ (Server Actions) → requireAuth() → 
 - `lib/actions/` — Server Actions for all mutations (employee, shift, group, role, position). All mutations require authentication via `requireAuth()`
 - `lib/db/` — Database query functions (read operations, filtering, pagination). No auth required
 - `lib/auth-guard.ts` — `requireAuth()` helper that throws if unauthenticated
-- `lib/validators.ts` — All Zod schemas used for form validation
+- `lib/validators.ts` — All Zod schemas used for form validation。期間レコード（所属/ロール/役職の割当）と従業員に「開始日 ≤ 終了日」を検証する共通述語 `isStartBeforeOrEqualEnd` を持つ（逆転した期間の登録を防ぐ）
+- `lib/assignment-dates.ts` — 所属/ロール/役職の開始日・終了日を従業員の入社日（hireDate）・退職日（terminationDate）から自動補完する純ロジック。`resolveStartDate`（作成時に開始日空欄なら入社日で補完）/ `fillBlankStartDates` / `fillBlankEndDates`（遡及補完）/ `fillRetroactiveDates`（NULL→値 のときだけ start→end の順で実行）/ `resolveStartDateForEmployee`（個別 add 経路の共通処理）。作成経路（`createEmployee`・個別 add・CSV インポート）と遡及経路（`updateEmployee`・`updateEmployeeWithRoles`・`importEmployees`）が共用する
 - `lib/excel/` — Excel (`.xlsx`) パース/変換ロジック (現場シフト表 Excel → 既存 CSV インポート互換フォーマット)。`parse-shift-xlsx.ts` 参照
 - `auth.ts` — Auth.js v5 configuration (Credentials Provider, JWT strategy)
 - `middleware.ts` — ラッパー形 `auth((req) => ...)` で認証を一元強制（`/`・`/login`・`/api/auth`・静的アセット以外は認証必須）。ゲート判定本体は純関数 `lib/auth-gate.ts` の `decideGate()`（公開判定は `lib/routes.ts` の `isPublic()`）。認証済みリクエストで `had_session` cookie を立て、失効（未認証＋`had_session`）時は `/login?reason=expired` を出し分ける
@@ -103,6 +104,7 @@ Form (Client Component) → lib/actions/ (Server Actions) → requireAuth() → 
 - 「今日」の算出には `lib/date-utils.ts` の `getTodayJST()` を使用する（`new Date()` のローカル日付を直接使わない）
 - `getTodayJST()` は Prisma `@db.Date` カラム比較用の UTC midnight Date を返す
 - 開始日・終了日を持つレコード（グループ所属・ロール・役職）が指定日時点で「現在有効（current）」かの判定には `lib/date-utils.ts` の `isCurrentRecord()` を使用する。`start_date`/`end_date` が NULL の場合は「過去から有効／終了未定」とみなし、DB クエリ側の `(start_date IS NULL OR start_date <= today) AND (end_date IS NULL OR end_date >= today)` と同じ意味論をクライアント側でも担保する（インラインで再実装しない）
+- 所属/ロール/役職の開始日・終了日を従業員の入社日・退職日から補完する処理は `lib/assignment-dates.ts` の純関数に集約する（作成・遡及・CSV インポートの各経路でインライン再実装しない）。補完は常に「空欄（null）のときだけ」で手入力済みの日付は上書きしない。役職の `employee_positions_no_overlap`（daterange）制約に対し、終了日 < 入社日／開始日 > 退職日 のレコードは補完をスキップして範囲反転例外を防ぐ
 
 ### Database Design
 - **Junction tables** for many-to-many: `employee_groups`, `employee_function_roles`, `employee_positions`

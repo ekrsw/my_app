@@ -285,4 +285,87 @@ describe("importEmployees", () => {
       expect(result.errors).toHaveLength(0)
     })
   })
+
+  describe("自動補完（入社日・退職日）", () => {
+    it("新規作成: 入社日 + グループ → グループ開始日に入社日（作成時補完）", async () => {
+      await prisma.group.create({ data: { name: "営業" } })
+
+      const result = await importEmployees([
+        {
+          rowIndex: 2,
+          employeeId: null,
+          name: "新人太郎",
+          nameKana: null,
+          hireDate: "2020-04-01",
+          terminationDate: null,
+          groupNames: "営業",
+        },
+      ])
+
+      expect(result.success).toBe(true)
+      const eg = await prisma.employeeGroup.findFirst()
+      expect(eg!.startDate).toEqual(new Date("2020-04-01"))
+    })
+
+    it("既存更新: 入社日/退職日 NULL→値 で、空欄の開始日/終了日が遡及補完される", async () => {
+      const group = await prisma.group.create({ data: { name: "営業" } })
+      // 入社日・退職日とも空の既存従業員 + 開始日空欄の所属
+      const emp = await prisma.employee.create({ data: { name: "既存太郎" } })
+      await prisma.employeeGroup.create({
+        data: { employeeId: emp.id, groupId: group.id, startDate: null, endDate: null },
+      })
+
+      const result = await importEmployees([
+        {
+          rowIndex: 2,
+          employeeId: emp.id,
+          name: "既存太郎",
+          nameKana: null,
+          hireDate: "2020-04-01",
+          terminationDate: "2025-04-01",
+          groupNames: "営業", // 既存所属のまま（追加・終了されない）
+        },
+      ])
+
+      expect(result.success).toBe(true)
+      const eg = await prisma.employeeGroup.findFirst({ where: { employeeId: emp.id } })
+      // 開始日 → 入社日、終了日 → 退職日 が遡及補完される
+      expect(eg!.startDate).toEqual(new Date("2020-04-01"))
+      expect(eg!.endDate).toEqual(new Date("2025-04-01"))
+    })
+
+    it("既存更新: 遡及補完はロール・役職にも及ぶ（updateMany 全テーブル）", async () => {
+      const role = await prisma.functionRole.create({
+        data: { roleCode: "SV", roleName: "SV", kind: "SUPERVISOR" },
+      })
+      const pos = await prisma.position.create({
+        data: { positionCode: "CHIEF", positionName: "主任" },
+      })
+      const emp = await prisma.employee.create({ data: { name: "既存太郎" } })
+      await prisma.employeeFunctionRole.create({
+        data: { employeeId: emp.id, functionRoleId: role.id, startDate: null },
+      })
+      await prisma.employeePosition.create({
+        data: { employeeId: emp.id, positionId: pos.id, startDate: null },
+      })
+
+      const result = await importEmployees([
+        {
+          rowIndex: 2,
+          employeeId: emp.id,
+          name: "既存太郎",
+          nameKana: null,
+          hireDate: "2020-04-01",
+          terminationDate: null,
+          groupNames: null, // グループは変更しない
+        },
+      ])
+
+      expect(result.success).toBe(true)
+      const efr = await prisma.employeeFunctionRole.findFirst({ where: { employeeId: emp.id } })
+      const ep = await prisma.employeePosition.findFirst({ where: { employeeId: emp.id } })
+      expect(efr!.startDate).toEqual(new Date("2020-04-01"))
+      expect(ep!.startDate).toEqual(new Date("2020-04-01"))
+    })
+  })
 })

@@ -480,3 +480,16 @@
 **Depends on:** 「Playwright E2E を CI パイプラインに統合」TODO の完了 / 本体（ルート構成変更＋認証ゲート）PR のマージ
 
 **Effort:** M (CC+gstack: ~30min) | **Priority:** P3 | **Risk:** Low
+
+## 期間自動補完: 退化ケースのガード強化（F1/F2）
+
+**What:** 入社日・退職日からの開始日/終了日 自動補完で残った2つの退化ケースを処理する。F1: 終了日 == 入社日 のレコードに入社日を補完すると `daterange(d, d, '[)')` が空区間になる（`isCurrentRecord` は両端含むため層間で意味がずれる）。`fillBlankStartDates`/`resolveStartDate` のガードを `>=` から `>` にし、hire==end の行は補完せず null のまま残す。F2: 作成経路（`createEmployee` / `updateEmployeeWithRoles` 追加行）は `resolveStartDate` に endDate を渡しておらず反転ガードが不活性（現状は endDate=null で作成するため安全）。将来それらの経路に終了日入力が加わったとき備えてコメント明記、または常に endDate を渡す。
+
+**Why:** /ship の敵対的レビュー（2026-06-16）で検出。いずれも実データ形状では現在障害が出ない退化ケース（F1 は「割当の終了日が入社日と同一」、F2 は将来の経路変更時の罠）。本体 PR の right-sized diff を保つため分離。
+
+**Pros:** 単日割当の層間意味整合 / 作成経路の反転ガードの一貫性 / 将来の経路追加時の事故防止
+**Cons:** 退化ケースのため実利益は小さい。F1 は「補完しない」が正か「空区間でも補完」が正か仕様判断が要る
+
+**Context:** 対象 `lib/assignment-dates.ts`（`resolveStartDate` / `fillBlankStartDates`）。制約は `prisma/migrations/0_init/migration.sql` の `employee_positions_no_overlap`（`daterange(start, COALESCE(end,'9999-12-31'), '[)')`）。設計: `~/.gstack/projects/ekrsw-my_app/ekoresawa-main-design-20260616-171556.md`。
+
+**Effort:** S (CC+gstack: ~15min) | **Priority:** P3 | **Risk:** Low

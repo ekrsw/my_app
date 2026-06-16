@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.15.0] - 2026-06-16
+
+### Added
+- **所属・ロール・役職の開始日/終了日を入社日・退職日から自動補完**: 従業員に入社日があれば、所属/ロール/役職を「開始日を空欄」で登録したとき開始日に入社日が自動で入る。後から入社日を入力した場合も、開始日が空欄の既存レコードへ遡及的に入社日が補完される。退職日を入力すると、終了日が空欄の所属/ロール/役職へ退職日が補完される。手入力済みの日付は上書きしない。CSV インポート（従業員・ロール）でも同様に補完される。
+- **開始日 ≤ 終了日 の入力検証**: 所属・ロール・役職の割当と従業員（入社日 ≤ 退職日）で、終了日が開始日より前の逆転した期間を登録できないようバリデーションを追加。
+
+### Changed
+- 補完ロジックは `lib/assignment-dates.ts` の純関数（`resolveStartDate` / `fillBlankStartDates` / `fillBlankEndDates` / `fillRetroactiveDates` / `resolveStartDateForEmployee`）に集約し、作成経路（`createEmployee`・個別 add・CSV インポート）と遡及経路（`updateEmployee`・`updateEmployeeWithRoles`・`importEmployees`）が同一ロジックを共用する。役職の `employee_positions_no_overlap`（daterange）制約に対し、終了日 < 入社日／開始日 > 退職日 のレコードは補完をスキップして範囲反転例外を防ぐ。
+
 ## [0.3.14.0] - 2026-06-16
 
 ### Added

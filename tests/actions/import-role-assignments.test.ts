@@ -91,6 +91,22 @@ describe("importRoleAssignments", () => {
       expect(assignment!.startDate).toBeNull()
       expect(assignment!.endDate).toBeNull()
     })
+
+    it("startDate が空欄なら従業員の入社日で補完される（作成時補完）", async () => {
+      // 入社日ありの従業員
+      await prisma.employee.create({
+        data: { name: "山田太郎", hireDate: new Date("2020-04-01") },
+      })
+      await createRole("LEADER")
+
+      const result = await importRoleAssignments([
+        { rowIndex: 2, employeeName: "山田太郎", roleCode: "LEADER", isPrimary: false, startDate: null, endDate: null },
+      ])
+
+      expect(result.success).toBe(true)
+      const assignment = await prisma.employeeFunctionRole.findFirst()
+      expect(assignment!.startDate).toEqual(new Date("2020-04-01"))
+    })
   })
 
   describe("エラー系: 従業員", () => {
