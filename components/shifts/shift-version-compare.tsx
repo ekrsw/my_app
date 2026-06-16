@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -11,6 +12,8 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { ShiftBadge } from "./shift-badge"
 import { formatDate, formatTime } from "@/lib/date-utils"
+import { SESSION_EXPIRED_MESSAGE } from "@/lib/auth-session"
+import { ROUTES } from "@/lib/routes"
 import { restoreShiftVersion } from "@/lib/actions/shift-actions"
 import { toast } from "sonner"
 import { ArrowRight, RotateCcw } from "lucide-react"
@@ -30,17 +33,30 @@ type ShiftVersionCompareInnerProps = {
 }
 
 function ShiftVersionCompareInner({ shiftId, employeeName, onClose }: ShiftVersionCompareInnerProps) {
+  const router = useRouter()
   const [versions, setVersions] = useState<ShiftChangeHistory[]>([])
   const [loading, setLoading] = useState(true)
   const [restoring, setRestoring] = useState(false)
 
   useEffect(() => {
     fetch(`/api/shifts/versions?shiftId=${shiftId}`)
-      .then((r) => r.json())
+      .then((r) => {
+        // セッション失効時、middleware は配列でなく JSON 401 を返す。r.ok を見ずに
+        // json を versions に入れると後続の .map が壊れるため、ここでログインへ誘導する。
+        if (r.status === 401) {
+          toast.error(SESSION_EXPIRED_MESSAGE)
+          router.push(
+            `${ROUTES.login}?callbackUrl=${encodeURIComponent(window.location.pathname)}&reason=expired`
+          )
+          return [] as ShiftChangeHistory[] // 後続 .map がクラッシュしないよう空配列
+        }
+        if (!r.ok) throw new Error(`request failed: ${r.status}`)
+        return r.json()
+      })
       .then((data) => setVersions(data))
       .catch(() => toast.error("バージョン情報の取得に失敗しました"))
       .finally(() => setLoading(false))
-  }, [shiftId])
+  }, [shiftId, router])
 
   async function handleRestore(version: number) {
     setRestoring(true)
