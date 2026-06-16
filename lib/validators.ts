@@ -1,5 +1,18 @@
 import { z } from "zod"
 
+/**
+ * 開始日 <= 終了日 を検証する共通述語。
+ * どちらかが空(null/未指定/空文字)なら検証をスキップ（= 制約なし）。
+ * 期間レコード(所属/ロール/役職)と従業員(入社日<=退職日)で共用する。
+ */
+function isStartBeforeOrEqualEnd(
+  start?: string | null,
+  end?: string | null,
+): boolean {
+  if (!start || !end) return true
+  return new Date(start).getTime() <= new Date(end).getTime()
+}
+
 export const groupSchema = z.object({
   name: z.string().min(1, "グループ名は必須です").max(50, "50文字以内で入力してください"),
   abbreviatedName: z.union([z.string(), z.null()])
@@ -13,6 +26,9 @@ export const employeeSchema = z.object({
   nameKana: z.string().max(100, "100文字以内で入力してください").nullable().optional(),
   hireDate: z.string().nullable().optional(),
   terminationDate: z.string().nullable().optional(),
+}).refine((d) => isStartBeforeOrEqualEnd(d.hireDate, d.terminationDate), {
+  message: "退職日は入社日以降の日付にしてください",
+  path: ["terminationDate"],
 })
 
 const timeHHmmField = z.union([z.string(), z.null()])
@@ -63,6 +79,9 @@ export const roleAssignmentSchema = z.object({
   isPrimary: z.boolean().default(false),
   startDate: z.string().nullable().optional(),
   endDate: z.string().nullable().optional(),
+}).refine((d) => isStartBeforeOrEqualEnd(d.startDate, d.endDate), {
+  message: "終了日は開始日以降の日付にしてください",
+  path: ["endDate"],
 })
 
 export const positionSchema = z.object({
@@ -89,6 +108,9 @@ export const groupAssignmentSchema = z.object({
   groupId: z.coerce.number().int().positive("グループを選択してください"),
   startDate: z.string().nullable().optional(),
   endDate: z.string().nullable().optional(),
+}).refine((d) => isStartBeforeOrEqualEnd(d.startDate, d.endDate), {
+  message: "終了日は開始日以降の日付にしてください",
+  path: ["endDate"],
 })
 
 export const positionAssignmentSchema = z.object({
@@ -96,6 +118,9 @@ export const positionAssignmentSchema = z.object({
   positionId: z.coerce.number().int().positive("役職を選択してください"),
   startDate: z.string().nullable().optional(),
   endDate: z.string().nullable().optional(),
+}).refine((d) => isStartBeforeOrEqualEnd(d.startDate, d.endDate), {
+  message: "終了日は開始日以降の日付にしてください",
+  path: ["endDate"],
 })
 
 export type GroupAssignmentFormData = z.infer<typeof groupAssignmentSchema>
