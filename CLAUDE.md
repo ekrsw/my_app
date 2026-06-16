@@ -66,12 +66,14 @@ Form (Client Component) → lib/actions/ (Server Actions) → requireAuth() → 
 - `lib/validators.ts` — All Zod schemas used for form validation
 - `lib/excel/` — Excel (`.xlsx`) パース/変換ロジック (現場シフト表 Excel → 既存 CSV インポート互換フォーマット)。`parse-shift-xlsx.ts` 参照
 - `auth.ts` — Auth.js v5 configuration (Credentials Provider, JWT strategy)
-- `middleware.ts` — `authorized` コールバックで認証を一元強制（`/`・`/login`・`/api/auth`・静的アセット以外は認証必須）。判定本体は `lib/routes.ts` の `isPublic()`
+- `middleware.ts` — ラッパー形 `auth((req) => ...)` で認証を一元強制（`/`・`/login`・`/api/auth`・静的アセット以外は認証必須）。ゲート判定本体は純関数 `lib/auth-gate.ts` の `decideGate()`（公開判定は `lib/routes.ts` の `isPublic()`）。認証済みリクエストで `had_session` cookie を立て、失効（未認証＋`had_session`）時は `/login?reason=expired` を出し分ける
+- `lib/auth-session.ts` — セッション絶対有効期限の純関数（`getAbsoluteTtlMs()` / `isSessionExpired()`）。`AUTH_ABSOLUTE_SESSION_SECONDS`（秒, 既定28800=8h）で調整。`auth.config.ts` の `jwt` コールバックが `loginAt` を記録し超過で `null` を返して絶対失効させる（Auth.js のローリングを無効化）。Edge セーフ（純関数・`process.env` のみ）
+- `lib/auth-gate.ts` — middleware 認証ゲートの判定（純関数 `decideGate`）。next/json401/redirect を返し、middleware が NextResponse に変換
 - `types/` — Application types extending Prisma generated types
 - `components/auth/` — Login form and SessionProvider wrapper
 - `components/ui/` — shadcn/ui base components (do not edit manually, use `npx shadcn add`)
 - `app/generated/prisma/` — Prisma generated client (do not edit)
-- `app/api/` — Route Handler。**全 `/api/*`（`/api/auth/*` を除く）は middleware の `authorized` で認証必須**（CSV エクスポート `*/export`・参照系 `shifts/versions` 含む。未認証は JSON 401）。**書き込み・処理系 POST**（Excel→CSV 変換 `data/shift-conversion` 等）は加えて route 先頭で `auth()` ガードも持つ（多層防御）。CSV 生成は `lib/csv.ts` の `rowsToCsv()` 経由でエスケープ＋数式インジェクション中和を行う
+- `app/api/` — Route Handler。**全 `/api/*`（`/api/auth/*` を除く）は middleware の認証ゲート（`decideGate`）で認証必須**（CSV エクスポート `*/export`・参照系 `shifts/versions` 含む。未認証は JSON 401）。**書き込み・処理系 POST**（Excel→CSV 変換 `data/shift-conversion` 等）は加えて route 先頭で `auth()` ガードも持つ（多層防御）。CSV 生成は `lib/csv.ts` の `rowsToCsv()` 経由でエスケープ＋数式インジェクション中和を行う
 - `content/help/*.md` — ヘルプページ本文（人手で編集する Markdown）。本文の更新は .md を編集・コミット・再デプロイで反映
 - `lib/help/` — ヘルプのマニフェスト（`sections.ts`: 目次・anchor・読み込む .md の唯一のソース）と loader（`load-help.ts`）
 - `app/(main)/help/` — ヘルプページ（`/help`）。Server Component で `content/help/*.md` を読み込み描画
@@ -80,7 +82,8 @@ Form (Client Component) → lib/actions/ (Server Actions) → requireAuth() → 
 
 ### Authentication
 - Auth.js v5 with Credentials Provider + JWT sessions
-- **全面認証必須**: `/`（工事中）・`/login`・`/api/auth/*` と静的アセットのみ公開。それ以外（全 `/top/*` ページと `/api/*`（CSV エクスポート含む））は `middleware.ts` の `authorized` コールバックで認証必須。未認証ページアクセスは `/login?callbackUrl=` へリダイレクト、未認証 API は JSON 401。公開判定の単一ソースは `lib/routes.ts` の `isPublic()`（純関数・never-throw）。閲覧・編集とも管理者（ログイン済み）のみ。
+- **全面認証必須**: `/`（工事中）・`/login`・`/api/auth/*` と静的アセットのみ公開。それ以外（全 `/top/*` ページと `/api/*`（CSV エクスポート含む））は `middleware.ts` のラッパーと `lib/auth-gate.ts` の `decideGate()` で認証必須。未認証ページアクセスは `/login?callbackUrl=` へリダイレクト、未認証 API は JSON 401。公開判定の単一ソースは `lib/routes.ts` の `isPublic()`（純関数・never-throw）。閲覧・編集とも管理者（ログイン済み）のみ。
+- **セッション絶対有効期限**: ログインから固定時間（`AUTH_ABSOLUTE_SESSION_SECONDS`、既定 8 時間）で必ず失効する。Auth.js の JWT はローリング（操作で延長）だが、`auth.config.ts` の `jwt` コールバックが `loginAt` を記録し `lib/auth-session.ts` の `isSessionExpired()` 超過で `null` を返して絶対失効させる。失効後は middleware が `had_session` cookie 痕跡で「失効 vs 初回未認証」を区別し `/login?reason=expired` を出し分け、`login-form` が「有効期限が切れました」を表示。失効中の Server Action は `requireAuth()` が throw でなく redirect する。`had_session` は signOut で `lib/actions/auth-actions.ts` の `clearHadSession()` がクリア。デプロイ前の既存トークン（`loginAt` 無し）は失効させず `maxAge` まで有効。
 - ルート構成: `/`＝公開の工事中ページ（`app/page.tsx`、サイドバー無し）。アプリ本体は `/top` 配下（`app/(main)/top/*`）。旧 `/` のダッシュボードは `/top`。アプリ内パスは `lib/routes.ts`（`ROUTES`/`employeeDetail`/`shiftHistoryDetail`/`helpAnchor`）に集約（裸リテラル禁止）。
 - ログイン後リダイレクトは `callbackUrl` を `safeCallback()` で同一オリジン相対パスに限定（オープンリダイレクト防止）。`login` ページ・工事中ページは既ログインなら `/top` へ転送。
 - Server Actions: `await requireAuth()` at the top of every mutation function（middleware が主、Server Action が副の多層防御）

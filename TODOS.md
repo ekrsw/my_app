@@ -48,6 +48,22 @@
 
 **Depends on:** 今回のサイドバー icon 化 PR がマージされ Playwright セットアップが main に載ること
 
+## 期限切れ前の警告トースト（セッション絶対期限の事前通知）
+
+**What:** ログインセッションの絶対有効期限切れが近づいたら「あと N 分でログアウトします」を事前にトースト通知し、ワンクリックで延長（再認証）できる動線を追加する。
+
+**Why:** 絶対期限方式（`AUTH_ABSOLUTE_SESSION_SECONDS`、デフォルト8時間）は操作中でも時間が来たら問答無用で失効する。シフト入力など滞在時間の長い作業の最中に突然失効すると入力が飛ぶ恐れがある。事前警告があれば、ユーザーは作業を保存するか、その場で再認証して作業を継続できる。
+
+**Pros:** 作業中の突然失効による不満・入力ロスを緩和 / セキュリティ（絶対期限）と UX を両立 / 失効そのものは既存の had_session 動線が担保するため追加は純粋な上乗せ
+
+**Cons:** `useSession()` の `session.expires` を監視するクライアントコンポーネントが復活する（eng-review でサーバー一点に簡素化した方針と逆行）/ setTimeout の時計ズレ・タブ休止対策（visibilitychange 補強）が必要 / component test が増える
+
+**Context:** 絶対期限の本体は `auth.config.ts` の jwt コールバック（`lib/auth-session.ts` の `isSessionExpired`/`getAbsoluteTtlMs`）。失効メッセージは middleware + `had_session` cookie のサーバー一点方式で実装済み（design-20260616）。本 TODO は office-hours の Approach B 相当で、eng-review テンション1で「admin ツールには過剰」として一旦見送った経緯がある。実装するなら `session.expires` を絶対デッドラインに上書きし（jwt の loginAt + ttl）、クライアントで残り時間を監視する。設計ドキュメント: `~/.gstack/projects/ekrsw-my_app/ekoresawa-main-design-20260616-020143.md`。
+
+**Effort:** M (CC+gstack: ~1h) | **Priority:** P3 | **Risk:** Low
+
+**Depends on:** セッション絶対期限 PR（design-20260616）のマージと運用開始。運用で「作業中失効が困る」声が出てから着手するのが自然。
+
 ## フェーズ2: インシデントログ機能
 
 **What:** 「対応できなかった」をワンクリックで記録できるインシデントログ機能を追加する
