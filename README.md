@@ -74,6 +74,7 @@ ADMIN_PASSWORD="<初期管理者パスワード>"
 | `AUTH_SECRET` | Auth.js のセッション署名キー。`openssl rand -base64 32` で生成 |
 | `ADMIN_USERNAME` | 初期管理者ユーザー名 |
 | `ADMIN_PASSWORD` | 初期管理者パスワード（seed 時にハッシュ化して保存） |
+| `AUTH_ABSOLUTE_SESSION_SECONDS` | （任意）ログインセッションの絶対有効期限（秒）。未設定時は 28800（8 時間） |
 
 ### 5. データベースのセットアップ
 
@@ -132,17 +133,25 @@ npm run start
 
 ### 概要
 
-Auth.js v5 の Credentials Provider + JWT セッション戦略を使用。
+Auth.js v5 の Credentials Provider + JWT セッション戦略を使用。**全面認証必須**で、公開されるのは工事中ページ（`/`）・ログインページ（`/login`）・`/api/auth/*` と静的アセットのみ。それ以外の全ページ（`/top/*`）と全 API（`/api/*`、CSV エクスポート含む）は認証が必要。
 
 | ユーザー状態 | 権限 |
 |---|---|
-| 未認証 | 全ページの閲覧が可能。作成・編集・削除は不可（ボタン非表示 + Server Action で拒否） |
-| 認証済み | 全ページの閲覧 + 全 CRUD 操作が可能 |
+| 未認証 | 公開ページ（`/`・`/login`）のみアクセス可能。保護ページへのアクセスは `/login` へリダイレクト、保護 API は JSON 401 |
+| 認証済み | 全ページの閲覧 + 全 CRUD 操作が可能（閲覧・編集とも管理者のみ） |
 
 ### ログイン
 
 - `/login` にアクセスしてユーザー名・パスワードでログイン
 - サイドバー下部のログイン/ログアウトボタンからも操作可能
+- 未認証で保護ページにアクセスすると `/login?callbackUrl=<元のパス>` へリダイレクトされ、ログイン後に元の画面へ復帰する（`callbackUrl` は同一オリジン相対パスに限定）
+
+### セッションの絶対有効期限
+
+- ログインから固定時間で必ず失効する。既定は 8 時間（`AUTH_ABSOLUTE_SESSION_SECONDS` 秒で調整可能）
+- Auth.js の JWT はローリング（操作のたびに延長）だが、`auth.config.ts` の `jwt` コールバックがログイン時刻（`loginAt`）を記録し、絶対期限を超過すると `null` を返して失効させる（`lib/auth-session.ts`）
+- 失効後は `/login?reason=expired` へ遷移し「セッションの有効期限が切れました」を表示する。失効（過去にログイン済み）と初回未認証は `had_session` cookie 痕跡で区別する
+- デプロイ前に発行済みの既存トークン（`loginAt` 無し）は絶対失効させず `maxAge` まで有効（デプロイ時の一斉ログアウトを回避）
 
 ### 管理者ユーザーの作成
 
@@ -156,10 +165,12 @@ npm run db:seed
 
 ### 認証保護の仕組み
 
-- **Server Actions**: `lib/actions/` 配下の全 mutation 関数で `requireAuth()` により認証チェック。未認証時はエラーをスロー
+認証ゲートは多層防御で、主たる強制点は middleware：
+
+- **middleware（主）**: `middleware.ts` のラッパー形 `auth((req) => ...)` が matcher 対象の全リクエストを通し、判定本体は純関数 `lib/auth-gate.ts` の `decideGate()` に集約。公開判定は `lib/routes.ts` の `isPublic()`。未認証ページは `/login` リダイレクト、未認証 API は JSON 401
+- **Server Actions（副）**: `lib/actions/` 配下の全 mutation 関数の先頭で `requireAuth()` により認証チェック。未認証時は `/login`（失効時は `?reason=expired`）へ redirect する
 - **UI（Server Component）**: `auth()` で認証状態を判定し、作成フォーム・インポートダイアログを条件表示
 - **UI（Client Component）**: `useSession()` でテーブル行クリック（編集ダイアログ）を認証状態に応じて制御
-- **読み取り操作**: `lib/db/` のクエリ関数は認証不要（誰でも閲覧可能）
 
 ## テスト
 
@@ -208,7 +219,7 @@ npx vitest run tests/triggers/      # DB トリガーテスト
 
 ### E2E テスト (Playwright)
 
-ブラウザでの UI 挙動を検証するテストは `tests/e2e/` 配下。対象はサイドバー開閉、設定メニューの Collapsible↔DropdownMenu 切替、cookie 永続化、モバイル sheet 表示など。
+ブラウザでの UI 挙動を検証するテストは `tests/e2e/` 配下。対象はサイドバー開閉、設定メニューの Collapsible↔DropdownMenu 切替、cookie 永続化、モバイル sheet 表示、セッション失効 → 再ログイン動線など。
 
 #### 初回セットアップ
 
@@ -239,15 +250,16 @@ Playwright は `webServer` 設定で自動的に `npm run start` を起動する
 
 #### テストプロジェクト
 
-`playwright.config.ts` で 3 つに分離:
+`playwright.config.ts` で 4 つに分離:
 
 | Project | Device | 対象 |
 |---|---|---|
 | `setup` | — | `auth.setup.ts`：`/login` でログインし storageState を保存する認証セットアップ |
 | `chromium-desktop` | Desktop Chrome (1280x800) | `describe("Sidebar — desktop")` とヘルプ導線（`help.spec.ts`） |
 | `chromium-mobile` | Pixel 5 エミュレート | `describe("Sidebar — mobile")` |
+| `chromium-expiry` | Desktop Chrome | セッション絶対期限と再ログイン動線（`session-expiry.spec.ts`）。spec 内でログインするため `setup` 非依存。短期限を効かせた専用サーバー（別ポート）を向く |
 
-`chromium-desktop`/`chromium-mobile` は `dependencies: ["setup"]` で `setup` プロジェクトに依存し、保存された storageState を読み込んでログイン済み状態から起動する。タッチデバイスでホバーが効かない等、プロジェクトごとに挙動が違うテストが混線しないよう `grep` でルーティングしている。
+`chromium-desktop`/`chromium-mobile` は `dependencies: ["setup"]` で `setup` プロジェクトに依存し、保存された storageState を読み込んでログイン済み状態から起動する。タッチデバイスでホバーが効かない等、プロジェクトごとに挙動が違うテストが混線しないよう `grep` でルーティングしている。`chromium-expiry` は短期限（`AUTH_ABSOLUTE_SESSION_SECONDS`）を設定した専用 `webServer` を別ポートで立て、通常サーバー（3000）と env が混ざらないよう分離している。
 
 ### Server Action テストの必須モック
 
