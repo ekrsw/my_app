@@ -1,17 +1,6 @@
 import { describe, it, expect } from "vitest"
 import { isPublic, safeCallback, ROUTES } from "@/lib/routes"
-import { authConfig } from "@/auth.config"
-
-// authorized コールバックを直接呼ぶためのヘルパー。
-// 実体は middleware（Edge）で動くが、ロジックは純粋なので nextUrl をモックして検証できる。
-type AuthorizedArg = Parameters<NonNullable<typeof authConfig.callbacks>["authorized"]>[0]
-function callAuthorized(pathname: string, authed: boolean) {
-  const arg = {
-    auth: authed ? { user: { id: "1", name: "admin" } } : null,
-    request: { nextUrl: { pathname } },
-  } as unknown as AuthorizedArg
-  return authConfig.callbacks!.authorized!(arg)
-}
+import { decideGate } from "@/lib/auth-gate"
 
 describe("lib/routes isPublic", () => {
   it("/ と /login は公開", () => {
@@ -63,36 +52,62 @@ describe("lib/routes safeCallback (オープンリダイレクト防止)", () =>
   })
 })
 
-describe("auth.config authorized（認証ゲート）", () => {
-  it("公開パスは未認証でも true", () => {
-    expect(callAuthorized("/", false)).toBe(true)
-    expect(callAuthorized("/login", false)).toBe(true)
+describe("lib/auth-gate decideGate（認証ゲート判定）", () => {
+  it("公開パスは未認証でも next（had_session 設定なし）", () => {
+    expect(decideGate({ pathname: "/", isAuthed: false, hadSession: false })).toEqual({
+      type: "next",
+      setHadSession: false,
+    })
+    expect(decideGate({ pathname: "/login", isAuthed: false, hadSession: false })).toEqual({
+      type: "next",
+      setHadSession: false,
+    })
   })
 
-  it("ページは未認証で false（→ /login へリダイレクトされる）", () => {
-    expect(callAuthorized("/top", false)).toBe(false)
-    expect(callAuthorized("/top/employees", false)).toBe(false)
+  it("認証済みページは next、had_session 未設定なら付与・既設なら付与しない", () => {
+    expect(decideGate({ pathname: "/top", isAuthed: true, hadSession: false })).toEqual({
+      type: "next",
+      setHadSession: true,
+    })
+    expect(decideGate({ pathname: "/top/employees", isAuthed: true, hadSession: true })).toEqual({
+      type: "next",
+      setHadSession: false,
+    })
   })
 
-  it("ページは認証済みで true", () => {
-    expect(callAuthorized("/top", true)).toBe(true)
-    expect(callAuthorized("/top/shifts/history", true)).toBe(true)
+  it("未認証ページ・had_session なし → redirect（reason なし＝初回未認証）", () => {
+    expect(decideGate({ pathname: "/top", isAuthed: false, hadSession: false })).toEqual({
+      type: "redirect",
+      reason: null,
+    })
   })
 
-  it("/api/* は未認証で 401 (NextResponse) を返す（export も認証必須）", () => {
-    const res = callAuthorized("/api/employees/export", false)
-    expect(typeof res).toBe("object")
-    expect((res as Response).status).toBe(401)
+  it("未認証ページ・had_session あり → redirect reason=expired（失効）", () => {
+    expect(decideGate({ pathname: "/top/employees", isAuthed: false, hadSession: true })).toEqual({
+      type: "redirect",
+      reason: "expired",
+    })
   })
 
-  it("/api/* は認証済みで true", () => {
-    expect(callAuthorized("/api/employees/export", true)).toBe(true)
-    expect(callAuthorized("/api/shifts/versions", true)).toBe(true)
+  it("未認証 API は json401（export も認証必須、had_session の有無に依らず）", () => {
+    expect(decideGate({ pathname: "/api/employees/export", isAuthed: false, hadSession: false })).toEqual({
+      type: "json401",
+    })
+    expect(decideGate({ pathname: "/api/shifts/versions", isAuthed: false, hadSession: true })).toEqual({
+      type: "json401",
+    })
+  })
+
+  it("認証済み API は next", () => {
+    expect(decideGate({ pathname: "/api/employees/export", isAuthed: true, hadSession: true })).toEqual({
+      type: "next",
+      setHadSession: false,
+    })
   })
 
   it("never-throw: 不正な pathname でも例外を投げない", () => {
     for (const p of ["", "//", "/\\x", "/top/"]) {
-      expect(() => callAuthorized(p, false)).not.toThrow()
+      expect(() => decideGate({ pathname: p, isAuthed: false, hadSession: false })).not.toThrow()
     }
   })
 })
