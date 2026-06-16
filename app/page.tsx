@@ -7,7 +7,7 @@ import { ROUTES } from "@/lib/routes"
  * - 未認証: 「工事中」を表示（アプリ機能には到達不可。アプリは /top 配下）。
  * - ログイン済み: /top（ダッシュボード）へ転送。
  *
- * `/` は公開パス（middleware の authorized を素通り）なので、ここでの
+ * `/` は公開パス（middleware の認証ゲートを素通り）なので、ここでの
  * RSC 内転送のみが効く。ログイン済み → /top は認証済みなのでループしない。
  * サイドバー・SessionProvider は付けない（(main) レイアウトの外）。
  */

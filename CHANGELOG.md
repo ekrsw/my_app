@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.14.0] - 2026-06-16
+
+### Added
+- **ログインセッションの絶対有効期限**: ログインから固定時間（`AUTH_ABSOLUTE_SESSION_SECONDS`、既定 28800 秒＝8時間）で必ず失効する。Auth.js v5 の JWT はローリング（操作で `exp` が延長）のため、`auth.config.ts` の `jwt` コールバックで `loginAt`（ログイン時刻）を刻印し、`lib/auth-session.ts` の `isSessionExpired()` 超過時に `null` を返して絶対失効させる。失効判定は純関数（`getAbsoluteTtlMs`/`isSessionExpired`）に分離し単体テスト可能。
+- **失効 → 再ログイン動線**: 失効後は `/login?reason=expired` へリダイレクトし「セッションの有効期限が切れました」を表示。失効（過去にログイン済み）と初回未認証を `had_session` cookie 痕跡で区別する（middleware が認証済みリクエストで付与、signOut で `clearHadSession()` がクリア）。再ログイン後は `callbackUrl` で元画面へ復帰。
+
+### Changed
+- **認証ゲートを middleware ラッパー（`auth((req) => ...)`）+ 純関数 `decideGate`（`lib/auth-gate.ts`）に一本化**。従来 `auth.config.ts` の `authorized` コールバックにあった判定（公開パス素通り・未認証ページのリダイレクト・API 401）を `decideGate` に集約し、middleware は NextResponse への変換のみを担う。挙動は等価で、判定ロジックを middleware モックなしで単体テストできる。
+- **`requireAuth()`（`lib/auth-guard.ts`）を throw → `redirect()` に変更**。失効中の Server Action が汎用エラー境界に落ちず、`/login?reason=expired` へクリーンに遷移する。
+
+### Fixed
+- **`shift-version-compare` のバージョン比較ダイアログが失効時にクラッシュする不具合**: fetch が `r.ok` 未チェックで、middleware の 401 JSON を配列として扱い後続の `.map` が壊れていた。401 を検知してトースト表示＋ログイン誘導するよう修正。
+
+### Tests
+- 絶対失効ロジックの境界（`isSessionExpired`/`getAbsoluteTtlMs`）、`decideGate` の全分岐、`requireAuth` の redirect 出し分け、`jwt` コールバック配線（loginAt の刻印・リフレッシュで再刻印しないこと・null 返却・移行トークン）、`login-form` の失効メッセージ、`shift-version-compare` の 401/非 401、`clearHadSession` を vitest で追加。
+- 失効 → `/login?reason=expired` → 再ログイン → 元画面復帰の E2E（`tests/e2e/session-expiry.spec.ts`）を追加。短期限を効かせた専用サーバー（`chromium-expiry` プロジェクト、別ポート）で他 E2E と一緒に `npm run test:e2e` / `npm run test:all` で実行できる（Playwright は CI 未統合のためローカル実行のみ）。
+
+### Ops
+- `AUTH_ABSOLUTE_SESSION_SECONDS`（秒）で絶対期限を調整可能（未設定時は 8 時間）。デプロイ前の既存トークン（`loginAt` 無し）は絶対失効させず `maxAge` まで有効（デプロイ時の一斉ログアウトを回避）。
+
 ## [0.3.13.0] - 2026-06-16
 
 ### Tests

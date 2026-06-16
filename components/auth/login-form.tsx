@@ -4,6 +4,7 @@ import { useState } from "react"
 import { signIn } from "next-auth/react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { safeCallback } from "@/lib/routes"
+import { SESSION_EXPIRED_MESSAGE } from "@/lib/auth-session"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -20,6 +21,10 @@ export function LoginForm() {
   const searchParams = useSearchParams()
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
+
+  // セッション絶対期限切れで middleware / requireAuth から飛ばされてきた場合に表示。
+  // 初回未認証（reason なし）では出さない（middleware が had_session 痕跡で出し分け）。
+  const expired = searchParams.get("reason") === "expired"
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -56,6 +61,14 @@ export function LoginForm() {
         </CardDescription>
       </CardHeader>
       <CardContent>
+        {expired && (
+          <p
+            role="status"
+            className="mb-4 rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground"
+          >
+            {SESSION_EXPIRED_MESSAGE}
+          </p>
+        )}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="username">ユーザー名</Label>

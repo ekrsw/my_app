@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useSession, signOut } from "next-auth/react"
+import { clearHadSession } from "@/lib/actions/auth-actions"
 import {
   LayoutDashboard,
   History,
@@ -225,6 +226,7 @@ export function AppSidebar() {
                 tooltip="ログアウト"
                 onClick={async () => {
                   await signOut({ redirect: false })
+                  await clearHadSession() // had_session を消し、再ログイン画面の expired 誤表示を防ぐ
                   window.location.href = ROUTES.underConstruction
                 }}
               >

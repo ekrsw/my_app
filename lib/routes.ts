@@ -37,7 +37,7 @@ export const helpAnchor = (anchor: string) => `/top/help#${anchor}`
 
 /**
  * 公開判定（未認証で到達可能なパス）の単一ソース。
- * 純関数・never-throw を保つこと（middleware の authorized がここで例外を
+ * 純関数・never-throw を保つこと（middleware の認証ゲートがここで例外を
  * 投げると全リクエストが 500 になる単一障害点になるため）。
  * 判定は pathname のみで行い、クエリ文字列は見ない（`/login?callbackUrl=...`
  * を公開扱いできずリダイレクトループするのを防ぐ）。
