@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.12.1] - 2026-06-19
+
+### Changed
+- **ログアウト後の遷移先を `/login` に変更**（従来は工事中ページ `/`）。サイドバーのログアウトボタン押下時、`signOut({ redirect: false })` 後に `window.location.href` で `ROUTES.login` へハードリダイレクトする。`/login` は公開ページのため未認証状態でも弾かれず、ログアウト直後は未認証なので「既ログインなら `/top` へ転送」にも掛からずリダイレクトループは発生しない。
+
 ## [0.3.12.0] - 2026-06-15
 
 ### Changed

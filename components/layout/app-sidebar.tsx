@@ -225,7 +225,7 @@ export function AppSidebar() {
                 tooltip="ログアウト"
                 onClick={async () => {
                   await signOut({ redirect: false })
-                  window.location.href = ROUTES.underConstruction
+                  window.location.href = ROUTES.login
                 }}
               >
                 <LogOut className="h-4 w-4" />
