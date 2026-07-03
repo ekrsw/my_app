@@ -6,6 +6,7 @@ import { getEmployeeById } from "@/lib/db/employees"
 import { getGroups } from "@/lib/db/groups"
 import { getFunctionRoles } from "@/lib/db/roles"
 import { getActivePositions } from "@/lib/db/positions"
+import { getActiveSkills, getEmployeeCurrentSkills, getEmployeeSkillRows } from "@/lib/db/skills"
 import { notFound } from "next/navigation"
 import { auth } from "@/auth"
 
@@ -18,12 +19,16 @@ export default async function EmployeeDetailPage({
   const session = await auth()
   const isAuthenticated = !!session?.user
 
-  const [employee, groups, allRoles, allPositions] = await Promise.all([
-    getEmployeeById(id),
-    getGroups(),
-    getFunctionRoles(),
-    getActivePositions(),
-  ])
+  const [employee, groups, allRoles, allPositions, allSkills, currentSkills, skillRows] =
+    await Promise.all([
+      getEmployeeById(id),
+      getGroups(),
+      getFunctionRoles(),
+      getActivePositions(),
+      getActiveSkills(),
+      getEmployeeCurrentSkills(id),
+      getEmployeeSkillRows(id),
+    ])
 
   if (!employee) {
     notFound()
@@ -45,6 +50,9 @@ export default async function EmployeeDetailPage({
           groups={groups}
           allRoles={allRoles}
           allPositions={allPositions}
+          allSkills={allSkills}
+          currentSkills={currentSkills}
+          skillRows={skillRows}
           isAuthenticated={isAuthenticated}
         />
       </PageContainer>

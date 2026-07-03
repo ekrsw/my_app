@@ -126,6 +126,37 @@ export const positionAssignmentSchema = z.object({
 export type GroupAssignmentFormData = z.infer<typeof groupAssignmentSchema>
 export type PositionAssignmentFormData = z.infer<typeof positionAssignmentSchema>
 
+// スキルマスタ（positions と同型）
+export const skillSchema = z.object({
+  skillCode: z
+    .string()
+    .min(1, "スキルコードは必須です")
+    .max(20, "20文字以内で入力してください")
+    .regex(/^[A-Z_]+$/, "大文字英字とアンダースコアのみ使用できます"),
+  skillName: z.string().min(1, "スキル名は必須です").max(50, "50文字以内で入力してください"),
+  isActive: z.boolean().default(true),
+  sortOrder: z.coerce.number().int().min(0, "0以上の数値を入力してください").default(0),
+})
+export type SkillFormData = z.infer<typeof skillSchema>
+
+// スキルレベルの上限（全スキル共通）
+export const SKILL_LEVEL_MIN = 1
+export const SKILL_LEVEL_MAX = 5
+
+// スキルレベル割当（追記専用。レベルアップ時に新規行を追記）
+export const skillLevelSchema = z.object({
+  employeeId: z.string().uuid("従業員を選択してください"),
+  skillId: z.coerce.number().int().positive("スキルを選択してください"),
+  level: z.coerce
+    .number()
+    .int()
+    .min(SKILL_LEVEL_MIN, `レベルは${SKILL_LEVEL_MIN}以上で入力してください`)
+    .max(SKILL_LEVEL_MAX, `レベルは${SKILL_LEVEL_MAX}以下で入力してください`),
+  // 省略時はサーバー側で getTodayJST() を使う
+  startDate: z.string().nullable().optional(),
+})
+export type SkillLevelFormData = z.infer<typeof skillLevelSchema>
+
 export const shiftHistoryNoteSchema = z.object({
   note: z.string().max(255, "255文字以内で入力してください").default(""),
 })

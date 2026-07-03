@@ -52,6 +52,7 @@ model Employee {
   positionHistory    EmployeePositionHistory[]
   shiftChangeHistory ShiftChangeHistory[]
   dutyAssignments       DutyAssignment[]
+  skills                EmployeeSkill[]
 
   @@map("employees")
 }
@@ -355,4 +356,38 @@ model EmployeePositionHistory {
   @@unique([employeeId, version])
   @@index([employeeId, changedAt])
   @@map("employee_position_history")
+}
+
+// スキルマスタ。positions とほぼ同型。
+model Skill {
+  id        Int      @id @default(autoincrement())
+  skillCode String   @unique @map("skill_code") @db.VarChar(20)
+  skillName String   @map("skill_name") @db.VarChar(50)
+  isActive  Boolean? @default(true) @map("is_active")
+  sortOrder Int      @default(0) @map("sort_order")
+
+  employeeSkills EmployeeSkill[]
+
+  @@map("skills")
+}
+
+// スキル割当（追記専用ログ＝履歴そのもの）。
+// 1行 = (社員, スキル, レベル, 付与日)。レベルアップは新規行の追記で表現し、
+// 過去行は書き換えない。各 (社員, スキル) の最新行（start_date 降順→id 降順）が
+// 現在のレベル。end_date は持たず、訂正は物理 DELETE で行う。
+// 別履歴テーブル・トリガーは持たない（duty_assignments と同じ追記専用思想）。
+// 「現在のレベル一覧」は employee_current_skills ビュー経由で取得する。
+model EmployeeSkill {
+  id         Int      @id @default(autoincrement())
+  employeeId String   @map("employee_id") @db.Uuid
+  skillId    Int      @map("skill_id")
+  level      Int // 1..5（アプリ側 Zod でバリデーション）
+  startDate  DateTime @map("start_date") @db.Date
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  skill    Skill    @relation(fields: [skillId], references: [id], onDelete: Restrict)
+
+  @@index([employeeId, skillId, startDate], map: "employee_skills_employee_skill_date_idx")
+  @@map("employee_skills")
 }

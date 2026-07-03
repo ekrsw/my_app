@@ -6,8 +6,10 @@ import { EmployeeBasicInfoTab } from "@/components/employees/employee-basic-info
 import { EmployeeGroupsTab } from "@/components/employees/employee-groups-tab"
 import { EmployeeRolesTab } from "@/components/employees/employee-roles-tab"
 import { EmployeePositionsTab } from "@/components/employees/employee-positions-tab"
+import { EmployeeSkillsTab } from "@/components/employees/employee-skills-tab"
 import type { EmployeeWithDetails } from "@/types/employees"
-import type { FunctionRole, Position } from "@/app/generated/prisma/client"
+import type { FunctionRole, Position, Skill } from "@/app/generated/prisma/client"
+import type { EmployeeCurrentSkill, EmployeeSkillRow } from "@/lib/db/skills"
 
 type Group = { id: number; name: string }
 
@@ -16,10 +18,22 @@ type Props = {
   groups: Group[]
   allRoles: FunctionRole[]
   allPositions: Position[]
+  allSkills: Skill[]
+  currentSkills: EmployeeCurrentSkill[]
+  skillRows: EmployeeSkillRow[]
   isAuthenticated?: boolean
 }
 
-export function EmployeeDetailTabs({ employee, groups, allRoles, allPositions, isAuthenticated }: Props) {
+export function EmployeeDetailTabs({
+  employee,
+  groups,
+  allRoles,
+  allPositions,
+  allSkills,
+  currentSkills,
+  skillRows,
+  isAuthenticated,
+}: Props) {
   const [activeTab, setActiveTab] = useState("basic")
 
   return (
@@ -29,6 +43,7 @@ export function EmployeeDetailTabs({ employee, groups, allRoles, allPositions, i
         <TabsTrigger value="groups">所属</TabsTrigger>
         <TabsTrigger value="roles">ロール</TabsTrigger>
         <TabsTrigger value="positions">役職</TabsTrigger>
+        <TabsTrigger value="skills">スキル</TabsTrigger>
       </TabsList>
 
       <TabsContent value="basic">
@@ -45,6 +60,16 @@ export function EmployeeDetailTabs({ employee, groups, allRoles, allPositions, i
 
       <TabsContent value="positions">
         <EmployeePositionsTab employee={employee} allPositions={allPositions} isAuthenticated={isAuthenticated} />
+      </TabsContent>
+
+      <TabsContent value="skills">
+        <EmployeeSkillsTab
+          employeeId={employee.id}
+          currentSkills={currentSkills}
+          skillRows={skillRows}
+          allSkills={allSkills}
+          isAuthenticated={isAuthenticated}
+        />
       </TabsContent>
     </Tabs>
   )
