@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.15.1] - 2026-07-03
+
+### Fixed
+- **シフト詳細ダイアログの日付が1日前に表示される不具合**: ダッシュボード「本日の出勤者」および業務管理・月次のシフトセルからシフト詳細ダイアログを開くと、日付が1日前に表示されていた。原因は `formatDate()` に日付のみ文字列 `"YYYY-MM-DD"` を渡すと、`date-fns` の `parseISO` がローカル 0 時と解釈し、`asUTC` の UTC 成分読み出しと組み合わさって JST 環境で前日にずれていたこと。日付のみ文字列を UTC midnight として解釈させ、Prisma `@db.Date`（UTC で読まれる）と同じ意味論に揃えて解消。両画面とも同一の `ShiftDetailDialog` 経由のため 1 箇所の修正で両方解消。
+
+### Changed
+- vitest の実行タイムゾーンを `Asia/Tokyo` に固定し、日付境界ロジックを実行環境（開発機 JST / CI UTC）に依存せず決定的にテストできるようにした。日付のみ文字列の回帰テスト（月初・年末境界含む）を追加。
+
 ## [0.3.15.0] - 2026-06-16
 
 ### Added
