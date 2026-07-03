@@ -42,7 +42,18 @@ function asUTC(d: Date): Date {
 
 export function formatDate(date: Date | string | null, pattern = "yyyy/MM/dd"): string {
   if (!date) return "-"
-  const d = typeof date === "string" ? parseISO(date) : date
+  let d: Date
+  if (typeof date === "string") {
+    // 日付のみ "YYYY-MM-DD" は date-fns parseISO が【ローカル 0 時】と解釈する。
+    // asUTC が UTC 成分を読み出すため、JST ブラウザではローカル 0 時が前日の UTC に
+    // なり 1 日ずれる。UTC midnight として解釈させ、Prisma の @db.Date（UTC で読まれる）
+    // と同じ意味論に揃えることで、asUTC 経由でも DB の JST 値がそのまま出力される。
+    // Z 付き ISO 文字列やタイムスタンプ文字列はそのまま parseISO に委ねる。
+    const dateOnly = /^\d{4}-\d{2}-\d{2}$/.test(date)
+    d = parseISO(dateOnly ? `${date}T00:00:00Z` : date)
+  } else {
+    d = date
+  }
   return format(asUTC(d), pattern, { locale: ja })
 }
 
