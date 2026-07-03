@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.16.0] - 2026-07-03
+
+### Added
+- **スキル管理機能**: 社員にスキルとその習熟度（レベル1〜5）を割り当てて管理できるようにした。「業務割当て」に近い運用で、`skills` マスタ（役職マスタと同型）を用意し社員へ割り当てる。
+  - **追記専用（イベントソーシング）方式**: レベルアップは過去の割当を書き換えず新しい割当行を追記するだけ。各 (社員, スキル) の最新行がその人の現在のレベルを表す。`end_date` は持たず、訂正・取り消しは物理削除で行う（`duty_assignments` と同じ追記専用の事実記録の思想）。別履歴テーブル・トリガーは持たず、割当テーブル自体が履歴になる。
+  - **現在レベルビュー**: `employee_current_skills` ビュー（`DISTINCT ON (employee_id, skill_id)` を `start_date` 降順→`id` 降順でラップ）で各スキルの最新1行だけを取得。同一 `start_date` のタイブレーカーは `id` 降順。UI・エクスポート・他機能はこのビューを参照するだけで現レベルを取得できる。
+  - **UI**: スキルマスタ管理画面 `/top/skills`（サイドバー「スキル」）と、社員詳細の「スキル」タブ（現レベル一覧・レベル付与フォーム・スキルごとのレベル推移タイムライン・各割当行の削除）。
+- スキーマ定義書（`docs/shift_database_schema_v9.md`）に `skills` / `employee_skills` テーブルと `employee_current_skills` ビューを追記。
+
+### Changed
+- `tests/setup-db.ts` に `CREATE VIEW` 抽出を追加（`prisma db push` はビューを管理しないため、テスト DB へビューを別途適用）。`tests/helpers/cleanup.ts` に新テーブルを追加。
+
 ## [0.3.15.1] - 2026-07-03
 
 ### Fixed
