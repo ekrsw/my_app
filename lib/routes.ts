@@ -20,6 +20,7 @@ export const ROUTES = {
   groups: "/top/groups",
   roles: "/top/roles",
   positions: "/top/positions",
+  skills: "/top/skills",
   shifts: "/top/shifts",
   shiftHistory: "/top/shifts/history",
   dutyAssignments: "/top/duty-assignments",

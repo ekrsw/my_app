@@ -100,6 +100,8 @@ async function main() {
     "20260303100000_add_note_to_shift_trigger/migration.sql",
     "20260327000000_add_skip_history_option/migration.sql",
     "20260412000000_add_lunch_break_to_shifts/migration.sql",
+    // db push はビュー（Prisma スキーマ外）を作らないため、ここでビュー定義を再適用する
+    "20260703000000_add_skills_and_employee_skills/migration.sql",
   ]
 
   // prisma db push が「最終形」のスキーマを一括作成した後、過去マイグレーションから
@@ -183,6 +185,13 @@ function extractTriggerStatements(sql: string): string[] {
   // Extract ALTER TABLE statements
   const alterTableRegex = /ALTER\s+TABLE\s+[^;]+;/gi
   while ((match = alterTableRegex.exec(sql)) !== null) {
+    statements.push(match[0])
+  }
+
+  // Extract CREATE VIEW statements (db push doesn't manage views)
+  const createViewRegex =
+    /CREATE\s+(?:OR\s+REPLACE\s+)?VIEW[\s\S]*?;/gi
+  while ((match = createViewRegex.exec(sql)) !== null) {
     statements.push(match[0])
   }
 

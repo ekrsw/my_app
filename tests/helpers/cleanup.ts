@@ -11,6 +11,7 @@ export async function cleanupDatabase() {
       employee_function_roles,
       employee_groups,
       employee_positions,
+      employee_skills,
       employee_group_history,
       employee_function_role_history,
       employee_position_history,
@@ -21,6 +22,7 @@ export async function cleanupDatabase() {
       function_roles,
       external_tools,
       positions,
+      skills,
       shift_codes,
       import_log
     CASCADE
