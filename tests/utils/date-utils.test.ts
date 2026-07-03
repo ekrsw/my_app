@@ -35,6 +35,25 @@ describe("formatDate — asUTC 経由の日付整形", () => {
     expect(formatDate("2026-06-15T00:00:00Z")).toBe("2026/06/15")
   })
 
+  // 回帰テスト: 日付のみ "YYYY-MM-DD" 文字列（ShiftDetailDialog が渡す形式）。
+  // 修正前は parseISO がローカル 0 時と解釈し、JST 環境で asUTC が前日を読んで
+  // 1 日ずれていた（vitest は TZ=Asia/Tokyo 固定なので、このずれを確実に検出する）。
+  it("日付のみ文字列 'YYYY-MM-DD' を 1 日ずらさず整形する", () => {
+    expect(formatDate("2026-07-03")).toBe("2026/07/03")
+  })
+
+  it("日付のみ文字列を ShiftDetailDialog のパターンで整形する", () => {
+    expect(formatDate("2026-07-03", "yyyy年M月d日(E)")).toBe("2026年7月3日(金)")
+  })
+
+  it("日付のみ文字列が月初でも前月末にずれない", () => {
+    expect(formatDate("2026-01-01")).toBe("2026/01/01")
+  })
+
+  it("日付のみ文字列が年末でも翌年にずれない", () => {
+    expect(formatDate("2026-12-31")).toBe("2026/12/31")
+  })
+
   it("DB の JST 値（Prisma が UTC として読む timestamp）を二重補正せず出力する", () => {
     // 2026/12/31 を表す DB 値は UTC 成分 12/31 として渡ってくる
     expect(formatDate(new Date(Date.UTC(2026, 11, 31)))).toBe("2026/12/31")
